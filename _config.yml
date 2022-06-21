@@ -29,7 +29,7 @@ description: >-                        # used by seo meta and the atom feed
   本来生如秋水盈月，死则如寒蝉蜕林
 
 # fill in the protocol & hostname for your site, e.g., 'https://username.github.io'
-url: 'https://github.com/H-tr/h-tr.github.io'
+url: 'https://h-tr.github.io'
 
 github:
   username: H-tr             # change to your github username
