@@ -96,20 +96,20 @@ author:
   flickr           :
   facebook         :
   foursquare       :
-  github           : "https://github.com/H-tr"
+  github           : "H-tr"
   google_plus      :
   keybase          :
-  instagram        : "https://www.instagram.com/exchinture/"
+  instagram        : "exchinture"
   impactstory      : #"https://profiles.impactstory.org/u/xxxx-xxxx-xxxx-xxxx"
   lastfm           :
-  linkedin         : "https://www.linkedin.com/in/tianrun-hu-ba9b771b3/"
+  linkedin         : "tianrun-hu-ba9b771b3/"
   orcid            : "http://orcid.org/yourorcidurl"
   pinterest        :
   soundcloud       :
   stackoverflow    : # http://stackoverflow.com/users/123456/username
   steam            :
   tumblr           :
-  twitter          : "replacethistwitterhandle"
+  twitter          : "TianrunH"
   vine             :
   weibo            :
   xing             :
@@ -177,16 +177,16 @@ kramdown:
 collections:
   teaching:
     output: true
-    permalink: /:collection/:path/
+    permalink: /:collection/:path
   publications:
     output: true
-    permalink: /:collection/:path/
+    permalink: /:collection/:path
   portfolio:
     output: true
-    permalink: /:collection/:path/
+    permalink: /:collection/:path
   talks:
     output: true
-    permalink: /:collection/:path/
+    permalink: /:collection/:path
 
 
 # Defaults
