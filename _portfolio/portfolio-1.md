@@ -1,8 +1,8 @@
 ---
 title: "Professional Internship in Continental"
 # excerpt: "Professional Internship<br/><img src='/images/continental-logo.svg'>"
-excerpt: "Professional Internship<br/><img src='/images/continental-logo.svg' width=500 height=300>"
+excerpt: "Machine Learning Internship<br/><img src='/images/continental-logo.svg' width=500 height=300>"
 collection: portfolio
 ---
 
-I implemented a benchmarking system in Python and C++ for evaluating the perception system performance of the autonomous robot.
+Continental, a renowned leader in automotive industry, stands as a testament to innovation and exellence. With a widespread global presence, the company has consistently pushed the boundary of technology, shaping the way vehicles function and enhancing driver safety.
