@@ -1,6 +1,7 @@
 ---
-title: "Portfolio item number 1"
-excerpt: "Professional Internship<br/><img src='/images/continental-logo.svg' width="500" height="300">"
+title: "Professional Internship in Continental"
+excerpt: "Professional Internship<br/><img src='/images/continental-logo.svg'>"
+# excerpt: "Professional Internship<br/><img src='/images/continental-logo.svg' width="500" height="300">"
 collection: portfolio
 ---
 
