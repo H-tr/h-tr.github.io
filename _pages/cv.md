@@ -9,9 +9,15 @@ redirect_from:
 
 {% include base_path %}
 
+You can download the detailed resume [here](/files/HuTianrun%20resume.pdf).
+
 Education
 ======
 * B.S. in Computer Engineering, Nanyang Technological University, 2024 (expected)
+
+Awards and Achievements
+======
+* Senior Middle Two (SM2) full Scholarship
 
 Work experience
 ======
