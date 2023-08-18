@@ -11,30 +11,32 @@ redirect_from:
 
 Education
 ======
-* B.S. in GitHub, GitHub University, 2012
-* M.S. in Jekyll, GitHub University, 2014
-* Ph.D in Version Control Theory, GitHub University, 2018 (expected)
+* B.S. in Computer Engineering, Nanyang Technological University, 2024 (expected)
 
 Work experience
 ======
-* Summer 2015: Research Assistant
-  * Github University
-  * Duties included: Tagging issues
-  * Supervisor: Professor Git
+* Student Research Assistant (Jun 2022 - Jul 2022)
+  * A*STAR - Agency for Science, Technology and Research - Part-time Internship
+  * Accomplished the implementation of a BERT-based Extractive Q&A System, coupled with the development of an interactive web application using Django and Vue.js, to enhance information retrieval and user engagement.
 
-* Fall 2015: Research Assistant
-  * Github University
-  * Duties included: Merging pull requests
-  * Supervisor: Professor Hub
+* Machine Learning Engineer (Jan 2023 - Jun 2023)
+  * Continental - Internship
+  * Pioneered the development of a perception system, with a specific focus on Simultaneous Localization and Mapping (SLAM), for an autonomous robot operating in ROS2 environment
   
 Skills
 ======
-* Skill 1
-* Skill 2
-  * Sub-skill 2.1
-  * Sub-skill 2.2
-  * Sub-skill 2.3
-* Skill 3
+* Software Engineering
+  * C
+  * C++
+  * Python
+  * Java
+* Hardware Development
+  * STM32
+* Robotics
+  * ROS & ROS2
+* Artificial Intelligence
+  * Object Detection
+  * Visual Place Recognition
 
 Publications
 ======
@@ -53,7 +55,4 @@ Teaching
   <ul>{% for post in site.teaching %}
     {% include archive-single-cv.html %}
   {% endfor %}</ul>
-  
-Service and leadership
-======
-* Currently signed in to 43 different slack teams
+
