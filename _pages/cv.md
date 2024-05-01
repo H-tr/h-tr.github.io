@@ -13,7 +13,7 @@ You can download the detailed resume [here](/files/HuTianrun%20resume.pdf).
 
 Education
 ======
-* B.S. in Computer Engineering, Nanyang Technological University, 2024 (expected)
+* B.S. in Computer Engineering, Nanyang Technological University, 2024
 
 Awards and Achievements
 ======
@@ -21,13 +21,29 @@ Awards and Achievements
 
 Work experience
 ======
-* Student Research Assistant (Jun 2022 - Jul 2022)
-  * A*STAR - Agency for Science, Technology and Research - Part-time Internship
-  * Accomplished the implementation of a BERT-based Extractive Q&A System, coupled with the development of an interactive web application using Django and Vue.js, to enhance information retrieval and user engagement.
+### Continental AG  *Singapore*
 
-* Machine Learning Engineer (Jan 2023 - Jun 2023)
-  * Continental - Internship
-  * Pioneered the development of a perception system, with a specific focus on Simultaneous Localization and Mapping (SLAM), for an autonomous robot operating in ROS2 environment
+> Machine Learning Intern, Jan 2023 - Jun 2023
+
+* Integrated the Extended Kalman Filter into the perception system using ROS2.
+* Developed a versatile benchmarking system, facilitating the evaluation of various visual odometry methodologies.
+* Collaborated closely with hardware engineers to ensure seamless integration of machine learning algorithms with sensors and
+actuators, bridging the gap between theoretical models and practical applications.
+
+### NUS Research Internship Singapore
+
+> Research Assistant, Sep 2023 - Jun 2024
+
+* Employed the Gaussian Splatting pipeline to enhance the accuracy and adaptability of the reconstructed object.
+* Achieved successful integration, enabling a seamless transition from simulation to real-world application.
+
+### NTU Summer Internship Singapore
+
+> Student Research Assistant, Jun 2022 - Jul 2022
+
+* Designed and implemented a knowledge-based Question and Answer System.
+* Utilized BERT for natural language processing, Django for backend development, and Vue.js for front-end design.
+* Successfully delivered the final Q&A system, meeting project objectives and enhancing information retrieval accuracy.
   
 Skills
 ======
