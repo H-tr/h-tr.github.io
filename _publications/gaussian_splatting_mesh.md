@@ -2,7 +2,7 @@
 title: "Autonomous System Integration with Emphasis on Perception and SLAM"
 # excerpt: "Professional Internship<br/><img src='/images/continental-logo.svg'>"
 excerpt: "Machine Learning Internship in Continental<br/><img src='/images/continental-logo.svg' width=500 height=300>"
-collection: portfolio
+collection: project
 ---
 
 - [Introduction](#introduction)
