@@ -23,7 +23,7 @@ author:
   # Biographic information
   avatar           : "profile.jpeg"
   name             : "Hu Tianrun"
-  pronouns         : he/his 
+  # pronouns         : Mr.
   bio              : "Robotics researcher"
   location         : "Singapore"
   employer         : "National University of Singapore"
@@ -44,7 +44,7 @@ author:
   bitbucket        : # Username - Update with your username on the site
   codepen          : # Username
   dribbble         : # Username
-  github           : "https://github.com/H-tr"
+  github           : "H-tr"
   kaggle           : # Username  
   stackoverflow    : # User number or user number and name (i.e., use "1" or "1/jeff-atwood")    
 
@@ -58,7 +58,7 @@ author:
   keybase          : # Username
   instagram        : # Username
   lastfm           : # Username
-  linkedin         : "Tianrun Hu"
+  linkedin         : "tianrun-hu-ba9b771b3"
   mastodon         : # URL
   medium           : # URL
   pinterest        : # Username
