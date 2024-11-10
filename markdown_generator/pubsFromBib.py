@@ -26,14 +26,14 @@ import re
 
 #todo: incorporate different collection types rather than a catch all publications, requires other changes to template
 publist = {
-    # "proceeding": {
-    #     "file" : "proceedings.bib",
-    #     "venuekey": "booktitle",
-    #     "venue-pretext": "In the proceedings of ",
-    #     "collection" : {"name":"publications",
-    #                     "permalink":"/publication/"}
+    "proceeding": {
+        "file" : "proceedings.bib",
+        "venuekey": "booktitle",
+        "venue-pretext": "In the proceedings of ",
+        "collection" : {"name":"publications",
+                        "permalink":"/publication/"}
         
-    # },
+    },
     "journal":{
         "file": "pubs.bib",
         "venuekey" : "journal",
@@ -98,13 +98,9 @@ for pubsource in publist:
             #Build Citation from text
             citation = ""
 
-            # citation authors - todo - add highlighting for primary author?
+            #citation authors - todo - add highlighting for primary author?
             for author in bibdata.entries[bib_id].persons["author"]:
-                first_name = author.first_names[0] if author.first_names else ""
-                last_name = author.last_names[0] if author.last_names else ""
-                if first_name or last_name:
-                    citation = citation + " " + first_name + " " + last_name + ","
-            citation = citation.rstrip(",") + " "  # Remove trailing comma and add space
+                citation = citation+" "+author.first_names[0]+" "+author.last_names[0]+", "
 
             #citation title
             citation = citation + "\"" + html_escape(b["title"].replace("{", "").replace("}","").replace("\\","")) + ".\""
