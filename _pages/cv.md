@@ -4,61 +4,66 @@ title: "CV"
 permalink: /cv/
 author_profile: true
 redirect_from:
-  - /resume
+ - /resume
 ---
-
 {% include base_path %}
 
 Education
 ======
-* Ph.D in Version Control Theory, GitHub University, 2018 (expected)
-* M.S. in Jekyll, GitHub University, 2014
-* B.S. in GitHub, GitHub University, 2012
+* B.S. in Computer Engineering, Nanyang Technological University, 2024
+  * Honours (Distinction)
+  * Senior Middle Two Full Scholarship
+  * Specialized in Artificial Intelligence
 
 Work experience
 ======
-* Spring 2024: Academic Pages Collaborator
-  * Github University
-  * Duties includes: Updates and improvements to template
-  * Supervisor: The Users
+* Sep 2024 - Present: Research Engineer
+  * National University of Singapore, Adaptive Computing Laboratory
+  * Duties:
+    * Build up a skill library for research purposes
+    * Develop and maintain robotics teleoperation and manipulation systems for NUS SSI robotics group
+  * Supervisor: Prof. David Hsu
 
-* Fall 2015: Research Assistant
-  * Github University
-  * Duties included: Merging pull requests
-  * Supervisor: Professor Hub
+* Sep 2023 - Jun 2024: Research Assistant Intern
+  * National University of Singapore
+  * Duties: 
+    * Employed Gaussian Splatting pipeline for enhanced object reconstruction
+    * Enabled seamless transition from simulation to real-world application
+  * Supervisor: Prof. David Hsu and Prof. Lin Shao
 
-* Summer 2015: Research Assistant
-  * Github University
-  * Duties included: Tagging issues
-  * Supervisor: Professor Git
-  
+* Jan 2023 - Jun 2023: Machine Learning Intern
+  * Continental AG Singapore
+  * Duties:
+    * Developed benchmarking system for visual odometry evaluation
+    * Collaborated with hardware engineers for ML-sensor integration
+    
+* Jun 2022 - Jul 2022: Student Research Assistant Intern
+  * Nanyang Technological University
+  * Duties:
+    * Designed and implemented knowledge-based Q&A system
+    * Built system using BERT, Django, and Vue.js
+
 Skills
 ======
-* Skill 1
-* Skill 2
-  * Sub-skill 2.1
-  * Sub-skill 2.2
-  * Sub-skill 2.3
-* Skill 3
+* Programming Languages
+  * Python
+  * C/C++
+  * Java
+* Software & Frameworks
+  * PyTorch
+  * TensorFlow
+  * Pandas
+  * SciPy
+* Embedded Programming
+
+Projects
+======
+  <ul>{% for post in site.portfolio reversed %}
+    {% include archive-single-cv.html %}
+  {% endfor %}</ul>
 
 Publications
 ======
   <ul>{% for post in site.publications reversed %}
     {% include archive-single-cv.html %}
   {% endfor %}</ul>
-  
-Talks
-======
-  <ul>{% for post in site.talks reversed %}
-    {% include archive-single-talk-cv.html  %}
-  {% endfor %}</ul>
-  
-Teaching
-======
-  <ul>{% for post in site.teaching reversed %}
-    {% include archive-single-cv.html %}
-  {% endfor %}</ul>
-  
-Service and leadership
-======
-* Currently signed in to 43 different slack teams
