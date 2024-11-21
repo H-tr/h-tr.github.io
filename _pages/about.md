@@ -14,7 +14,9 @@ redirect_from:
 - Bachelor's Degree with Distinguished Honours from Nanyang Technological University (NTU)
 
 ## 🏆 Awards
+
 - Senior Middle Two (SM2) full scholarship sponsored by Ministry of Education, Singapore
+- Dean's List (Academic Year 2023-2024)
 
 ## 🔬 Research Interests
 
