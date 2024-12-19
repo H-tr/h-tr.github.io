@@ -1,0 +1,71 @@
+# System files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor directories and files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Node (in case you add any JavaScript packages later)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Python (if you use any Python scripts for automation)
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+env/
+venv/
+.env
+.venv
+ENV/
+
+# Build directories
+dist/
+build/
+_site/
+.sass-cache/
+
+# Local development server
+.jekyll-metadata
+.jekyll-cache/
+
+# Temporary files
+*.log
+*.tmp
+.temp/
+tmp/
+
+# Large media files (consider using Git LFS instead)
+*.mp4
+*.mov
+*.avi
+*.wmv
+*.flv
+*.mkv
+*.psd
+*.ai
+*.pdf
+
+# Personal configuration files
+_config.local.yml
+config.local.js
+
+# Dependencies
+/vendor/
+
+# Draft content
+_drafts/
+drafts/
+
+# Private or sensitive information
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

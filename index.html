@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hu Tianrun - Homepage</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --content-width: 800px;
+            --text-color: #2c3e50;
+        }
+
+        body {
+            font-family: "Lora", Georgia, serif;
+            line-height: 1.7;
+            max-width: var(--content-width);
+            margin: 0 auto;
+            padding: 2rem;
+            color: var(--text-color);
+            background: #fff;
+        }
+
+        /* Header with Image */
+        .header {
+            margin-bottom: 2rem;
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 2.5rem;
+            align-items: start;
+        }
+
+        .profile-image {
+            width: 180px;
+            height: 240px;  /* 3:4 aspect ratio */
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .header-content h1 {
+            font-size: 2.5rem;
+            margin: 0 0 0.5rem;
+            color: #000;
+        }
+
+        .header-content p {
+            margin: 0.25rem 0;
+        }
+
+        /* Navigation */
+        nav {
+            margin: 2rem 0;
+            padding: 1rem 0;
+            border-top: 1px solid #eee;
+            border-bottom: 1px solid #eee;
+        }
+
+        nav a {
+            color: #000;
+            text-decoration: none;
+            margin-right: 1.5rem;
+            font-weight: 500;
+        }
+
+        nav a:hover {
+            text-decoration: underline;
+        }
+
+        /* Contact Info */
+        .contact-info {
+            margin: 2rem 0;
+        }
+
+        .contact-info p {
+            margin: 0.5rem 0;
+        }
+
+        .contact-info a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .contact-info a:hover {
+            text-decoration: underline;
+        }
+
+        /* Social Links */
+        .social-links {
+            margin: 2rem 0;
+        }
+
+        .social-links a {
+            color: #2c3e50;
+            text-decoration: none;
+            margin-right: 1.5rem;
+            font-size: 1.2rem;
+            transition: color 0.2s ease;
+        }
+
+        .social-links a:hover {
+            color: #000;
+        }
+
+        /* About Section */
+        .about {
+            margin: 2rem 0;
+        }
+
+        .about h2 {
+            font-size: 1.5rem;
+            margin: 1.5rem 0 1rem;
+            color: #000;
+        }
+
+        .about p {
+            margin: 1rem 0;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 700px) {
+            body {
+                padding: 1rem;
+            }
+
+            .header {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+                text-align: center;
+            }
+
+            .profile-image {
+                width: 160px;
+                height: 213px;
+                margin: 0 auto;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            nav {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 1rem;
+            }
+
+            nav a {
+                margin: 0 0.75rem;
+            }
+
+            .social-links {
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <img src="media/images/profile.png" alt="Hu Tianrun" class="profile-image">
+        <div class="header-content">
+            <h1>Hu Tianrun</h1>
+            <p>Research Engineer</p>
+            <p>Smart System Institute (SSI)</p>
+            <p>National University of Singapore</p>
+        </div>
+    </header>
+
+    <nav>
+        <a href="publications/">Publications</a>
+        <a href="projects/">Projects</a>
+        <a href="blog/">Blog</a>
+        <a href="teaching/">Teaching</a>
+        <a href="resume/">Resume</a>
+    </nav>
+
+    <div class="contact-info">
+        <p><i class="fas fa-envelope"></i> Email: <a href="mailto:tianrunhu@gmail.com">tianrunhu@gmail.com</a></p>
+        <p><i class="fas fa-map-marker-alt"></i> Office: Smart System Institute, Innovation 4.0, #06-01C, 3 Research Link, Singapore 117602</p>
+    </div>
+
+    <div class="social-links">
+        <a href="https://github.com/H-tr" title="GitHub"><i class="fab fa-github"></i></a>
+        <a href="https://scholar.google.com/citations?hl=en&view_op=list_works&gmla=AL3_zigmUCjHY4GYvw1QuWLy8AuVftfupRT4YJd_K_ClLyRBEkmh2_FS7bYTzCLz1pIv40-Fn21Q9U4UxTftPQ&user=o53_uPYAAAAJ" title="Google Scholar"><i class="fas fa-graduation-cap"></i></a>
+        <a href="https://orcid.org/0009-0007-7314-7643" title="ORCID"><i class="fab fa-orcid"></i></a>
+        <a href="https://www.zhihu.com/people/du-gu-qiu-bai-61-27" title="Zhihu"><i class="fab fa-zhihu"></i></a>
+    </div>
+
+    <section class="about">
+        <h2>About Me</h2>
+        <p>I am a Research Engineer at the <a href="https://ssi.nus.edu.sg/">Smart System Institute (SSI)</a>, <a href="https://www.nus.edu.sg/">National University of Singapore</a>, supervised by <a href="https://www.comp.nus.edu.sg/~dyhsu/">Prof. David Hsu</a>. My research interests include robotics learning, manipulation, perception, planning, and Human Robot Interaction (HRI). Previously, I was undergraduate from <a href="https://www.ntu.edu.sg/">Nanyang Technological University</a> under the guidance of Prof. <a href="https://siewkeilam.github.io/ei-research-group/index.html">Lam Siew Kei</a>.</p>
+    
+        <h2>News</h2>
+        <ul style="list-style: none; padding: 0; margin: 0;">
+            <li style="margin-bottom: 0.75rem;">
+                <span style="color: #666;">[Dec 2024]</span> [News content]
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+                <span style="color: #666;">[Oct 2024]</span> [News content]
+            </li>
+            <li style="margin-bottom: 0.75rem;">
+                <span style="color: #666;">[Sep 2024]</span> [News content]
+            </li>
+        </ul>
+        
+        <h2>Current Work</h2>
+        <p>[Brief description of your current work and responsibilities]</p>
+        
+        <h2>Research Interests</h2>
+        <p>[List your main research interests and areas of focus]</p>
+    
+        <h2>Awards & Honors</h2>
+        <ul style="list-style: none; padding: 0; margin: 0;">
+            <li style="margin-bottom: 0.5rem;">
+                <span style="font-weight: 500;">[Award Name]</span>, [Awarding Institution], [Year]
+            </li>
+            <li style="margin-bottom: 0.5rem;">
+                <span style="font-weight: 500;">[Award Name]</span>, [Awarding Institution], [Year]
+            </li>
+        </ul>
+    </section>
+</body>
+</html>
