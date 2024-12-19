@@ -51,7 +51,6 @@ tmp/
 *.mkv
 *.psd
 *.ai
-*.pdf
 
 # Personal configuration files
 _config.local.yml
