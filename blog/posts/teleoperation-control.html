@@ -88,6 +88,16 @@
                 </ul>
             </div>
 
+            <div class="video-container" style="margin: 20px 0; display: flex; flex-direction: column; align-items: center;">
+                <video width="70%" controls>
+                    <source src="/media/videos/blog/positional-control.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <p style="margin-top: 10px; font-style: italic; color: #666;">
+                    Oscillation when applying the positional control
+                </p>
+            </div>
+
             <p>
                 The instability arises from the continuous accumulation of forward kinematics errors. At each control cycle (typically 100-200Hz), the controller computes a position adjustment \(\Delta \mathbf{x}(t)\) based on the estimated current position. However, since \(\mathbf{x}_{\text{actual}}\) always differs from \(\mathbf{x}_{\text{estimated}}\) by some error \(\epsilon\), the controller perpetually tries to correct for this difference. This leads to a cascading effect where:
             </p>
@@ -102,51 +112,136 @@
                 At high control frequencies, these accumulated errors manifest as oscillations, as the controller continuously overcompensates for estimation errors. The higher the control frequency, the more rapid these oscillations become, potentially leading to significant instability in the system.
             </p>
 
-            <h3>1.2 Velocity Control: The Solution</h3>
+            <h3>1.2 Velocity Control: A More Stable Approach</h3>
             <p>
-                Velocity control provides smoother motion by regulating the rate of change instead of absolute position. The control law becomes:
+                Velocity control achieves smoother motion by directly regulating the rate of change rather than absolute position. The key difference is that velocity control uses the instantaneous motion state, which is less sensitive to accumulated forward kinematics errors. The control law can be expressed as:
             </p>
             <div class="math-block">
-                $ \mathbf{v}(t) = \mathbf{K}_p \left( \mathbf{x}_{\text{des}} - \mathbf{x}_{\text{cur}} \right) + \mathbf{K}_d \left( \dot{\mathbf{x}}_{\text{des}} - \dot{\mathbf{x}}_{\text{cur}} \right) $
-                
+                <div class="equation">
+                    $\mathbf{v}_{\text{cmd}}(t) = \mathbf{K}_p \left( \mathbf{x}_{\text{des}} - \mathbf{x}_{\text{cur}} \right) + \mathbf{K}_d \left( \dot{\mathbf{x}}_{\text{des}} - \dot{\mathbf{x}}_{\text{cur}} \right)$
+                </div>
+                <div class="equation">
+                    $\mathbf{x}_{\text{next}} = \int_{t}^{t+\Delta t} \mathbf{v}_{\text{cmd}}(\tau) d\tau + \mathbf{x}_{\text{cur}}$
+                </div>
+
                 <p>where:</p>
                 <ul>
-                    <li>\( \mathbf{v}(t) \): Commanded velocity</li>
-                    <li>\( \mathbf{K}_d \): Derivative gain matrix</li>
-                    <li>\( \dot{\mathbf{x}}_{\text{des}}, \dot{\mathbf{x}}_{\text{cur}} \): Desired and current velocities</li>
+                    <li>\(\mathbf{v}_{\text{cmd}}(t)\): Commanded velocity</li>
+                    <li>\(\mathbf{K}_p\): Position gain matrix (for correction)</li>
+                    <li>\(\mathbf{K}_d\): Velocity gain matrix</li>
+                    <li>\(\Delta t\): Control cycle time interval</li>
                 </ul>
             </div>
 
-            <h2>2. Delta Pose Representations</h2>
             <p>
-                A core principle of our control framework is the use of delta poses to ensure consistency and frame independence. We'll examine two critical aspects: the transformation between VR controller and robot frames, and the computation of base frame delta poses for learning.
+                The stability advantage of velocity control comes from three key factors:
+            </p>
+
+            <p>
+                1. Integration Effect: Since the position is achieved through velocity integration (\(\int \mathbf{v}_{\text{cmd}}(\tau) d\tau\)), the system naturally smooths out high-frequency disturbances. Even if there are forward kinematics errors \(\epsilon\), they don't accumulate in the same way as position control:
+            </p>
+
+            <div class="math-block">
+                <div class="equation">
+                    $\epsilon_{\text{velocity}} = \frac{d}{dt}(\epsilon_{\text{position}})$
+                </div>
+            </div>
+
+            <p>
+                2. Error Damping: When using velocity control, any instantaneous error in position estimation affects only the current velocity command, rather than creating a direct position adjustment. This means that estimation errors result in velocity adjustments that are inherently bounded by the integration process:
+            </p>
+
+            <div class="math-block">
+                <div class="equation">
+                    $\|\mathbf{x}_{\text{error}}(t)\| \leq \int_{0}^{t} \|\mathbf{v}_{\text{error}}(\tau)\| d\tau$
+                </div>
+            </div>
+
+            <p>
+                3. Natural Motion Constraints: Velocity control inherently respects the physical limitations of the robot's motion capabilities. Even with aggressive position error corrections, the commanded velocities remain within achievable limits, preventing the rapid oscillations seen in position control.
+            </p>
+
+            <h2>2. Delta Pose Representations in Teleoperation and Learning</h2>
+            <p>
+                Our teleoperation and data gathering framework employs two distinct types of delta poses:
+            </p>
+            <ul>
+                <li>
+                    <strong>Teleoperation Delta Poses:</strong> Ensure consistency and frame independence when mapping VR controller movements to robot actions
+                </li>
+                <li>
+                    <strong>Learning Delta Poses:</strong> Serve as the action space for learning algorithms, enabling better mapping between observations and actions in the robot's base frame
+                </li>
+            </ul>
+
+            <p>
+                Now let's examine each type in detail.
             </p>
 
             <h3>2.1 Delta Pose in VR Controller Frame and Frame Transformation</h3>
             <p>
-                When teleoperating the robot using a VR controller, we need to map the controller's motion to the robot's end-effector. This involves two coordinate frames and requires careful transformation to preserve the operator's intended motion.
+                When teleoperating the robot using a VR controller, we need to map the controller's motion to the robot's end-effector. The VR controller's pose is tracked in the VR headset's coordinate frame, typically with z-up convention, while the robot's end-effector pose is defined in the robot base frame, often using z-up or z-forward conventions depending on the manufacturer. This mapping involves careful transformation between these coordinate frames to preserve the operator's intended motion.
+            </p>
+
+            <div style="display: flex; justify-content: space-between; margin: 20px 0; align-items: center;">
+                <figure style="width: 48%; margin: 0; text-align: center;">
+                    <img src="/media/images/blog/teleoperation/robot-end-effector.png" alt="Robot end-effector coordinate frame" style="width: 100%; height: auto;">
+                    <figcaption style="margin-top: 10px; font-style: italic; color: #666; text-align: center;">
+                        Figure 1: Robot end-effector
+                    </figcaption>
+                </figure>
+                <figure style="width: 48%; margin: 0; text-align: center;">
+                    <img src="/media/images/blog/teleoperation/vr-controller.png" alt="VR controller coordinate frame" style="width: 100%; height: auto;">
+                    <figcaption style="margin-top: 10px; font-style: italic; color: #666; text-align: center;">
+                        Figure 2: VR controller
+                    </figcaption>
+                </figure>
+            </div>
+
+            <p>
+                The delta pose represents the relative pose change between consecutive timesteps in a <strong>frame's local coordinate system</strong>. By working with delta poses rather than absolute poses, we free the operator from needing to synchronize their hand position with the robot's current state. Furthermore, expressing the delta pose in the frame's own coordinate system makes our approach independent of both the VR system's and robot's base frames, enabling flexible positioning of both systems.
             </p>
 
             <div class="math-block">
                 <h4>Delta Pose Computation:</h4>
-                <p>First, we compute the delta pose in the VR controller frame:</p>
+                <p>First, we compute the delta pose in the VR controller frame between timesteps t-1 and t:</p>
                 $ \Delta T_t^c = \left( T_{t-1}^c \right)^{-1} T_t^c $
                 
-                <p>This transformation can be decomposed into rotation and translation:</p>
+                <p>This transformation matrix can be decomposed into rotation and translation components:</p>
                 $ \Delta T_t^c = \begin{bmatrix} \Delta R_t^c & \Delta p_t^c \\ 0 & 1 \end{bmatrix} $
             </div>
 
             <div class="math-block">
                 <h4>Frame Transformation:</h4>
-                <p>To transform to the end-effector frame, we use a fixed transformation matrix \(R_{ve}\):
+                <p>To transform this delta pose to the end-effector frame, we use a fixed transformation matrix \(R_{ve}\) that accounts for the difference in coordinate conventions between the VR controller and robot end-effector frames:</p>
 
                 $ \Delta R_t^e = R_{ve} \Delta R_t^c R_{ve}^T $
                 $ \Delta p_t^e = R_{ve} \Delta p_t^c $
             </div>
 
+            <p>
+                This formulation provides three significant advantages that make it particularly suitable for practical robotic teleoperation:
+            </p>
+            
+            <p>
+                First, it enables <strong>asynchronous operation</strong> by tracking relative changes rather than absolute positions. In traditional teleoperation systems, operators must carefully align their initial hand position with the robot's current end-effector pose. Our delta-pose approach eliminates this requirement - operators can begin from any comfortable position, and the system will track their relative motions, significantly reducing setup time and operator fatigue.
+            </p>
+            
+            <p>
+                Second, the <strong>frame independence</strong> property of delta poses allows arbitrary positioning of both the VR system and robot. Since the motion is computed relative to the controller's own frame rather than any global coordinate system, the VR headset can be placed anywhere in the workspace without affecting the control mapping. This also makes the system robust to tracking drift in the VR system, as small errors in absolute position tracking don't accumulate in the relative motion calculations.
+            </p>
+            
+            <p>
+                Third, by encoding the coordinate convention differences in \(R_{ve}\), this approach provides strong <strong>cross-embodiment compatibility</strong>. The transformation matrix \(R_{ve}\) serves as a simple interface between different robot platforms, only accounting for fundamental differences in coordinate conventions (such as z-up versus z-forward). This means the same VR control system can be rapidly deployed across different robot platforms by simply updating \(R_{ve}\), from industrial arms to mobile manipulators.
+            </p>
+            
+            <p>
+                Together, these properties - asynchronous operation, frame independence, and cross-embodiment compatibility - create a robust and flexible teleoperation framework suitable for diverse real-world applications.
+            </p>
+
             <h3>2.2 Base Frame Delta Pose for Learning</h3>
             <p>
-                For learning purposes, we represent delta poses in the robot's base frame. This provides consistency and avoids the frame-dependency issues that could confuse learning algorithms. Let's see why this is important and how to compute it.
+                For learning purposes, we represent delta poses in the robot's base frame rather than the end-effector frame used in teleoperation. This choice provides better consistency for learning algorithms and handles real-world robotic limitations more effectively. The base frame representation helps address several key challenges in learning from teleoperation data.
             </p>
 
             <div class="math-block">
@@ -161,61 +256,57 @@
                 $ \Delta T_t^b = \begin{bmatrix} (R_{t-1}^b)^T R_t^b & (R_{t-1}^b)^T(p_t^b - p_{t-1}^b) \\ 0 & 1 \end{bmatrix} $
             </div>
 
+            <p>
+                Using base frame delta poses ensures consistent <strong>action-state relationships</strong> in the learning process. When using end-effector frame representation, the same action can result in different base-frame movements depending on the current end-effector pose, which can confuse learning algorithms. The base frame representation maintains consistency: the same movement command will produce the same base-frame delta regardless of the current robot configuration.
+            </p>
+
+            <p>
+                Real robotic systems often show discrepancies between commanded and executed movements due to PD control and physical limitations. By computing delta poses from actual robot state data, we capture these execution patterns, allowing the learning algorithm to model realistic robot behavior rather than ideal movements. This is crucial for developing policies that work well on real systems.
+            </p>
+
+            <p>
+                Additionally, teleoperation systems can produce movement outliers due to network delays and signal processing limitations. The base frame representation makes these outliers easier to handle by providing natural physical bounds based on robot capabilities. This leads to more effective data normalization, which is particularly important for learning algorithms like diffusion policies that require well-normalized input data for stable training.
+            </p>
+
             <h2>3. Null-Space Optimization</h2>
             <p>
-                For redundant robots, null-space optimization allows us to achieve secondary objectives while maintaining the primary task of end-effector control. This is particularly useful for optimizing robot configurations during teleoperation.
+                For redundant robots with more degrees of freedom than required for the task, null-space optimization enables the achievement of secondary objectives without interfering with the primary task of end-effector control. This optimization is crucial for teleoperation, where we want to maintain precise control while keeping the robot in favorable configurations.
             </p>
 
             <div class="math-block">
                 <h4>Mathematical Framework:</h4>
-                <p>The relationship between task and joint space velocities is:</p>
+                <p>The differential kinematics relating task and joint velocities is given by:</p>
                 $ \dot{x} = J(q)\dot{q} $
                 
-                <p>The primary task solution using the pseudo-inverse is:</p>
+                <p>The primary task solution using the pseudo-inverse provides minimal joint velocities:</p>
                 $ \dot{q}_p = J^\dagger \dot{x} $
                 
-                <p>The null space projector:</p>
+                <p>The null space projector ensures secondary tasks don't affect the primary task:</p>
                 $ N = I - J^\dagger J $
                 
-                <p>Our secondary task cost function:</p>
+                <p>We define a quadratic cost function for joint configuration optimization:</p>
                 $ H(q) = \frac{1}{2}(q - q_{\text{home}})^T W (q - q_{\text{home}}) $
                 
-                <p>The complete solution combining primary and secondary tasks:</p>
+                <p>The complete solution combines both tasks while maintaining hierarchy:</p>
                 $ \dot{q} = J^\dagger \dot{x} + N(-W(q - q_{\text{home}})) $
             </div>
 
             <h3>3.1 Benefits of Null-Space Optimization</h3>
             <p>
-                This approach offers several key advantages for teleoperation and learning:
+                This optimization framework provides several crucial advantages for teleoperation:
             </p>
             <ul>
                 <li>
-                    <strong>Task Hierarchy:</strong> Primary task (end-effector control) is never compromised by secondary objectives, ensuring precise teleoperation.
+                    <strong>Task Hierarchy:</strong> The null-space projector ensures that secondary objectives never interfere with end-effector control, maintaining precise teleoperation.
                 </li>
                 <li>
-                    <strong>Joint Limit Avoidance:</strong> The robot naturally moves away from joint limits while maintaining the desired end-effector trajectory.
+                    <strong>Joint Limit Avoidance:</strong> Secondary tasks can keep joints away from their limits, ensuring smooth and safe operation throughout the workspace.
                 </li>
                 <li>
-                    <strong>Improved Manipulability:</strong> The secondary task can optimize the robot's configuration for better manipulation capability.
+                    <strong>Optimal Configuration:</strong> The robot maintains high manipulability by optimizing its joint configuration, improving dexterity during complex tasks.
                 </li>
                 <li>
-                    <strong>Energy Efficiency:</strong> By minimizing unnecessary joint movement, we reduce energy consumption and wear on the robot.
-                </li>
-            </ul>
-
-            <h2>4. Why This Design Enables Learning</h2>
-            <p>
-                This control framework is specifically designed to produce high-quality data for learning algorithms. Here's why each component matters:
-            </p>
-            <ul>
-                <li>
-                    <strong>Velocity Control:</strong> Provides smooth, continuous motion that's easier for learning algorithms to model and replicate.
-                </li>
-                <li>
-                    <strong>Delta Poses:</strong> Offers a consistent representation across different robot configurations, improving generalization.
-                </li>
-                <li>
-                    <strong>Null-Space Optimization:</strong> Generates natural, efficient motions that can be learned and reproduced.
+                    <strong>Efficient Motion:</strong> By minimizing joint movement through the home configuration cost, we reduce system wear and energy consumption.
                 </li>
             </ul>
 

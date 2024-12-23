@@ -42,16 +42,6 @@ _site/
 .temp/
 tmp/
 
-# Large media files (consider using Git LFS instead)
-*.mp4
-*.mov
-*.avi
-*.wmv
-*.flv
-*.mkv
-*.psd
-*.ai
-
 # Personal configuration files
 _config.local.yml
 config.local.js
