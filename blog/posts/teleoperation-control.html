@@ -88,16 +88,6 @@
                 </ul>
             </div>
 
-            <div class="video-container" style="margin: 20px 0; display: flex; flex-direction: column; align-items: center;">
-                <video width="70%" controls>
-                    <source src="/media/videos/blog/positional-control.mp4" type="video/mp4">
-                    Your browser does not support the video tag.
-                </video>
-                <p style="margin-top: 10px; font-style: italic; color: #666;">
-                    Oscillation when applying the positional control
-                </p>
-            </div>
-
             <p>
                 The instability arises from the continuous accumulation of forward kinematics errors. At each control cycle (typically 100-200Hz), the controller computes a position adjustment \(\Delta \mathbf{x}(t)\) based on the estimated current position. However, since \(\mathbf{x}_{\text{actual}}\) always differs from \(\mathbf{x}_{\text{estimated}}\) by some error \(\epsilon\), the controller perpetually tries to correct for this difference. This leads to a cascading effect where:
             </p>
