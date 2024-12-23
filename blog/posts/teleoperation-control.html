@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Building Stable and Consistent Robot Control for Learning</title>
+        
+        <!-- Fonts -->
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+        
+        <!-- Code Highlighting -->
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+        
+        <!-- KaTeX Math Support -->
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css" rel="stylesheet">
+        
+        <!-- Site Assets -->
+        <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg">
+        <link href="/css/blog.css" rel="stylesheet">
+        
+        <!-- Code Highlighting Scripts -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+        
+        <!-- KaTeX Scripts -->
+        <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"></script>
+        <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"></script>
+        
+        <!-- Custom Scripts -->
+        <script defer src="/js/copy-button.js"></script>
+    </head>
+<body>
+    <div class="blog-post">
+        <a href="../" class="back-button">
+            <i class="fas fa-arrow-left"></i>Back to Blog
+        </a>
+
+        <header class="blog-post-header">
+            <h1 class="blog-post-title">Building Stable and Consistent Robot Control for Learning</h1>
+            <div class="blog-post-date">December 23, 2024</div>
+        </header>
+
+        <article class="blog-post-content">
+            <h2>Introduction</h2>
+            <p>
+                In robotics, the quality of data-gathering pipelines directly impacts the performance of downstream learning algorithms. Whether training Diffusion Policies, Action Conditional Transformations (ACT), or reinforcement learning models, smooth and consistent control data is essential.
+            </p>
+            <p>
+                This blog presents a control framework designed to provide stable and high-quality data for learning. By combining <strong>velocity control</strong>, <strong>delta pose representations</strong>, and <strong>null-space optimization</strong>, the system ensures consistent and noise-free data collection, enabling effective training for complex robotics tasks.
+            </p>
+
+            <h2>1. Why Stability Matters</h2>
+            <p>
+                Stability is critical for any control system, especially when gathering data for learning. Oscillations and jerky motions introduce noise, which can confuse learning algorithms and lead to poor generalization. Let's examine why velocity-based control provides better stability than position control.
+            </p>
+
+            <h3>1.1 Position Control: A Source of Instability</h3>
+            <p>
+                In position control, the robot directly tracks desired positions, which can lead to discontinuities in velocity and acceleration. The basic control law is:
+            </p>
+            <div class="math-block">
+                $ \mathbf{u}(t) = \mathbf{K}_p \left( \mathbf{x}_{\text{des}} - \mathbf{x}_{\text{cur}} \right) $
+                <p>where:</p>
+                <ul>
+                    <li>\( \mathbf{u}(t) \): Control input (torque/effort)</li>
+                    <li>\( \mathbf{K}_p \): Proportional gain matrix</li>
+                    <li>\( \mathbf{x}_{\text{des}} \): Desired position</li>
+                    <li>\( \mathbf{x}_{\text{cur}} \): Current position</li>
+                </ul>
+            </div>
+
+            <h3>1.2 Velocity Control: The Solution</h3>
+            <p>
+                Velocity control provides smoother motion by regulating the rate of change instead of absolute position. The control law becomes:
+            </p>
+            <div class="math-block">
+                $ \mathbf{v}(t) = \mathbf{K}_p \left( \mathbf{x}_{\text{des}} - \mathbf{x}_{\text{cur}} \right) + \mathbf{K}_d \left( \dot{\mathbf{x}}_{\text{des}} - \dot{\mathbf{x}}_{\text{cur}} \right) $
+                
+                <p>where:</p>
+                <ul>
+                    <li>\( \mathbf{v}(t) \): Commanded velocity</li>
+                    <li>\( \mathbf{K}_d \): Derivative gain matrix</li>
+                    <li>\( \dot{\mathbf{x}}_{\text{des}}, \dot{\mathbf{x}}_{\text{cur}} \): Desired and current velocities</li>
+                </ul>
+            </div>
+
+            <h2>2. Delta Pose Representations</h2>
+            <p>
+                A core principle of our control framework is the use of delta poses to ensure consistency and frame independence. We'll examine two critical aspects: the transformation between VR controller and robot frames, and the computation of base frame delta poses for learning.
+            </p>
+
+            <h3>2.1 Delta Pose in VR Controller Frame and Frame Transformation</h3>
+            <p>
+                When teleoperating the robot using a VR controller, we need to map the controller's motion to the robot's end-effector. This involves two coordinate frames and requires careful transformation to preserve the operator's intended motion.
+            </p>
+
+            <div class="math-block">
+                <h4>Delta Pose Computation:</h4>
+                <p>First, we compute the delta pose in the VR controller frame:</p>
+                $ \Delta T_t^c = \left( T_{t-1}^c \right)^{-1} T_t^c $
+                
+                <p>This transformation can be decomposed into rotation and translation:</p>
+                $ \Delta T_t^c = \begin{bmatrix} \Delta R_t^c & \Delta p_t^c \\ 0 & 1 \end{bmatrix} $
+            </div>
+
+            <div class="math-block">
+                <h4>Frame Transformation:</h4>
+                <p>To transform to the end-effector frame, we use a fixed transformation matrix \(R_{ve}\):
+
+                $ \Delta R_t^e = R_{ve} \Delta R_t^c R_{ve}^T $
+                $ \Delta p_t^e = R_{ve} \Delta p_t^c $
+            </div>
+
+            <h3>2.2 Base Frame Delta Pose for Learning</h3>
+            <p>
+                For learning purposes, we represent delta poses in the robot's base frame. This provides consistency and avoids the frame-dependency issues that could confuse learning algorithms. Let's see why this is important and how to compute it.
+            </p>
+
+            <div class="math-block">
+                <h4>Base Frame Computation:</h4>
+                <p>Given two consecutive end-effector poses in the base frame:</p>
+                $ T_t^b = \begin{bmatrix} R_t^b & p_t^b \\ 0 & 1 \end{bmatrix}, \quad T_{t-1}^b = \begin{bmatrix} R_{t-1}^b & p_{t-1}^b \\ 0 & 1 \end{bmatrix} $
+                
+                <p>We compute the delta pose as:</p>
+                $ \Delta T_t^b = \left( T_{t-1}^b \right)^{-1} T_t^b $
+                
+                <p>Which expands to:</p>
+                $ \Delta T_t^b = \begin{bmatrix} (R_{t-1}^b)^T R_t^b & (R_{t-1}^b)^T(p_t^b - p_{t-1}^b) \\ 0 & 1 \end{bmatrix} $
+            </div>
+
+            <h2>3. Null-Space Optimization</h2>
+            <p>
+                For redundant robots, null-space optimization allows us to achieve secondary objectives while maintaining the primary task of end-effector control. This is particularly useful for optimizing robot configurations during teleoperation.
+            </p>
+
+            <div class="math-block">
+                <h4>Mathematical Framework:</h4>
+                <p>The relationship between task and joint space velocities is:</p>
+                $ \dot{x} = J(q)\dot{q} $
+                
+                <p>The primary task solution using the pseudo-inverse is:</p>
+                $ \dot{q}_p = J^\dagger \dot{x} $
+                
+                <p>The null space projector:</p>
+                $ N = I - J^\dagger J $
+                
+                <p>Our secondary task cost function:</p>
+                $ H(q) = \frac{1}{2}(q - q_{\text{home}})^T W (q - q_{\text{home}}) $
+                
+                <p>The complete solution combining primary and secondary tasks:</p>
+                $ \dot{q} = J^\dagger \dot{x} + N(-W(q - q_{\text{home}})) $
+            </div>
+
+            <h3>3.1 Benefits of Null-Space Optimization</h3>
+            <p>
+                This approach offers several key advantages for teleoperation and learning:
+            </p>
+            <ul>
+                <li>
+                    <strong>Task Hierarchy:</strong> Primary task (end-effector control) is never compromised by secondary objectives, ensuring precise teleoperation.
+                </li>
+                <li>
+                    <strong>Joint Limit Avoidance:</strong> The robot naturally moves away from joint limits while maintaining the desired end-effector trajectory.
+                </li>
+                <li>
+                    <strong>Improved Manipulability:</strong> The secondary task can optimize the robot's configuration for better manipulation capability.
+                </li>
+                <li>
+                    <strong>Energy Efficiency:</strong> By minimizing unnecessary joint movement, we reduce energy consumption and wear on the robot.
+                </li>
+            </ul>
+
+            <h2>4. Why This Design Enables Learning</h2>
+            <p>
+                This control framework is specifically designed to produce high-quality data for learning algorithms. Here's why each component matters:
+            </p>
+            <ul>
+                <li>
+                    <strong>Velocity Control:</strong> Provides smooth, continuous motion that's easier for learning algorithms to model and replicate.
+                </li>
+                <li>
+                    <strong>Delta Poses:</strong> Offers a consistent representation across different robot configurations, improving generalization.
+                </li>
+                <li>
+                    <strong>Null-Space Optimization:</strong> Generates natural, efficient motions that can be learned and reproduced.
+                </li>
+            </ul>
+
+            <h2>Conclusion</h2>
+            <p>
+                By combining velocity control, delta pose representations, and null-space optimization, this framework provides a robust solution for data-gathering in robotics. The resulting data is smooth, consistent, and suitable for modern learning algorithms, paving the way for intelligent and adaptive robotic systems.
+            </p>
+        </article>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: "$", right: "$", display: true},
+                    {left: "\\[", right: "\\]", display: true},
+                    {left: "\\(", right: "\\)", display: false},
+                    {left: "$", right: "$", display: false}
+                ],
+                throwOnError: false
+            });
+            
+            // Re-trigger Prism highlighting
+            Prism.highlightAll();
+        });
+    </script>
+</body>
+</html>

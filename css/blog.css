@@ -171,36 +171,78 @@ nav a:hover {
     margin-right: 0.4rem;
 }
 
+/* Code block styling */
+pre[class*="language-"] {
+    font-size: 0.75em !important; /* Smaller font size */
+}
+
+code[class*="language-"] {
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, Monaco, monospace !important;
+    font-size: 0.75em !important;
+}
+
+/* Code block wrapper */
+.code-block {
+    position: relative;
+    margin: 1.5rem 0;
+}
+
+/* Copy button styling */
+.copy-button {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    padding: 0.4rem 0.8rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    color: #ffffff;
+    font-size: 0.75rem;
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.code-block:hover .copy-button {
+    opacity: 1;
+}
+
+.copy-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     body {
         padding: 1rem;
     }
-
+    
     h1 {
         font-size: 2rem;
     }
-
+    
     nav {
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
         gap: 1rem;
     }
-
+    
     nav a {
         margin: 0 0.75rem;
     }
-
+    
     .blog-header {
         flex-direction: column;
         gap: 0.5rem;
     }
-
+    
     .blog-date {
         align-self: flex-start;
     }
-
+    
     .blog-post-title {
         font-size: 1.6rem;
     }
