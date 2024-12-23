@@ -52,25 +52,55 @@
                 This blog presents a control framework designed to provide stable and high-quality data for learning. By combining <strong>velocity control</strong>, <strong>delta pose representations</strong>, and <strong>null-space optimization</strong>, the system ensures consistent and noise-free data collection, enabling effective training for complex robotics tasks.
             </p>
 
-            <h2>1. Why Stability Matters</h2>
+            <h2>1. Choosing the Right Control Method: Position vs. Velocity Control for Robots</h2>
             <p>
-                Stability is critical for any control system, especially when gathering data for learning. Oscillations and jerky motions introduce noise, which can confuse learning algorithms and lead to poor generalization. Let's examine why velocity-based control provides better stability than position control.
+            When designing robotic systems, the choice of control method significantly impacts motion quality and task execution. Stability and smoothness are paramount considerations, as they directly affect both the robot's performance and the reliability of data collection for learning algorithms. Velocity-based control often provides superior stability compared to position control, especially in scenarios requiring fluid motion and precise interaction with the environment. This advantage stems from velocity control's inherent ability to maintain smooth transitions and reduce abrupt movements that could introduce unwanted oscillations or jerky behavior. For robotics applications where consistent, predictable motion is essential - such as in collaborative robots or precision manufacturing - the smoother response characteristics of velocity control can lead to more reliable operation and better data quality for machine learning implementations.
             </p>
 
-            <h3>1.1 Position Control: A Source of Instability</h3>
+            <h3>1.1 Position Control: Understanding Sources of Instability</h3>
             <p>
-                In position control, the robot directly tracks desired positions, which can lead to discontinuities in velocity and acceleration. The basic control law is:
+                Position control in robotics typically employs PD (Proportional-Derivative) control, where the controller calculates position adjustments based on current state and desired velocity. However, inherent forward kinematics estimation errors can lead to instability, particularly at high control frequencies. The control process can be described as follows:
             </p>
+
             <div class="math-block">
-                $ \mathbf{u}(t) = \mathbf{K}_p \left( \mathbf{x}_{\text{des}} - \mathbf{x}_{\text{cur}} \right) $
+                <div class="equation">
+                    $\Delta \mathbf{x}(t) = \mathbf{K}_p(\mathbf{x}_{\text{des}} - \mathbf{x}_{\text{cur}}) + \mathbf{K}_d(\dot{\mathbf{x}}_{\text{des}} - \dot{\mathbf{x}}_{\text{cur}})$
+                </div>
+
+                <div class="equation">
+                    $\mathbf{x}_{\text{next}} = \mathbf{x}_{\text{cur}} + \Delta \mathbf{x}(t)$
+                </div>
+
+                <div class="equation">
+                    $\mathbf{x}_{\text{actual}} = FK(\mathbf{q}) = \mathbf{x}_{\text{estimated}} \pm \epsilon$
+                </div>
+
                 <p>where:</p>
                 <ul>
-                    <li>\( \mathbf{u}(t) \): Control input (torque/effort)</li>
-                    <li>\( \mathbf{K}_p \): Proportional gain matrix</li>
-                    <li>\( \mathbf{x}_{\text{des}} \): Desired position</li>
-                    <li>\( \mathbf{x}_{\text{cur}} \): Current position</li>
+                    <li>\(\Delta \mathbf{x}(t)\): Computed position adjustment</li>
+                    <li>\(\mathbf{K}_p\): Proportional gain matrix</li>
+                    <li>\(\mathbf{K}_d\): Derivative gain matrix</li>
+                    <li>\(\mathbf{x}_{\text{des}}\): Desired position</li>
+                    <li>\(\mathbf{x}_{\text{cur}}\): Current position</li>
+                    <li>\(\dot{\mathbf{x}}_{\text{des}}, \dot{\mathbf{x}}_{\text{cur}}\): Desired and current velocities</li>
+                    <li>\(FK(\mathbf{q})\): Forward kinematics function</li>
+                    <li>\(\epsilon\): Forward kinematics estimation error</li>
                 </ul>
             </div>
+
+            <p>
+                The instability arises from the continuous accumulation of forward kinematics errors. At each control cycle (typically 100-200Hz), the controller computes a position adjustment \(\Delta \mathbf{x}(t)\) based on the estimated current position. However, since \(\mathbf{x}_{\text{actual}}\) always differs from \(\mathbf{x}_{\text{estimated}}\) by some error \(\epsilon\), the controller perpetually tries to correct for this difference. This leads to a cascading effect where:
+            </p>
+
+            <div class="math-block">
+                <div class="equation">
+                    $\mathbf{x}_{\text{error}}(t+1) = \mathbf{x}_{\text{error}}(t) \pm \epsilon_{\text{new}}$
+                </div>
+            </div>
+
+            <p>
+                At high control frequencies, these accumulated errors manifest as oscillations, as the controller continuously overcompensates for estimation errors. The higher the control frequency, the more rapid these oscillations become, potentially leading to significant instability in the system.
+            </p>
 
             <h3>1.2 Velocity Control: The Solution</h3>
             <p>
