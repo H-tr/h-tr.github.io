@@ -217,20 +217,126 @@
             }
             </script>
 
+            <h3>4.1 Experiment Setup</h3>
             <p>
-                Key observations from the experiments:
+                We implemented a VAE with the following architecture and training configuration:
+            </p>
+
+            <h4>Model Architecture:</h4>
+            <ul>
+                <li><strong>Encoder:</strong> Two-layer MLP (784 → 512 → 256) with batch normalization</li>
+                <li><strong>Latent Space:</strong> 2-dimensional (for visualization purposes)</li>
+                <li><strong>Decoder:</strong> Symmetric architecture (2 → 256 → 512 → 784) with batch normalization</li>
+            </ul>
+
+            <h4>Training Parameters:</h4>
+            <ul>
+                <li><strong>Dataset:</strong> MNIST (60,000 training samples, 28×28 grayscale images)</li>
+                <li><strong>Batch Size:</strong> 512</li>
+                <li><strong>Optimizer:</strong> Adam (lr=1e-3)</li>
+                <li><strong>Epochs:</strong> 200</li>
+                <li><strong>β Values:</strong> [0.0, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0]</li>
+            </ul>
+
+            <h4>Loss Function:</h4>
+            <p>The total loss combines reconstruction and KL divergence terms:</p>
+
+            <div class="math-block">
+            $\mathcal{L} = \mathcal{L}_{\text{recon}} + \beta \cdot \mathcal{L}_{\text{KL}}$
+            </div>
+
+            <p>where:</p>
+            <ul>
+                <li>$\mathcal{L}_{\text{recon}} = \text{BCE}(x, \hat{x})$ (Binary Cross Entropy)</li>
+                <li>$\mathcal{L}_{\text{KL}} = \frac{1}{2}\sum(1 + \log(\sigma^2) - \mu^2 - \sigma^2)$</li>
+            </ul>
+
+            <h3>4.2 Results Analysis</h3>
+
+            <h4>4.2.1 Training Dynamics</h4>
+            <p>
+                Our first key observation comes from the training loss curves across different β values. Looking at the case where β = 0 (no KL regularization), we observe fascinating dynamics:
+            </p>
+
+            <div class="result-figure">
+                <img src="/media/images/blog/vae-dynamics/vae_training_comparison.png" alt="Training loss curves showing reconstruction loss and KL divergence">
+                <p class="caption">
+                    Figure 1: Training curves showing reconstruction loss (left) and KL divergence (right) for different β values. Note how the KL divergence reaches around 100 when β = 0, and the unique variance behavior without regularization.
+                </p>
+            </div>
+
+            <p>
+                These results empirically validate our theoretical analysis from Section 2. Without KL regularization:
             </p>
             <ul>
-                <li>
-                    Initial variance values are consistently small (σ² ≈ 0.1) regardless of initialization
-                </li>
-                <li>
-                    Variance increases correlate strongly with decreases in reconstruction loss
-                </li>
-                <li>
-                    Final variance values depend on both decoder capacity and β parameter
-                </li>
+                <li>The encoder's predicted variance initially decreases, then notably increases in later training stages</li>
+                <li>The KL divergence term grows to approximately 100, far from the desired unit Gaussian behavior</li>
+                <li>This behavior suggests the encoder is actively increasing variance to push the decoder toward learning more robust features</li>
             </ul>
+
+            <h4>4.2.2 Impact of KL Regularization</h4>
+            <p>
+                When we introduce KL regularization (β > 0), we observe a clear stabilizing effect on the variance. But does this regularization actually improve the model's performance? The generated samples provide compelling evidence:
+            </p>
+
+            <div class="result-figure">
+                <div class="side-by-side">
+                    <div class="figure-half">
+                        <img src="/media/images/blog/vae-dynamics/gen_beta_0.0.png" alt="Generated samples with beta=0">
+                        <p class="caption">Figure 2a: Generated samples with β = 0. Note the blurrier, less defined digit structures.</p>
+                    </div>
+                    <div class="figure-half">
+                        <img src="/media/images/blog/vae-dynamics/gen_beta_1.0.png" alt="Generated samples with beta=1">
+                        <p class="caption">Figure 2b: Generated samples with β = 1. Observe the sharper, more well-defined digits.</p>
+                    </div>
+                </div>
+            </div>
+
+            <h4>4.2.3 Latent Space Organization</h4>
+            <p>
+                The latent space distributions provide further insight into the effect of KL regularization:
+            </p>
+
+            <div class="result-figure">
+                <div class="side-by-side">
+                    <div class="figure-half">
+                        <img src="/media/images/blog/vae-dynamics/latent_space_0.png" alt="Latent space visualization beta=0">
+                        <p class="caption">Figure 3a: Latent space distribution with β = 0, showing irregular clustering and spread.</p>
+                    </div>
+                    <div class="figure-half">
+                        <img src="/media/images/blog/vae-dynamics/latent_space_1.png" alt="Latent space visualization beta=1">
+                        <p class="caption">Figure 3b: Latent space distribution with β = 1, exhibiting Gaussian-like structure.</p>
+                    </div>
+                </div>
+            </div>
+
+            <p>
+                The latent space visualizations reveal that with β = 1, the distribution much more closely approximates our desired unit Gaussian prior. This structured organization of the latent space contributes to the improved quality of generated samples, as the decoder learns to map from a more regular distribution.
+            </p>
+
+            <style>
+            .result-figure {
+                margin: 2rem 0;
+                text-align: center;
+            }
+            .result-figure img {
+                max-width: 100%;
+                height: auto;
+            }
+            .caption {
+                color: #666;
+                font-size: 0.9em;
+                margin-top: 0.5rem;
+            }
+            .side-by-side {
+                display: flex;
+                gap: 2rem;
+                margin: 2rem 0;
+            }
+            .figure-half {
+                flex: 1;
+            }
+            </style>
 
             <h2>5. Practical Implications</h2>
             <p>
