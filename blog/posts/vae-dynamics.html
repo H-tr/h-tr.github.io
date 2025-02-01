@@ -1,422 +1,580 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Understanding the Dynamic Balance in Variational Autoencoders</title>
-        
-        <!-- Fonts -->
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css" rel="stylesheet">
-        <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-        <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-        
-        <!-- KaTeX Math Support -->
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css" rel="stylesheet">
-        
-        <!-- Site Assets -->
-        <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg">
-        <link href="/css/blog.css" rel="stylesheet">
-        
-        <!-- KaTeX Scripts -->
-        <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"></script>
-        <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"></script>
-        
-        <!-- Custom Scripts -->
-        <script defer src="/js/copy-button.js"></script>
-    </head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Understanding the Dynamic Balance in Variational Autoencoders</title>
+
+    <!-- Fonts -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- KaTeX Math Support -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Site Assets -->
+    <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg" />
+    <link href="/css/blog.css" rel="stylesheet" />
+
+    <!-- KaTeX Scripts -->
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"
+    ></script>
+
+    <!-- Custom Scripts -->
+    <script defer src="/js/copy-button.js"></script>
+  </head>
+  <body>
     <div class="blog-post">
-        <a href="../" class="back-button">
-            <i class="fas fa-arrow-left"></i>Back to Blog
-        </a>
+      <a href="../" class="back-button">
+        <i class="fas fa-arrow-left"></i>Back to Blog
+      </a>
 
-        <header class="blog-post-header">
-            <h1 class="blog-post-title">Understanding the Dynamic Balance in Variational Autoencoders</h1>
-            <div class="blog-post-date">January 18, 2025</div>
-        </header>
+      <header class="blog-post-header">
+        <h1 class="blog-post-title">
+          Understanding the Dynamic Balance in Variational Autoencoders
+        </h1>
+        <div class="blog-post-date">January 18, 2025</div>
+      </header>
 
-        <article class="blog-post-content">
-            <h2>Introduction</h2>
-            <p>
-                Variational Autoencoders (VAEs) are powerful generative models that combine deep learning with probabilistic inference. While their mathematical framework is well-documented, there's a fascinating dynamic that emerges during training: an antagonistic relationship between decoder quality and encoder variance. This blog explores this relationship and its implications for training dynamics.
-            </p>
+      <article class="blog-post-content">
+        <h2>Introduction</h2>
+        <p>
+          Variational Autoencoders (VAEs) are powerful generative models that
+          combine deep learning with probabilistic inference. While their
+          mathematical framework is well-documented, there's a fascinating
+          dynamic that emerges during training: an antagonistic relationship
+          between decoder quality and encoder variance. This blog explores this
+          relationship and its implications for training dynamics.
+        </p>
 
-            <h2>1. The VAE Framework</h2>
-            <p>
-                At its core, a VAE consists of an encoder that maps inputs to distributions in latent space, and a decoder that reconstructs inputs from sampled latent vectors. The encoder doesn't just compress data - it learns to predict a probability distribution for each input, typically parameterized as a multivariate Gaussian.
-            </p>
+        <h2>1. The VAE Framework</h2>
+        <p>
+          At its core, a VAE consists of an encoder that maps inputs to
+          distributions in latent space, and a decoder that reconstructs inputs
+          from sampled latent vectors. The encoder doesn't just compress data -
+          it learns to predict a probability distribution for each input,
+          typically parameterized as a multivariate Gaussian.
+        </p>
 
-            <div class="math-block">
-                <p>For an input x, the encoder outputs:</p>
-                $q_\phi(z|x) = \mathcal{N}(\mu_\phi(x), \sigma^2_\phi(x))$
-                
-                <p>The latent vector is sampled using the reparameterization trick:</p>
-                $z = \mu_\phi(x) + \sigma_\phi(x) \cdot \epsilon, \quad \text{where } \epsilon \sim \mathcal{N}(0, 1)$
+        <div class="math-block">
+          <p>For an input x, the encoder outputs:</p>
+          $q_\phi(z|x) = \mathcal{N}(\mu_\phi(x), \sigma^2_\phi(x))$
+
+          <p>
+            The latent vector is sampled using the reparameterization trick:
+          </p>
+          $z = \mu_\phi(x) + \sigma_\phi(x) \cdot \epsilon, \quad \text{where }
+          \epsilon \sim \mathcal{N}(0, 1)$
+        </div>
+
+        <h2>2. The Dynamic Balance</h2>
+        <p>
+          The VAE's loss function combines reconstruction quality with latent
+          space regularization:
+        </p>
+
+        <div class="math-block">
+          $\mathcal{L} = \mathcal{L}_{\text{recon}} + \beta \cdot
+          \mathcal{L}_{\text{KL}}$
+
+          <p>where the KL divergence term is:</p>
+          $\mathcal{L}_{\text{KL}} = \frac{1}{2}(\mu^2 + \sigma^2 -
+          \log(\sigma^2) - 1)$
+        </div>
+
+        <h3>2.1 Early Training Phase</h3>
+        <p>
+          During early training, when the decoder is still learning, an
+          interesting phenomenon occurs. The system naturally reduces the
+          variance predicted by the encoder to minimize randomness in the latent
+          space. This makes intuitive sense - with a poor decoder, any
+          additional noise in the latent vector makes reconstruction more
+          difficult.
+        </p>
+
+        <div class="math-block">
+          <h4>Mathematical Analysis:</h4>
+          <p>
+            The gradient of the total loss with respect to σ² reveals this
+            dynamic:
+          </p>
+          $\frac{\partial \mathcal{L}}{\partial \sigma^2} = \frac{\partial
+          \mathcal{L}_{\text{recon}}}{\partial \sigma^2} + \beta \cdot
+          \frac{\partial \mathcal{L}_{\text{KL}}}{\partial \sigma^2}$
+          $\frac{\partial \mathcal{L}_{\text{KL}}}{\partial \sigma^2} =
+          \frac{1}{2}(1 - \frac{1}{\sigma^2})$
+
+          <p>
+            The reconstruction loss gradient increases with σ² due to increased
+            sampling randomness:
+          </p>
+          $\frac{\partial \mathcal{L}_{\text{recon}}}{\partial \sigma^2} \propto
+          \|\epsilon\|^2$
+        </div>
+
+        <h3>2.2 Later Training Phase</h3>
+        <p>
+          As the decoder improves, it becomes more robust to variations in the
+          latent space. This allows the model to increase the predicted variance
+          without severely impacting reconstruction quality. The improved
+          decoder can handle more diverse latent vectors, enabling better
+          exploration of the latent space.
+        </p>
+
+        <div class="math-block">
+          <p>The equilibrium point shifts according to decoder quality Q:</p>
+          $\sigma^2_{\text{optimal}} = f(Q) \quad \text{where } \frac{df}{dQ} >
+          0$
+        </div>
+
+        <h2>3. Automatic Curriculum Learning</h2>
+        <p>
+          This dynamic creates an automatic curriculum learning process. The
+          system naturally progresses through different phases:
+        </p>
+
+        <h3>3.1 Phase 1: Conservative Exploration</h3>
+        <p>Initially, the VAE keeps variance low to ensure stable learning:</p>
+        <div class="math-block">
+          $\sigma^2 \approx \min(\sigma^2) \quad \text{such that} \quad
+          \mathcal{L}_{\text{recon}} < \text{threshold}$
+        </div>
+
+        <h3>3.2 Phase 2: Gradual Expansion</h3>
+        <p>As the decoder improves, the variance gradually increases:</p>
+        <div class="math-block">
+          $\frac{d\sigma^2}{dt} \propto \text{Decoder Quality Improvement Rate}$
+        </div>
+
+        <h3>3.3 Phase 3: Equilibrium</h3>
+        <p>
+          Finally, the system reaches a balance between reconstruction accuracy
+          and latent space regularity:
+        </p>
+        <div class="math-block">
+          $\sigma^2_{\text{final}} = \argmin_{\sigma^2}
+          (\mathcal{L}_{\text{recon}} + \beta \cdot \mathcal{L}_{\text{KL}})$
+        </div>
+
+        <h2>4. Experimental Verification</h2>
+        <p>
+          To verify this dynamic behavior, I've implemented a simple VAE and
+          tracked the evolution of predicted variance during training. The code
+          demonstrates how the variance starts small and gradually increases as
+          the decoder improves.
+        </p>
+
+        <style>
+          .code-section {
+            margin: 2rem 0;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            overflow: hidden;
+          }
+
+          .code-header {
+            background: #f6f8fa;
+            padding: 0.75rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e1e4e8;
+          }
+
+          .code-header h3 {
+            margin: 0;
+            font-size: 1rem;
+            color: #24292e;
+          }
+
+          .code-buttons {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+          }
+
+          .github-link {
+            color: #0366d6;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+          }
+
+          .github-link:hover {
+            text-decoration: underline;
+          }
+
+          .toggle-btn {
+            background: #0366d6;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+          }
+
+          .toggle-btn:hover {
+            background: #0255b3;
+          }
+
+          .gist-container {
+            display: none;
+          }
+
+          .gist-container.visible {
+            display: block;
+          }
+        </style>
+
+        <div class="code-section">
+          <div class="code-header">
+            <h3>Implementation</h3>
+            <div class="code-buttons">
+              <button class="toggle-btn" onclick="toggleGist()">
+                Show Code
+              </button>
+              <a
+                href="https://gist.github.com/H-tr/ccd920b8e8c853cd605712dd75326a9b"
+                target="_blank"
+                class="github-link"
+              >
+                <i class="fab fa-github"></i> View on GitHub
+              </a>
             </div>
+          </div>
+          <div class="gist-container" id="gistContainer">
+            <script src="https://gist.github.com/H-tr/ccd920b8e8c853cd605712dd75326a9b.js"></script>
+          </div>
+        </div>
 
-            <h2>2. The Dynamic Balance</h2>
-            <p>
-                The VAE's loss function combines reconstruction quality with latent space regularization:
-            </p>
+        <script>
+          function toggleGist() {
+            const gistContainer = document.getElementById("gistContainer");
+            const button = document.querySelector(".toggle-btn");
+            const isVisible = gistContainer.classList.contains("visible");
 
-            <div class="math-block">
-                $\mathcal{L} = \mathcal{L}_{\text{recon}} + \beta \cdot \mathcal{L}_{\text{KL}}$
-                
-                <p>where the KL divergence term is:</p>
-                $\mathcal{L}_{\text{KL}} = \frac{1}{2}(\mu^2 + \sigma^2 - \log(\sigma^2) - 1)$
+            gistContainer.classList.toggle("visible");
+            button.textContent = isVisible ? "Show Code" : "Hide Code";
+          }
+        </script>
+
+        <h3>4.1 Experiment Setup</h3>
+        <p>
+          We implemented a VAE with the following architecture and training
+          configuration:
+        </p>
+
+        <h4>Model Architecture:</h4>
+        <ul>
+          <li>
+            <strong>Encoder:</strong> Two-layer MLP (784 → 512 → 256) with batch
+            normalization
+          </li>
+          <li>
+            <strong>Latent Space:</strong> 2-dimensional (for visualization
+            purposes)
+          </li>
+          <li>
+            <strong>Decoder:</strong> Symmetric architecture (2 → 256 → 512 →
+            784) with batch normalization
+          </li>
+        </ul>
+
+        <h4>Training Parameters:</h4>
+        <ul>
+          <li>
+            <strong>Dataset:</strong> MNIST (60,000 training samples, 28×28
+            grayscale images)
+          </li>
+          <li><strong>Batch Size:</strong> 512</li>
+          <li><strong>Optimizer:</strong> Adam (lr=1e-3)</li>
+          <li><strong>Epochs:</strong> 200</li>
+          <li>
+            <strong>β Values:</strong> [0.0, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
+          </li>
+        </ul>
+
+        <h4>Loss Function:</h4>
+        <p>The total loss combines reconstruction and KL divergence terms:</p>
+
+        <div class="math-block">
+          $\mathcal{L} = \mathcal{L}_{\text{recon}} + \beta \cdot
+          \mathcal{L}_{\text{KL}}$
+        </div>
+
+        <p>where:</p>
+        <ul>
+          <li>
+            $\mathcal{L}_{\text{recon}} = \text{BCE}(x, \hat{x})$ (Binary Cross
+            Entropy)
+          </li>
+          <li>
+            $\mathcal{L}_{\text{KL}} = \frac{1}{2}\sum(1 + \log(\sigma^2) -
+            \mu^2 - \sigma^2)$
+          </li>
+        </ul>
+
+        <h3>4.2 Results Analysis</h3>
+
+        <h4>4.2.1 Training Dynamics</h4>
+        <p>
+          Our first key observation comes from the training loss curves across
+          different β values. Looking at the case where β = 0 (no KL
+          regularization), we observe fascinating dynamics:
+        </p>
+
+        <div class="result-figure">
+          <img
+            src="/media/images/blog/vae-dynamics/vae_training_comparison.png"
+            alt="Training loss curves showing reconstruction loss and KL divergence"
+          />
+          <p class="caption">
+            Figure 1: Training curves showing reconstruction loss (left) and KL
+            divergence (right) for different β values. Note how the KL
+            divergence reaches around 100 when β = 0, and the unique variance
+            behavior without regularization.
+          </p>
+        </div>
+
+        <p>
+          These results empirically validate our theoretical analysis from
+          Section 2. Without KL regularization:
+        </p>
+        <ul>
+          <li>
+            The encoder's predicted variance initially decreases, then notably
+            increases in later training stages
+          </li>
+          <li>
+            The KL divergence term grows to approximately 100, far from the
+            desired unit Gaussian behavior
+          </li>
+          <li>
+            This behavior suggests the encoder is actively increasing variance
+            to push the decoder toward learning more robust features
+          </li>
+        </ul>
+
+        <h4>4.2.2 Impact of KL Regularization</h4>
+        <p>
+          When we introduce KL regularization (β > 0), we observe a clear
+          stabilizing effect on the variance. But does this regularization
+          actually improve the model's performance? The generated samples
+          provide compelling evidence:
+        </p>
+
+        <div class="result-figure">
+          <div class="side-by-side">
+            <div class="figure-half">
+              <img
+                src="/media/images/blog/vae-dynamics/gen_beta_0.0.png"
+                alt="Generated samples with beta=0"
+              />
+              <p class="caption">
+                Figure 2a: Generated samples with β = 0. Note the blurrier, less
+                defined digit structures.
+              </p>
             </div>
-
-            <h3>2.1 Early Training Phase</h3>
-            <p>
-                During early training, when the decoder is still learning, an interesting phenomenon occurs. The system naturally reduces the variance predicted by the encoder to minimize randomness in the latent space. This makes intuitive sense - with a poor decoder, any additional noise in the latent vector makes reconstruction more difficult.
-            </p>
-
-            <div class="math-block">
-                <h4>Mathematical Analysis:</h4>
-                <p>The gradient of the total loss with respect to σ² reveals this dynamic:</p>
-                $\frac{\partial \mathcal{L}}{\partial \sigma^2} = \frac{\partial \mathcal{L}_{\text{recon}}}{\partial \sigma^2} + \beta \cdot \frac{\partial \mathcal{L}_{\text{KL}}}{\partial \sigma^2}$
-                
-                $\frac{\partial \mathcal{L}_{\text{KL}}}{\partial \sigma^2} = \frac{1}{2}(1 - \frac{1}{\sigma^2})$
-                
-                <p>The reconstruction loss gradient increases with σ² due to increased sampling randomness:</p>
-                $\frac{\partial \mathcal{L}_{\text{recon}}}{\partial \sigma^2} \propto \|\epsilon\|^2$
+            <div class="figure-half">
+              <img
+                src="/media/images/blog/vae-dynamics/gen_beta_1.0.png"
+                alt="Generated samples with beta=1"
+              />
+              <p class="caption">
+                Figure 2b: Generated samples with β = 1. Observe the sharper,
+                more well-defined digits.
+              </p>
             </div>
+          </div>
+        </div>
 
-            <h3>2.2 Later Training Phase</h3>
-            <p>
-                As the decoder improves, it becomes more robust to variations in the latent space. This allows the model to increase the predicted variance without severely impacting reconstruction quality. The improved decoder can handle more diverse latent vectors, enabling better exploration of the latent space.
-            </p>
+        <h4>4.2.3 Latent Space Organization</h4>
+        <p>
+          The latent space distributions provide further insight into the effect
+          of KL regularization:
+        </p>
 
-            <div class="math-block">
-                <p>The equilibrium point shifts according to decoder quality Q:</p>
-                $\sigma^2_{\text{optimal}} = f(Q) \quad \text{where } \frac{df}{dQ} > 0$
+        <div class="result-figure">
+          <div class="side-by-side">
+            <div class="figure-half">
+              <img
+                src="/media/images/blog/vae-dynamics/latent_space_0.png"
+                alt="Latent space visualization beta=0"
+              />
+              <p class="caption">
+                Figure 3a: Latent space distribution with β = 0, showing
+                irregular clustering and spread.
+              </p>
             </div>
-
-            <h2>3. Automatic Curriculum Learning</h2>
-            <p>
-                This dynamic creates an automatic curriculum learning process. The system naturally progresses through different phases:
-            </p>
-
-            <h3>3.1 Phase 1: Conservative Exploration</h3>
-            <p>
-                Initially, the VAE keeps variance low to ensure stable learning:
-            </p>
-            <div class="math-block">
-                $\sigma^2 \approx \min(\sigma^2) \quad \text{such that} \quad \mathcal{L}_{\text{recon}} < \text{threshold}$
+            <div class="figure-half">
+              <img
+                src="/media/images/blog/vae-dynamics/latent_space_1.png"
+                alt="Latent space visualization beta=1"
+              />
+              <p class="caption">
+                Figure 3b: Latent space distribution with β = 1, exhibiting
+                Gaussian-like structure.
+              </p>
             </div>
+          </div>
+        </div>
 
-            <h3>3.2 Phase 2: Gradual Expansion</h3>
-            <p>
-                As the decoder improves, the variance gradually increases:
-            </p>
-            <div class="math-block">
-                $\frac{d\sigma^2}{dt} \propto \text{Decoder Quality Improvement Rate}$
-            </div>
+        <p>
+          The latent space visualizations reveal that with β = 1, the
+          distribution much more closely approximates our desired unit Gaussian
+          prior. This structured organization of the latent space contributes to
+          the improved quality of generated samples, as the decoder learns to
+          map from a more regular distribution.
+        </p>
 
-            <h3>3.3 Phase 3: Equilibrium</h3>
-            <p>
-                Finally, the system reaches a balance between reconstruction accuracy and latent space regularity:
-            </p>
-            <div class="math-block">
-                $\sigma^2_{\text{final}} = \argmin_{\sigma^2} (\mathcal{L}_{\text{recon}} + \beta \cdot \mathcal{L}_{\text{KL}})$
-            </div>
+        <style>
+          .result-figure {
+            margin: 2rem 0;
+            text-align: center;
+          }
+          .result-figure img {
+            max-width: 100%;
+            height: auto;
+          }
+          .caption {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 0.5rem;
+          }
+          .side-by-side {
+            display: flex;
+            gap: 2rem;
+            margin: 2rem 0;
+          }
+          .figure-half {
+            flex: 1;
+          }
+        </style>
 
-            <h2>4. Experimental Verification</h2>
-            <p>
-                To verify this dynamic behavior, I've implemented a simple VAE and tracked the evolution of predicted variance during training. The code demonstrates how the variance starts small and gradually increases as the decoder improves.
-            </p>
+        <h2>5. Practical Implications</h2>
+        <p>
+          Understanding this dynamic balance has several important implications
+          for VAE training:
+        </p>
+        <ul>
+          <li>
+            <strong>Training Stability:</strong> The automatic variance
+            adjustment helps maintain stable training by matching the latent
+            space complexity to decoder capability.
+          </li>
+          <li>
+            <strong>Quality Assessment:</strong> The evolution of predicted
+            variance serves as a useful metric for monitoring training progress.
+          </li>
+          <li>
+            <strong>Architecture Design:</strong> Decoder capacity should be
+            matched to the desired latent space complexity, as it ultimately
+            limits the sustainable variance.
+          </li>
+        </ul>
 
-            <style>
-            .code-section {
-                margin: 2rem 0;
-                border: 1px solid #e1e4e8;
-                border-radius: 6px;
-                overflow: hidden;
-            }
+        <h2>Conclusion</h2>
+        <p>
+          The antagonistic relationship between decoder quality and encoder
+          variance in VAEs creates an elegant self-regulating system. This
+          automatic curriculum helps the model progress from simple to complex
+          representations, contributing to the stability and effectiveness of
+          VAE training. Understanding this dynamic can help in better
+          architecture design and training process monitoring.
+        </p>
 
-            .code-header {
-                background: #f6f8fa;
-                padding: 0.75rem 1rem;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                border-bottom: 1px solid #e1e4e8;
-            }
+        <p>
+          This phenomenon also raises interesting questions about similar
+          dynamics in other generative models. Do other variational methods
+          exhibit similar self-regulating behavior? How can we leverage this
+          understanding to design better training procedures? These questions
+          point to exciting directions for future research.
+        </p>
+        <style>
+          .citation-section {
+            margin-top: 4rem;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+              Helvetica, Arial, sans-serif;
+          }
 
-            .code-header h3 {
-                margin: 0;
-                font-size: 1rem;
-                color: #24292e;
-            }
+          .citation-section h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+          }
 
-            .code-buttons {
-                display: flex;
-                gap: 1rem;
-                align-items: center;
-            }
+          .citation-section p {
+            margin-bottom: 1rem;
+          }
 
-            .github-link {
-                color: #0366d6;
-                text-decoration: none;
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-            }
+          .bibtex-block {
+            background-color: #f6f8fa;
+            border-radius: 6px;
+            padding: 16px;
+            font-family:
+              ui-monospace,
+              SFMono-Regular,
+              SF Mono,
+              Menlo,
+              Consolas,
+              Liberation Mono,
+              monospace;
+            font-size: 14px;
+            line-height: 1.45;
+            overflow-x: auto;
+          }
+        </style>
 
-            .github-link:hover {
-                text-decoration: underline;
-            }
-
-            .toggle-btn {
-                background: #0366d6;
-                color: white;
-                border: none;
-                padding: 0.5rem 1rem;
-                border-radius: 6px;
-                cursor: pointer;
-                font-size: 0.9rem;
-            }
-
-            .toggle-btn:hover {
-                background: #0255b3;
-            }
-
-            .gist-container {
-                display: none;
-            }
-
-            .gist-container.visible {
-                display: block;
-            }
-            </style>
-
-            <div class="code-section">
-                <div class="code-header">
-                    <h3>Implementation</h3>
-                    <div class="code-buttons">
-                        <button class="toggle-btn" onclick="toggleGist()">Show Code</button>
-                        <a href="https://gist.github.com/H-tr/ccd920b8e8c853cd605712dd75326a9b" target="_blank" class="github-link">
-                            <i class="fab fa-github"></i> View on GitHub
-                        </a>
-                    </div>
-                </div>
-                <div class="gist-container" id="gistContainer">
-                    <script src="https://gist.github.com/H-tr/ccd920b8e8c853cd605712dd75326a9b.js"></script>
-                </div>
-            </div>
-
-            <script>
-            function toggleGist() {
-                const gistContainer = document.getElementById('gistContainer');
-                const button = document.querySelector('.toggle-btn');
-                const isVisible = gistContainer.classList.contains('visible');
-                
-                gistContainer.classList.toggle('visible');
-                button.textContent = isVisible ? 'Show Code' : 'Hide Code';
-            }
-            </script>
-
-            <h3>4.1 Experiment Setup</h3>
-            <p>
-                We implemented a VAE with the following architecture and training configuration:
-            </p>
-
-            <h4>Model Architecture:</h4>
-            <ul>
-                <li><strong>Encoder:</strong> Two-layer MLP (784 → 512 → 256) with batch normalization</li>
-                <li><strong>Latent Space:</strong> 2-dimensional (for visualization purposes)</li>
-                <li><strong>Decoder:</strong> Symmetric architecture (2 → 256 → 512 → 784) with batch normalization</li>
-            </ul>
-
-            <h4>Training Parameters:</h4>
-            <ul>
-                <li><strong>Dataset:</strong> MNIST (60,000 training samples, 28×28 grayscale images)</li>
-                <li><strong>Batch Size:</strong> 512</li>
-                <li><strong>Optimizer:</strong> Adam (lr=1e-3)</li>
-                <li><strong>Epochs:</strong> 200</li>
-                <li><strong>β Values:</strong> [0.0, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0]</li>
-            </ul>
-
-            <h4>Loss Function:</h4>
-            <p>The total loss combines reconstruction and KL divergence terms:</p>
-
-            <div class="math-block">
-            $\mathcal{L} = \mathcal{L}_{\text{recon}} + \beta \cdot \mathcal{L}_{\text{KL}}$
-            </div>
-
-            <p>where:</p>
-            <ul>
-                <li>$\mathcal{L}_{\text{recon}} = \text{BCE}(x, \hat{x})$ (Binary Cross Entropy)</li>
-                <li>$\mathcal{L}_{\text{KL}} = \frac{1}{2}\sum(1 + \log(\sigma^2) - \mu^2 - \sigma^2)$</li>
-            </ul>
-
-            <h3>4.2 Results Analysis</h3>
-
-            <h4>4.2.1 Training Dynamics</h4>
-            <p>
-                Our first key observation comes from the training loss curves across different β values. Looking at the case where β = 0 (no KL regularization), we observe fascinating dynamics:
-            </p>
-
-            <div class="result-figure">
-                <img src="/media/images/blog/vae-dynamics/vae_training_comparison.png" alt="Training loss curves showing reconstruction loss and KL divergence">
-                <p class="caption">
-                    Figure 1: Training curves showing reconstruction loss (left) and KL divergence (right) for different β values. Note how the KL divergence reaches around 100 when β = 0, and the unique variance behavior without regularization.
-                </p>
-            </div>
-
-            <p>
-                These results empirically validate our theoretical analysis from Section 2. Without KL regularization:
-            </p>
-            <ul>
-                <li>The encoder's predicted variance initially decreases, then notably increases in later training stages</li>
-                <li>The KL divergence term grows to approximately 100, far from the desired unit Gaussian behavior</li>
-                <li>This behavior suggests the encoder is actively increasing variance to push the decoder toward learning more robust features</li>
-            </ul>
-
-            <h4>4.2.2 Impact of KL Regularization</h4>
-            <p>
-                When we introduce KL regularization (β > 0), we observe a clear stabilizing effect on the variance. But does this regularization actually improve the model's performance? The generated samples provide compelling evidence:
-            </p>
-
-            <div class="result-figure">
-                <div class="side-by-side">
-                    <div class="figure-half">
-                        <img src="/media/images/blog/vae-dynamics/gen_beta_0.0.png" alt="Generated samples with beta=0">
-                        <p class="caption">Figure 2a: Generated samples with β = 0. Note the blurrier, less defined digit structures.</p>
-                    </div>
-                    <div class="figure-half">
-                        <img src="/media/images/blog/vae-dynamics/gen_beta_1.0.png" alt="Generated samples with beta=1">
-                        <p class="caption">Figure 2b: Generated samples with β = 1. Observe the sharper, more well-defined digits.</p>
-                    </div>
-                </div>
-            </div>
-
-            <h4>4.2.3 Latent Space Organization</h4>
-            <p>
-                The latent space distributions provide further insight into the effect of KL regularization:
-            </p>
-
-            <div class="result-figure">
-                <div class="side-by-side">
-                    <div class="figure-half">
-                        <img src="/media/images/blog/vae-dynamics/latent_space_0.png" alt="Latent space visualization beta=0">
-                        <p class="caption">Figure 3a: Latent space distribution with β = 0, showing irregular clustering and spread.</p>
-                    </div>
-                    <div class="figure-half">
-                        <img src="/media/images/blog/vae-dynamics/latent_space_1.png" alt="Latent space visualization beta=1">
-                        <p class="caption">Figure 3b: Latent space distribution with β = 1, exhibiting Gaussian-like structure.</p>
-                    </div>
-                </div>
-            </div>
-
-            <p>
-                The latent space visualizations reveal that with β = 1, the distribution much more closely approximates our desired unit Gaussian prior. This structured organization of the latent space contributes to the improved quality of generated samples, as the decoder learns to map from a more regular distribution.
-            </p>
-
-            <style>
-            .result-figure {
-                margin: 2rem 0;
-                text-align: center;
-            }
-            .result-figure img {
-                max-width: 100%;
-                height: auto;
-            }
-            .caption {
-                color: #666;
-                font-size: 0.9em;
-                margin-top: 0.5rem;
-            }
-            .side-by-side {
-                display: flex;
-                gap: 2rem;
-                margin: 2rem 0;
-            }
-            .figure-half {
-                flex: 1;
-            }
-            </style>
-
-            <h2>5. Practical Implications</h2>
-            <p>
-                Understanding this dynamic balance has several important implications for VAE training:
-            </p>
-            <ul>
-                <li>
-                    <strong>Training Stability:</strong> The automatic variance adjustment helps maintain stable training by matching the latent space complexity to decoder capability.
-                </li>
-                <li>
-                    <strong>Quality Assessment:</strong> The evolution of predicted variance serves as a useful metric for monitoring training progress.
-                </li>
-                <li>
-                    <strong>Architecture Design:</strong> Decoder capacity should be matched to the desired latent space complexity, as it ultimately limits the sustainable variance.
-                </li>
-            </ul>
-
-            <h2>Conclusion</h2>
-            <p>
-                The antagonistic relationship between decoder quality and encoder variance in VAEs creates an elegant self-regulating system. This automatic curriculum helps the model progress from simple to complex representations, contributing to the stability and effectiveness of VAE training. Understanding this dynamic can help in better architecture design and training process monitoring.
-            </p>
-            
-            <p>
-                This phenomenon also raises interesting questions about similar dynamics in other generative models. Do other variational methods exhibit similar self-regulating behavior? How can we leverage this understanding to design better training procedures? These questions point to exciting directions for future research.
-            </p>
-            <style>
-                .citation-section {
-                    margin-top: 4rem;
-                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-                }
-                
-                .citation-section h2 {
-                    font-size: 1.5rem;
-                    font-weight: 600;
-                    margin-bottom: 1rem;
-                }
-                
-                .citation-section p {
-                    margin-bottom: 1rem;
-                }
-                
-                .bibtex-block {
-                    background-color: #f6f8fa;
-                    border-radius: 6px;
-                    padding: 16px;
-                    font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
-                    font-size: 14px;
-                    line-height: 1.45;
-                    overflow-x: auto;
-                }
-                </style>
-                
-                <div class="citation-section">
-                    <h2>Citation</h2>
-                    <p>If you use this code in your research, please cite:</p>
-                    <div class="bibtex-block">
-                @misc{vae-dynamics-demo,
-                    author = {Tianrun Hu},
-                    title = {Understanding the Dynamic Balance in Variational Autoencoders},
-                    year = {2025},
-                    publisher = {GitHub},
-                    url = {https://h-tr.github.io/blog/posts/vae-dynamics.html}
-                }</div>
-                </div>
-
-        </article>
+        <div class="citation-section">
+          <h2>Citation</h2>
+          <p>If you use this code in your research, please cite:</p>
+          <div class="bibtex-block">
+            @misc{vae-dynamics-demo, author = {Tianrun Hu}, title =
+            {Understanding the Dynamic Balance in Variational Autoencoders},
+            year = {2025}, publisher = {GitHub}, url =
+            {https://h-tr.github.io/blog/posts/vae-dynamics.html} }
+          </div>
+        </div>
+      </article>
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            renderMathInElement(document.body, {
-                delimiters: [
-                    {left: "$", right: "$", display: true},
-                    {left: "\\[", right: "\\]", display: true},
-                    {left: "\\(", right: "\\)", display: false},
-                    {left: "$", right: "$", display: false}
-                ],
-                throwOnError: false
-            });
+      document.addEventListener("DOMContentLoaded", function () {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: "$", right: "$", display: true },
+            { left: "\\[", right: "\\]", display: true },
+            { left: "\\(", right: "\\)", display: false },
+            { left: "$", right: "$", display: false },
+          ],
+          throwOnError: false,
         });
+      });
     </script>
-</body>
+  </body>
 </html>

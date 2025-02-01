@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Exploring Stochastic Modeling in Visual Place Recognition</title>
+
+    <!-- Fonts -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- KaTeX Math Support -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Site Assets -->
+    <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg" />
+    <link href="/css/blog.css" rel="stylesheet" />
+
+    <!-- KaTeX Scripts -->
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"
+    ></script>
+
+    <!-- Custom Scripts -->
+    <script defer src="/js/copy-button.js"></script>
+  </head>
+  <body>
+    <div class="blog-post">
+      <a href="../" class="back-button">
+        <i class="fas fa-arrow-left"></i>Back to Blog
+      </a>
+
+      <header class="blog-post-header">
+        <h1 class="blog-post-title">
+          Exploring Stochastic Modeling in Visual Place Recognition
+        </h1>
+        <div class="blog-post-date">February 1, 2025</div>
+      </header>
+
+      <article class="blog-post-content">
+        <h2>Introduction</h2>
+        <p>
+          You know how VAEs have this really neat trick of handling uncertainty?
+          Well, after diving deep into VAEs in my previous blog post, I had this
+          "wait a minute" moment. What if we could bring that same magic to
+          visual place recognition (VPR)? For those who aren't familiar with
+          VPR, it's basically teaching robots to recognize places they've been
+          before - kind of like how you'd recognize your favorite coffee shop,
+          but for machines.
+        </p>
+        <p>
+          Now, I should probably mention upfront that this is one of those
+          "failed experiment" stories. But hey, sometimes the attempts that
+          don't work out teach us the most interesting lessons, right? So buckle
+          up - I'm going to share my journey of trying (and ultimately failing)
+          to make this work, and all the fascinating insights I gained along the
+          way.
+        </p>
+
+        <h2>1. Motivation</h2>
+        <p>
+          Here's the thing about current VPR systems - they're a bit like that
+          friend who's super confident about everything but then gets completely
+          lost when things change slightly. They face some pretty real
+          challenges:
+        </p>
+        <ul>
+          <li>
+            <strong>The Weather Problem:</strong> A place can look totally
+            different just because it's sunny instead of rainy, or summer
+            instead of winter. (Imagine trying to recognize your street when
+            it's covered in snow!)
+          </li>
+          <li>
+            <strong>The Viewpoint Problem:</strong> Move a few steps to the left
+            or right, and suddenly everything looks different to our robot
+            friends
+          </li>
+          <li>
+            <strong>The "Everything Looks the Same" Problem:</strong> Try
+            telling apart different Starbucks locations - that's what we call
+            perceptual aliasing in fancy terms
+          </li>
+        </ul>
+        <p>
+          Looking at these challenges, I had this thought: "Hey, isn't
+          uncertainty kind of the common thread here?" I mean, VAEs handle
+          uncertainty beautifully by saying "we're not 100% sure about this, but
+          here's our best guess and how confident we are about it." So I
+          wondered - what if we could bring that same mindset to place
+          recognition?
+        </p>
+
+        <h2>2. The Stochastic VPR Framework</h2>
+        <h3>2.1 Traditional Approach: Contrastive Learning</h3>
+        <p>
+          Before diving into my stochastic approach, let's look at how VPR
+          typically works. The traditional approach uses contrastive learning,
+          where we train a network to map images to point embeddings in a way
+          that makes similar places close together and different places far
+          apart.
+        </p>
+
+        <div class="math-block">
+          <p>
+            Usually, we have a backbone network \(f\) that maps an image \(x\)
+            to a feature vector:
+          </p>
+          \[f_\theta: X \rightarrow \mathbb{R}^d\]
+
+          <p>And we train it with contrastive loss (like InfoNCE):</p>
+          \[L_{cont} = -\log \frac{\exp(f(x_i)^T f(x_j)/\tau)}{\sum_{k \neq i}
+          \exp(f(x_i)^T f(x_k)/\tau)}\]
+
+          <p>
+            where \((x_i, x_j)\) are images of the same place, and \(\tau\) is a
+            temperature parameter.
+          </p>
+        </div>
+
+        <h3>2.2 The Stochastic Approach</h3>
+        <p>
+          Here's where I had what I thought was a clever idea: What if each
+          image of a place isn't just a point in feature space, but a sample
+          from some underlying probability distribution? Think about it - a
+          place under different conditions (lighting, weather, viewpoint) could
+          be seen as different samples from a place-specific distribution.
+        </p>
+
+        <p>This approach could potentially offer two big benefits:</p>
+        <ul>
+          <li>
+            <strong>Better Uncertainty Handling:</strong> By modeling place
+            features as distributions rather than points, we could better
+            capture the inherent variability of how places look
+          </li>
+          <li>
+            <strong>Implicit Data Augmentation:</strong> The sampling process
+            during training could act as a form of data augmentation,
+            potentially making our model more robust
+          </li>
+        </ul>
+
+        <h3>2.3 Mathematical Formulation</h3>
+        <p>
+          For an input image \(x_i\), our backbone network now outputs
+          distribution parameters:
+        </p>
+        <div class="math-block">\[f_\theta(x_i) = (\mu_i, \Sigma_i)\]</div>
+
+        <p>This defines a latent distribution for each image:</p>
+        <div class="math-block">\[q_i = \mathcal{N}(\mu_i, \Sigma_i)\]</div>
+
+        <p>We generate features through the reparameterization trick:</p>
+        <div class="math-block">
+          \[\varepsilon \sim \mathcal{N}(0, I)\] \[z_i = \mu_i + \Sigma_i^{1/2}
+          \varepsilon\]
+        </div>
+
+        <p>Final descriptor after pooling:</p>
+        <div class="math-block">\[d_i = g(z_i)\]</div>
+
+        <p>The training objective combines two components:</p>
+        <p>1. Distribution Alignment Loss (for positive pairs):</p>
+        <div class="math-block">
+          \[L_{KL} = D_{KL}(q_i || q_j) + D_{KL}(q_j || q_i)\]
+        </div>
+
+        <p>2. Contrastive Learning Loss:</p>
+        <div class="math-block">
+          \[L_{cont} = -\log \frac{\exp(d_i^T d_j/\tau)}{\sum_{k \neq i}
+          \exp(d_i^T d_k/\tau)}\]
+        </div>
+
+        <p>Total Loss:</p>
+        <div class="math-block">\[L_{total} = L_{cont} + \lambda L_{KL}\]</div>
+
+        <p>Training Objective:</p>
+        <div class="math-block">
+          \[\theta^* = \arg\min_\theta \mathbb{E}_{x_i, x_j \in P}[L_{total}]\]
+        </div>
+
+        <p>
+          where \(P\) is the set of positive pairs (images of the same place).
+        </p>
+
+        <p>
+          Note that while I used InfoNCE-style contrastive loss here, the
+          framework is flexible - we could swap in other contrastive losses like
+          triplet loss or circle loss. The key innovation is in the stochastic
+          modeling of the features, not the specific choice of contrastive loss.
+        </p>
+
+        <h2>3. Experimental Setup</h2>
+
+        <h3>3.1 Implementation Details</h3>
+        <p>The model was implemented with the following architecture:</p>
+        <ul>
+          <li><strong>Backbone:</strong> ResNet50 pretrained on ImageNet</li>
+          <li><strong>Embedding Dimension:</strong> 256</li>
+          <li>
+            <strong>Training Data:</strong> Mapillary Street-level Sequences
+          </li>
+          <li>
+            <strong>Loss Function:</strong> InfoNCE with probabilistic
+            embeddings
+          </li>
+        </ul>
+
+        <div class="math-block">
+          <p>The probabilistic InfoNCE loss:</p>
+          $\mathcal{L} = -\mathbb{E}\left[\log \frac{\exp(\text{sim}(I,
+          I^+)/\tau)}{\sum_{I^-} \exp(\text{sim}(I, I^-)/\tau)}\right]$
+        </div>
+
+        <h2>4. Initial Attempts and Observations</h2>
+
+        <h3>4.1 The Runaway Variance Problem</h3>
+        <p>
+          In my first training attempts, I noticed something interesting - the
+          variance kept increasing without bound. This was puzzling at first,
+          but after diving deeper into the mathematics, it made sense: Unlike
+          VAEs which have a reconstruction loss to constrain the variance, our
+          contrastive learning setup wasn't providing enough gradient signal to
+          control the variance effectively.
+        </p>
+
+        <h3>4.2 Why VAEs Work: A Natural Variance Control</h3>
+        <p>
+          In VAEs, the reconstruction loss has an explicit dependence on
+          variance:
+        </p>
+        <div class="math-block">
+          \[-\log N(x; \hat{x}, \sigma^2I) = \frac{1}{2\sigma^2}\|x-\hat{x}\|^2
+          + \frac{D}{2}\log\sigma^2 + const\]
+        </div>
+
+        <p>This provides natural bounds:</p>
+        <ul>
+          <li>
+            If \(\sigma^2\) gets too large: The \(\log\sigma^2\) term grows
+          </li>
+          <li>
+            If \(\sigma^2\) gets too small: The \(\frac{1}{\sigma^2}\) term
+            explodes
+          </li>
+        </ul>
+
+        <h3>4.3 Single-Sample Contrastive: The Problem</h3>
+        <p>
+          Consider a positive pair \((x_i, x_j)\). In the standard contrastive
+          setup:
+        </p>
+
+        <p>1. Sample one point from each distribution:</p>
+        <div class="math-block">
+          \[z_i = \mu_i + \sigma_i \epsilon_i, \quad \epsilon_i \sim N(0, I)\]
+          \[z_j = \mu_j + \sigma_j \epsilon_j, \quad \epsilon_j \sim N(0, I)\]
+        </div>
+
+        <p>2. The contrastive loss sees:</p>
+        <div class="math-block">
+          \[\|z_i - z_j\|^2 = \| (\mu_i + \sigma_i \epsilon_i) - (\mu_j +
+          \sigma_j \epsilon_j) \|^2\]
+        </div>
+
+        <p>
+          3. The gradient w.r.t \(\sigma_i\) for a single dimension \(d\) is:
+        </p>
+        <div class="math-block">
+          \[\frac{\partial \|z_i - z_j\|^2}{\partial \sigma_{i,d}} = 2(z_i -
+          z_j)_d \epsilon_{i,d}\]
+        </div>
+
+        <p>This is highly problematic because:</p>
+        <ul>
+          <li>
+            The gradient's sign depends on random noise \(\epsilon_{i,d}\)
+          </li>
+          <li>
+            Even with large \(\sigma^2\), if \(\epsilon_i \approx \epsilon_j\),
+            the gradient is small
+          </li>
+          <li>
+            Over many batches, these random signs may partially cancel out
+          </li>
+        </ul>
+
+        <h3>4.4 Multi-Sample: How It Helps</h3>
+        <p>Instead of one sample, we draw \(K\) samples per image:</p>
+        <div class="math-block">
+          \[z_i^{(k)} = \mu_i + \sigma_i \epsilon_i^{(k)}, \quad k = 1...K\]
+        </div>
+
+        <p>The loss becomes an average over all sample pairs:</p>
+        <div class="math-block">
+          \[L_{multi} = \frac{1}{K^2} \sum_{k=1}^K \sum_{l=1}^K \|z_i^{(k)} -
+          z_j^{(l)}\|^2\]
+        </div>
+
+        <p>Taking expectation:</p>
+        <div class="math-block">
+          \[\mathbb{E}[L_{multi}] = \|\mu_i - \mu_j\|^2 + \sigma_i^2 +
+          \sigma_j^2\]
+        </div>
+
+        <p>Key benefits:</p>
+        <ul>
+          <li>The variance appears explicitly in the expected loss</li>
+          <li>Multiple samples reduce gradient noise through averaging</li>
+          <li>Provides consistent signals about variance magnitude</li>
+        </ul>
+
+        <h2>5. The Performance Trade-off</h2>
+
+        <h3>5.1 The Batch Size Dilemma</h3>
+        <p>
+          While the multi-sample approach solved our variance stability issues,
+          it introduced a new problem. The final model performed about 2% worse
+          than a traditional deterministic approach. Why? The answer lies in how
+          contrastive learning really works:
+        </p>
+        <ul>
+          <li>
+            <strong>In-batch Mining:</strong> Contrastive learning relies
+            heavily on finding hard negative samples within each batch
+          </li>
+          <li>
+            <strong>Batch Size Matters:</strong> Larger batch sizes mean more
+            potential hard negatives, which typically leads to better
+            performance
+          </li>
+          <li>
+            <strong>Memory Constraints:</strong> Multiple samples per image
+            means we had to reduce batch size to fit in GPU memory
+          </li>
+        </ul>
+
+        <h3>5.2 The Implicit Trade-off</h3>
+        <p>
+          We essentially traded batch diversity for sample diversity. While our
+          noised samples provided some additional positive pairs, they weren't
+          as valuable as the hard negatives we lost by reducing the batch size.
+          The multiple samples per image were essentially giving us "easy"
+          positive pairs, while what we really needed were those challenging
+          negative examples that come with larger batch sizes.
+        </p>
+
+        <h2>6. Key Insights and Future Directions</h2>
+        <p>
+          This exploration revealed some fundamental tensions in applying
+          stochastic modeling to visual place recognition:
+        </p>
+        <ul>
+          <li>
+            <strong>Memory vs. Performance:</strong> While stochastic modeling
+            can provide richer representations, the memory overhead can force
+            compromises that hurt overall performance
+          </li>
+          <li>
+            <strong>Hard Negatives Matter More:</strong> In VPR, the ability to
+            distinguish similar-but-different places (through hard negatives)
+            might be more important than modeling uncertainty in positive pairs
+          </li>
+          <li>
+            <strong>Batch Dynamics:</strong> The role of batch size in
+            contrastive learning might be more crucial than we often assume
+          </li>
+        </ul>
+
+        <p>Future work might explore ways to get the best of both worlds:</p>
+        <ul>
+          <li>More memory-efficient ways to implement multi-sample training</li>
+          <li>
+            Hybrid approaches that maintain large batch sizes while still
+            modeling uncertainty
+          </li>
+          <li>
+            Alternative formulations that don't require multiple samples per
+            image
+          </li>
+        </ul>
+
+        <h2>Conclusion</h2>
+        <p>
+          While stochastic modeling in VPR seems theoretically appealing, the
+          practical challenges of training stability, computational efficiency,
+          and uncertainty calibration proved too significant in this
+          implementation. However, the insights gained from this exploration
+          suggest that more structured approaches to uncertainty modeling might
+          be more successful.
+        </p>
+
+        <div class="citation-section">
+          <h2>Citation</h2>
+          <p>If you find this exploration useful, please cite:</p>
+          <div class="bibtex-block">
+            @misc{stochastic-vpr-exploration, author = {Tianrun Hu}, title =
+            {Exploring Stochastic Modeling in Visual Place Recognition}, year =
+            {2025}, publisher = {GitHub}, url =
+            {https://h-tr.github.io/blog/posts/stochastic-vpr.html} }
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: "$", right: "$", display: true },
+            { left: "\\[", right: "\\]", display: true },
+            { left: "\\(", right: "\\)", display: false },
+            { left: "$", right: "$", display: false },
+          ],
+          throwOnError: false,
+        });
+      });
+    </script>
+  </body>
+</html>

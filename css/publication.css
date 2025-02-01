@@ -1,219 +1,219 @@
 :root {
-    --content-width: 1000px;
-    --text-color: #2c3e50;
+  --content-width: 1000px;
+  --text-color: #2c3e50;
 }
 
 body {
-    font-family: "Lora", Georgia, serif;
-    line-height: 1.7;
-    max-width: var(--content-width);
-    margin: 0 auto;
-    padding: 2rem;
-    color: var(--text-color);
-    background: #fff;
+  font-family: "Lora", Georgia, serif;
+  line-height: 1.7;
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: 2rem;
+  color: var(--text-color);
+  background: #fff;
 }
 
 /* Header */
 .header {
-    margin-bottom: 2rem;
+  margin-bottom: 2rem;
 }
 
 .header h1 {
-    font-size: 2.5rem;
-    margin: 0 0 0.5rem;
-    color: #000;
+  font-size: 2.5rem;
+  margin: 0 0 0.5rem;
+  color: #000;
 }
 
 /* Navigation */
 nav {
-    margin: 2rem 0;
-    padding: 1rem 0;
-    border-top: 1px solid #eee;
-    border-bottom: 1px solid #eee;
+  margin: 2rem 0;
+  padding: 1rem 0;
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
 }
 
 nav a {
-    color: #000;
-    text-decoration: none;
-    margin-right: 1.5rem;
-    font-weight: 500;
+  color: #000;
+  text-decoration: none;
+  margin-right: 1.5rem;
+  font-weight: 500;
 }
 
 nav a:hover {
-    text-decoration: underline;
+  text-decoration: underline;
 }
 
 /* Publication List */
 .publication {
-    margin: 2rem 0;
+  margin: 2rem 0;
 }
 
 .publication-item {
-    display: grid;
-    grid-template-columns: 400px 1fr;
-    gap: 2rem;
-    margin-bottom: 3rem;
-    padding-bottom: 2rem;
-    border-bottom: 1px solid #eee;
-    align-items: center;  /* Vertically center the columns */
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  gap: 2rem;
+  margin-bottom: 3rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid #eee;
+  align-items: center; /* Vertically center the columns */
 }
 
 .publication-item:last-child {
-    border-bottom: none;
+  border-bottom: none;
 }
 
 .publication-media {
-    width: 400px;
-    height: 234px;
-    border-radius: 4px;
-    overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #f8f8f8;
-    margin: 0 auto;  /* Center the container horizontally */
-    position: relative;  /* For proper centering */
+  width: 400px;
+  height: 234px;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8f8f8;
+  margin: 0 auto; /* Center the container horizontally */
+  position: relative; /* For proper centering */
 }
 
 .publication-media img {
-    position: absolute;  /* Position within container */
-    top: 50%;           /* Center vertically */
-    left: 50%;          /* Center horizontally */
-    transform: translate(-50%, -50%);  /* Perfect centering */
-    max-width: 100%;    /* Ensure image fits container */
-    max-height: 100%;   /* Ensure image fits container */
-    width: auto;        /* Maintain aspect ratio */
-    height: auto;       /* Maintain aspect ratio */
-    object-fit: contain; /* Show entire image */
+  position: absolute; /* Position within container */
+  top: 50%; /* Center vertically */
+  left: 50%; /* Center horizontally */
+  transform: translate(-50%, -50%); /* Perfect centering */
+  max-width: 100%; /* Ensure image fits container */
+  max-height: 100%; /* Ensure image fits container */
+  width: auto; /* Maintain aspect ratio */
+  height: auto; /* Maintain aspect ratio */
+  object-fit: contain; /* Show entire image */
 }
 
 .publication-content {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    min-height: 234px;  /* Match the image height */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 234px; /* Match the image height */
 }
 
 .publication-content {
-    flex: 1;
+  flex: 1;
 }
 
 .publication-title {
-    font-size: 1.3rem;
-    font-weight: bold;
-    margin-bottom: 0.8rem;
-    color: #1a1a1a;
-    line-height: 1.4;
+  font-size: 1.3rem;
+  font-weight: bold;
+  margin-bottom: 0.8rem;
+  color: #1a1a1a;
+  line-height: 1.4;
 }
 
 .publication-status {
-    display: inline-block;
-    padding: 0.2rem 0.5rem;
-    background-color: #f0f0f0;
-    border-radius: 3px;
-    font-size: 0.9rem;
-    color: #666;
-    margin-bottom: 0.8rem;
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  background-color: #f0f0f0;
+  border-radius: 3px;
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 0.8rem;
 }
 
 .publication-authors {
-    font-style: italic;
-    margin-bottom: 0.8rem;
-    line-height: 1.5;
+  font-style: italic;
+  margin-bottom: 0.8rem;
+  line-height: 1.5;
 }
 
 .publication-venue {
-    color: #666;
-    margin-bottom: 0.8rem;
+  color: #666;
+  margin-bottom: 0.8rem;
 }
 
 .publication-abstract {
-    font-size: 0.95rem;
-    margin: 1rem 0;
-    color: #444;
-    line-height: 1.8;
+  font-size: 0.95rem;
+  margin: 1rem 0;
+  color: #444;
+  line-height: 1.8;
 }
 
 .publication-links {
-    margin-top: 1.5rem;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.8rem;
+  margin-top: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
 }
 
 .publication-links a {
-    display: inline-flex;
-    align-items: center;
-    color: #2c3e50;
-    text-decoration: none;
-    font-size: 0.9rem;
-    padding: 0.4rem 0.8rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    transition: all 0.2s ease;
-    background-color: #fff;
+  display: inline-flex;
+  align-items: center;
+  color: #2c3e50;
+  text-decoration: none;
+  font-size: 0.9rem;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  background-color: #fff;
 }
 
 .publication-links a:hover {
-    background: #f5f5f5;
-    border-color: #ccc;
-    transform: translateY(-1px);
+  background: #f5f5f5;
+  border-color: #ccc;
+  transform: translateY(-1px);
 }
 
 .publication-links i {
-    margin-right: 0.4rem;
+  margin-right: 0.4rem;
 }
 
 /* Responsive Design */
 @media (max-width: 900px) {
-    .publication-item {
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-    }
+  .publication-item {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
 
-    .publication-media {
-        max-width: 100%;
-        margin: 0 auto;
-    }
+  .publication-media {
+    max-width: 100%;
+    margin: 0 auto;
+  }
 }
 
 @media (max-width: 700px) {
-    body {
-        padding: 1rem;
-    }
-
-    h1 {
-        font-size: 2rem;
-    }
-
-    nav {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 1rem;
-    }
-
-    nav a {
-        margin: 0 0.75rem;
-    }
-}
-    /* BibTeX Styling */
-.bibtex-content {
-    background-color: #f8f8f8;
+  body {
     padding: 1rem;
-    border-radius: 4px;
-    margin-top: 1rem;
-    font-family: monospace;
-    font-size: 0.85rem;
-    white-space: pre-wrap;
-    overflow-x: auto;
+  }
+
+  h1 {
+    font-size: 2rem;
+  }
+
+  nav {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+  }
+
+  nav a {
+    margin: 0 0.75rem;
+  }
+}
+/* BibTeX Styling */
+.bibtex-content {
+  background-color: #f8f8f8;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-top: 1rem;
+  font-family: monospace;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  overflow-x: auto;
 }
 
 .bibtex-button {
-    cursor: pointer;
+  cursor: pointer;
 }
 
 pre {
-    margin: 0;
+  margin: 0;
 }

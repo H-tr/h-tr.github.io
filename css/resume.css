@@ -1,208 +1,208 @@
 :root {
-    --content-width: 1000px;
-    --text-color: #2c3e50;
+  --content-width: 1000px;
+  --text-color: #2c3e50;
 }
 
 body {
-    font-family: "Lora", Georgia, serif;
-    line-height: 1.7;
-    max-width: var(--content-width);
-    margin: 0 auto;
-    padding: 2rem;
-    color: var(--text-color);
-    background: #fff;
+  font-family: "Lora", Georgia, serif;
+  line-height: 1.7;
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: 2rem;
+  color: var(--text-color);
+  background: #fff;
 }
 
 .header {
-    margin-bottom: 2rem;
+  margin-bottom: 2rem;
 }
 
 .header h1 {
-    font-size: 2.5rem;
-    margin: 0 0 0.5rem;
-    color: #000;
+  font-size: 2.5rem;
+  margin: 0 0 0.5rem;
+  color: #000;
 }
 
 nav {
-    margin: 2rem 0;
-    padding: 1rem 0;
-    border-top: 1px solid #eee;
-    border-bottom: 1px solid #eee;
+  margin: 2rem 0;
+  padding: 1rem 0;
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
 }
 
 nav a {
-    color: #000;
-    text-decoration: none;
-    margin-right: 1.5rem;
-    font-weight: 500;
+  color: #000;
+  text-decoration: none;
+  margin-right: 1.5rem;
+  font-weight: 500;
 }
 
 nav a:hover {
-    text-decoration: underline;
+  text-decoration: underline;
 }
 
 h2.resume-name {
-    font-size: 2rem;
-    color: #2c3e50;
-    text-align: center;
-    margin: 2rem 0;
+  font-size: 2rem;
+  color: #2c3e50;
+  text-align: center;
+  margin: 2rem 0;
 }
 
 .contact-info {
-    display: flex;
-    justify-content: center;
-    gap: 2rem;
-    margin-bottom: 2rem;
-    flex-wrap: wrap;
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
 }
 
 .contact-info a {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--text-color);
-    text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-color);
+  text-decoration: none;
 }
 
 .contact-info a i {
-    width: 1rem;
+  width: 1rem;
 }
 
 .download-section {
-    text-align: center;
-    margin: 2rem 0;
+  text-align: center;
+  margin: 2rem 0;
 }
 
 .download-button {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    background-color: #2c3e50;
-    color: white;
-    text-decoration: none;
-    border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background-color: #2c3e50;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
 }
 
 .experience-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
 
 .experience-item {
-    margin-bottom: 1.5rem;
-    display: grid;
-    grid-template-columns: 120px 1fr;
-    gap: 2rem;
-    align-items: start;
+  margin-bottom: 1.5rem;
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 2rem;
+  align-items: start;
 }
 
 .experience-item img {
-    width: 120px;
-    height: 120px;
-    object-fit: contain;
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
 }
 
 .experience-details {
-    flex: 1;
+  flex: 1;
 }
 
 .experience-date {
-    color: #666;
+  color: #666;
 }
 
 .experience-title {
-    margin: 0.2rem 0;
-    font-weight: 500;
+  margin: 0.2rem 0;
+  font-weight: 500;
 }
 
 .experience-location {
-    margin: 0.2rem 0;
+  margin: 0.2rem 0;
 }
 
 .experience-description {
-    color: #666;
-    margin-top: 0.5rem;
+  color: #666;
+  margin-top: 0.5rem;
 }
 
 .resume-section {
-    margin-bottom: 2.5rem;
+  margin-bottom: 2.5rem;
 }
 
 .resume-section h2 {
-    font-size: 1.5rem;
-    margin: 1.5rem 0 1rem;
-    color: #000;
-    border-bottom: 2px solid #eee;
-    padding-bottom: 0.5rem;
+  font-size: 1.5rem;
+  margin: 1.5rem 0 1rem;
+  color: #000;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 0.5rem;
 }
 
 /* Updated Awards & Honors styling */
 .award-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
 
 .award-item {
-    margin-bottom: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .award-item strong {
-    font-weight: 500;
-    color: #000;
+  font-weight: 500;
+  color: #000;
 }
 
 .award-details {
-    color: #666;
-    font-style: italic;
+  color: #666;
+  font-style: italic;
 }
 
 /* Updated Technical Skills styling */
 .skills-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.8rem;
-    margin: 1rem 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin: 1rem 0;
 }
 
 .skill-tag {
-    padding: 0.4rem 0.8rem;
-    background-color: #f8f9fa;
-    border-radius: 4px;
-    font-size: 0.95rem;
-    color: var(--text-color);
-    transition: background-color 0.2s;
+  padding: 0.4rem 0.8rem;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  color: var(--text-color);
+  transition: background-color 0.2s;
 }
 
 .skill-tag:hover {
-    background-color: #e9ecef;
+  background-color: #e9ecef;
 }
 
 @media (max-width: 700px) {
-    body {
-        padding: 1rem;
-    }
+  body {
+    padding: 1rem;
+  }
 
-    .contact-info {
-        flex-direction: column;
-        align-items: center;
-    }
+  .contact-info {
+    flex-direction: column;
+    align-items: center;
+  }
 
-    .experience-item {
-        grid-template-columns: 1fr;
-        text-align: center;
-    }
+  .experience-item {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
 
-    .experience-item img {
-        margin: 0 auto;
-    }
+  .experience-item img {
+    margin: 0 auto;
+  }
 
-    .award-item {
-        text-align: center;
-    }
+  .award-item {
+    text-align: center;
+  }
 }

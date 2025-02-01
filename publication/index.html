@@ -1,89 +1,124 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Publication - Tianrun Hu</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link rel="icon" type="image/svg+xml" href="../media/images/icon.svg">
-    <link href="/css/publication.css" rel="stylesheet">
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link rel="icon" type="image/svg+xml" href="../media/images/icon.svg" />
+    <link href="/css/publication.css" rel="stylesheet" />
     <script>
-        function toggleBibtex(id) {
-            const bibtex = document.getElementById(id);
-            if (bibtex.style.display === 'none') {
-                bibtex.style.display = 'block';
-            } else {
-                bibtex.style.display = 'none';
-            }
+      function toggleBibtex(id) {
+        const bibtex = document.getElementById(id);
+        if (bibtex.style.display === "none") {
+          bibtex.style.display = "block";
+        } else {
+          bibtex.style.display = "none";
         }
+      }
     </script>
-</head>
-<body>
+  </head>
+  <body>
     <header class="header">
-        <h1>Publication</h1>
+      <h1>Publication</h1>
     </header>
 
     <nav>
-        <a href="../">Home</a>
-        <a href="../publication/">Publication</a>
-        <a href="../project/">Project</a>
-        <a href="../blog/">Blog</a>
-        <a href="../teaching/">Teaching</a>
-        <a href="../resume/">Resume</a>
+      <a href="../">Home</a>
+      <a href="../publication/">Publication</a>
+      <a href="../project/">Project</a>
+      <a href="../blog/">Blog</a>
+      <a href="../teaching/">Teaching</a>
+      <a href="../resume/">Resume</a>
     </nav>
 
     <section class="publications">
-        <div class="publication-item">
-            <div class="publication-media">
-                <img src="../media/images/robi/robi.png" alt="Robi Butler System">
-            </div>
-            <div class="publication-content">
-                <div class="publication-title">
-                    Robi Butler: Remote Multimodal Interactions with Household Robot Assistant
-                </div>
-                <div class="publication-status">In Submission</div>
-                <div class="publication-authors">
-                    Anxing Xiao*, Nuwan Janaka, <strong>Tianrun Hu</strong>, Anshul Gupta, Kaixin Li, Cunjun Yu, David Hsu
-                </div>
-                <div class="publication-links">
-                    <a href="https://arxiv.org/abs/2409.20548" target="_blank"><i class="fas fa-file-pdf"></i>arXiv</a>
-                    <a href="https://www.youtube.com/watch?v=kz6P3ui-s3I" target="_blank"><i class="fas fa-video"></i>Video</a>
-                    <a href="https://robibutler.github.io/" target="_blank"><i class="fas fa-globe"></i>Website</a>
-                </div>
-            </div>
+      <div class="publication-item">
+        <div class="publication-media">
+          <img src="../media/images/robi/robi.png" alt="Robi Butler System" />
         </div>
+        <div class="publication-content">
+          <div class="publication-title">
+            Robi Butler: Remote Multimodal Interactions with Household Robot
+            Assistant
+          </div>
+          <div class="publication-status">ICRA 2025</div>
+          <div class="publication-authors">
+            Anxing Xiao*, Nuwan Janaka, <strong>Tianrun Hu</strong>, Anshul
+            Gupta, Kaixin Li, Cunjun Yu, David Hsu
+          </div>
+          <div class="publication-links">
+            <a href="https://arxiv.org/abs/2409.20548" target="_blank"
+              ><i class="fas fa-file-pdf"></i>arXiv</a
+            >
+            <a
+              href="https://www.youtube.com/watch?v=kz6P3ui-s3I"
+              target="_blank"
+              ><i class="fas fa-video"></i>Video</a
+            >
+            <a href="https://robibutler.github.io/" target="_blank"
+              ><i class="fas fa-globe"></i>Website</a
+            >
+          </div>
+        </div>
+      </div>
 
-        <div class="publication-item">
-            <div class="publication-media">
-                <img src="../media/images/manifm/manifm.png" alt="ManiFoundation Model System">
-            </div>
-            <div class="publication-content">
-                <div class="publication-title">
-                    ManiFoundation Model for General-Purpose Robotic Manipulation of Contact Synthesis with Arbitrary Objects and Robots
-                </div>
-                <div class="publication-status">IROS 2024 (Oral)</div>
-                <div class="publication-authors">
-                    Zhixuan Xu*, Chongkai Gao*, Zixuan Liu*, Gang Yang*, Chenrui Tie, Haozhuo Zheng, Haoyu Zhou, Weikun Peng, Debang Wang, <strong>Tianrun Hu</strong>, Tianyi Chen, Zhouliang Yu, Lin Shao
-                </div>
-                <div class="publication-links">
-                    <a href="https://arxiv.org/abs/2405.06964" target="_blank"><i class="fas fa-file-pdf"></i>arXiv</a>
-                    <a href="https://manifoundationmodel.github.io/" target="_blank"><i class="fas fa-globe"></i>Website</a>
-                    <a href="https://github.com/NUS-LinS-Lab/ManiFM" target="_blank"><i class="fab fa-github"></i>Code</a>
-                    <a href="#" onclick="toggleBibtex('manifm-bibtex')" class="bibtex-button"><i class="fas fa-quote-right"></i>BibTeX</a>
-                </div>
-                <div id="manifm-bibtex" class="bibtex-content" style="display: none;">
-                    <pre>@misc{xu2024manifoundation,
+      <div class="publication-item">
+        <div class="publication-media">
+          <img
+            src="../media/images/manifm/manifm.png"
+            alt="ManiFoundation Model System"
+          />
+        </div>
+        <div class="publication-content">
+          <div class="publication-title">
+            ManiFoundation Model for General-Purpose Robotic Manipulation of
+            Contact Synthesis with Arbitrary Objects and Robots
+          </div>
+          <div class="publication-status">IROS 2024 (Oral)</div>
+          <div class="publication-authors">
+            Zhixuan Xu*, Chongkai Gao*, Zixuan Liu*, Gang Yang*, Chenrui Tie,
+            Haozhuo Zheng, Haoyu Zhou, Weikun Peng, Debang Wang,
+            <strong>Tianrun Hu</strong>, Tianyi Chen, Zhouliang Yu, Lin Shao
+          </div>
+          <div class="publication-links">
+            <a href="https://arxiv.org/abs/2405.06964" target="_blank"
+              ><i class="fas fa-file-pdf"></i>arXiv</a
+            >
+            <a href="https://manifoundationmodel.github.io/" target="_blank"
+              ><i class="fas fa-globe"></i>Website</a
+            >
+            <a href="https://github.com/NUS-LinS-Lab/ManiFM" target="_blank"
+              ><i class="fab fa-github"></i>Code</a
+            >
+            <a
+              href="#"
+              onclick="toggleBibtex('manifm-bibtex')"
+              class="bibtex-button"
+              ><i class="fas fa-quote-right"></i>BibTeX</a
+            >
+          </div>
+          <div id="manifm-bibtex" class="bibtex-content" style="display: none">
+            <pre>
+@misc{xu2024manifoundation,
       title={ManiFoundation Model for General-Purpose Robotic Manipulation of Contact Synthesis with Arbitrary Objects and Robots}, 
       author={Zhixuan Xu and Chongkai Gao and Zixuan Liu and Gang Yang and Chenrui Tie and Haozhuo Zheng and Haoyu Zhou and Weikun Peng and Debang Wang and Tianyi Chen and Zhouliang Yu and Lin Shao},
       year={2024},
       eprint={2405.06964},
       archivePrefix={arXiv},
       primaryClass={cs.RO}
-}</pre>
-                </div>
-            </div>
+}</pre
+            >
+          </div>
         </div>
+      </div>
     </section>
-</body>
+  </body>
 </html>
