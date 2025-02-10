@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Deep Dive into PDDL: From Basics to Advanced Planning</title>
+
+    <!-- Fonts -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+
+    <!-- Site Assets -->
+    <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg" />
+    <link href="/css/blog.css" rel="stylesheet" />
+
+    <!-- Custom Scripts -->
+    <script defer src="/js/copy-button.js"></script>
+  </head>
+  <body>
+    <div class="blog-post">
+      <a href="../" class="back-button">
+        <i class="fas fa-arrow-left"></i>Back to Blog
+      </a>
+
+      <header class="blog-post-header">
+        <h1 class="blog-post-title">Deep Dive into PDDL: From Basics to Advanced Planning</h1>
+        <div class="blog-post-date">February 10, 2025</div>
+      </header>
+
+      <article class="blog-post-content">
+        <h2>Introduction</h2>
+        <p>
+          Planning Domain Definition Language (PDDL) is a standardized format for describing planning problems in artificial intelligence. This blog post provides a comprehensive guide to PDDL, starting from basic concepts and working our way up to implementing a custom planner and exploring advanced features like PDDL Stream. Whether you're new to automated planning or looking to deepen your understanding, this guide will help you master PDDL through practical examples and hands-on implementation.
+        </p>
+
+        <h2>1. Understanding PDDL Basics</h2>
+        <p>
+          PDDL separates the description of a planning domain from specific problem instances. This separation allows us to define generic action templates and predicates that can be reused across multiple problems. Let's explore this through a classic Blocks World example.
+        </p>
+
+        <h3>1.1 The Complete Code</h3>
+        <div class="code-section">
+          <div class="code-header">
+            <h3>Domain File: blocks-domain.pddl</h3>
+            <div class="code-buttons">
+              <button class="toggle-btn" onclick="toggleGist('domain')">Show Code</button>
+              <a href="[Your GitHub Gist URL]" target="_blank" class="github-link">
+                <i class="fab fa-github"></i> View on GitHub
+              </a>
+            </div>
+          </div>
+          <div class="gist-container" id="domainGist">
+            <!-- Gist embed will go here -->
+          </div>
+        </div>
+
+        <div class="code-section">
+          <div class="code-header">
+            <h3>Problem File: blocks-problem.pddl</h3>
+            <div class="code-buttons">
+              <button class="toggle-btn" onclick="toggleGist('problem')">Show Code</button>
+              <a href="[Your GitHub Gist URL]" target="_blank" class="github-link">
+                <i class="fab fa-github"></i> View on GitHub
+              </a>
+            </div>
+          </div>
+          <div class="gist-container" id="problemGist">
+            <!-- Gist embed will go here -->
+          </div>
+        </div>
+
+        <h3>1.2 Code Breakdown</h3>
+        <h4>Domain Components:</h4>
+        <ul>
+          <li><strong>Requirements:</strong> Specifies STRIPS and typing capabilities</li>
+          <li><strong>Types:</strong> Defines the 'block' type for objects</li>
+          <li><strong>Predicates:</strong> Describes possible relationships and states</li>
+          <li><strong>Actions:</strong> Defines possible transitions in the world state</li>
+        </ul>
+
+        <h4>Problem Components:</h4>
+        <ul>
+          <li><strong>Objects:</strong> Declares specific blocks in the world</li>
+          <li><strong>Initial State:</strong> Describes the starting configuration</li>
+          <li><strong>Goal State:</strong> Specifies the desired final configuration</li>
+        </ul>
+
+        <h2>2. Implementing a Simple A* Planner</h2>
+        <p>
+          Now that we understand the PDDL structure, let's implement a basic planner using A* search. Our planner will take PDDL domain and problem files as input and produce a sequence of actions to reach the goal state.
+        </p>
+
+        <div class="code-section">
+          <div class="code-header">
+            <h3>Simple A* Planner Implementation</h3>
+            <div class="code-buttons">
+              <button class="toggle-btn" onclick="toggleGist('planner')">Show Code</button>
+              <a href="[Your GitHub Gist URL]" target="_blank" class="github-link">
+                <i class="fab fa-github"></i> View on GitHub
+              </a>
+            </div>
+          </div>
+          <div class="gist-container" id="plannerGist">
+            <!-- Gist embed will go here -->
+          </div>
+        </div>
+
+        <h2>3. Introduction to PDDL Stream</h2>
+        <p>
+          PDDL Stream extends traditional PDDL to handle continuous parameters and sampling-based planning. This is particularly useful for robotics and real-world planning problems where we need to deal with continuous quantities like positions and orientations.
+        </p>
+
+        <div class="code-section">
+          <div class="code-header">
+            <h3>PDDL Stream Example</h3>
+            <div class="code-buttons">
+              <button class="toggle-btn" onclick="toggleGist('stream')">Show Code</button>
+              <a href="[Your GitHub Gist URL]" target="_blank" class="github-link">
+                <i class="fab fa-github"></i> View on GitHub
+              </a>
+            </div>
+          </div>
+          <div class="gist-container" id="streamGist">
+            <!-- Gist embed will go here -->
+          </div>
+        </div>
+
+        <h2>Conclusion</h2>
+        <p>
+          Through this exploration of PDDL, we've covered the fundamentals of domain and problem specification, implemented a basic planner, and introduced advanced concepts like PDDL Stream. This knowledge provides a strong foundation for developing automated planning solutions for real-world problems.
+        </p>
+
+        <style>
+          .code-section {
+            margin: 2rem 0;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            overflow: hidden;
+          }
+
+          .code-header {
+            background: #f6f8fa;
+            padding: 0.75rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e1e4e8;
+          }
+
+          .code-header h3 {
+            margin: 0;
+            font-size: 1rem;
+            color: #24292e;
+          }
+
+          .code-buttons {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+          }
+
+          .github-link {
+            color: #0366d6;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+          }
+
+          .github-link:hover {
+            text-decoration: underline;
+          }
+
+          .toggle-btn {
+            background: #0366d6;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+          }
+
+          .toggle-btn:hover {
+            background: #0255b3;
+          }
+
+          .gist-container {
+            display: none;
+          }
+
+          .gist-container.visible {
+            display: block;
+          }
+        </style>
+
+        <script>
+          function toggleGist(id) {
+            const gistContainer = document.getElementById(id + 'Gist');
+            const button = document.querySelector(`[onclick="toggleGist('${id}')"]`);
+            const isVisible = gistContainer.classList.contains('visible');
+
+            gistContainer.classList.toggle('visible');
+            button.textContent = isVisible ? 'Show Code' : 'Hide Code';
+          }
+        </script>
+      </article>
+    </div>
+  </body>
+</html>
