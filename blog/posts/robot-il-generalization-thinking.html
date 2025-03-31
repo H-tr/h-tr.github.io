@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Beyond the Papers: Scaling Laws and Data Requirements in End-to-End Robotics</title>
+
+    <!-- Fonts -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- KaTeX Math Support -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Site Assets -->
+    <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg" />
+    <link href="/css/blog.css" rel="stylesheet" />
+
+    <!-- KaTeX Scripts -->
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"
+    ></script>
+
+    <!-- Custom Scripts -->
+    <script defer src="/js/copy-button.js"></script>
+  </head>
+  <body>
+    <div class="blog-post">
+      <a href="../" class="back-button">
+        <i class="fas fa-arrow-left"></i>Back to Blog
+      </a>
+
+      <header class="blog-post-header">
+        <h1 class="blog-post-title">
+          Beyond the Papers: Scaling Laws and Data Requirements in End-to-End Robotics
+        </h1>
+        <div class="blog-post-date">March 31, 2025</div>
+      </header>
+
+      <article class="blog-post-content">
+        <h2>Introduction</h2>
+        <p>
+          After several months implementing and testing various end-to-end neural network approaches for robotics, I've discovered some interesting insights about what papers often don't tell us. I've trained ACT, Diffusion Policy, and 3D Diffusion Policy on both household manipulation tasks (opening fridges, microwaves, cabinets) and tabletop skills (pouring water, cutting, punching, sweeping, brushing)-but the results weren't quite what the papers led me to expect.
+        </p>
+        <p>
+          While papers paint optimistic pictures of generalization capabilities and sample efficiency, the practical reality tells a different story. In this blog, I'll share my observations on overfitting problems, the challenges of data representation, and perhaps most importantly—what scaling laws might tell us about the future of end-to-end robotics.
+        </p>
+
+        <h2>1. The Overfitting Problem</h2>
+        <p>
+          Despite claims in the literature, my experiments reveal that current end-to-end policies primarily overfit to training conditions. The evidence is overwhelming:
+        </p>
+        <ul>
+          <li>
+            <strong>Fixed Initial Poses Required:</strong> All models demanded identical initial poses for each skill execution. Even slight deviations from training positions significantly reduced success rates.
+          </li>
+          <li>
+            <strong>Limited Generalization:</strong> When testing door-closing with approximately 200 episodes featuring different initial door angles, models showed minimal adaptation. The original papers claimed Diffusion Policy could handle push-T tasks with similar data volumes, but our robots still struggled with the fundamental problem of "where to put their hand to close the door."
+          </li>
+          <li>
+            <strong>Poor Visual Transfer:</strong> Simple changes like switching from a purple cup to a yellow one noticeably decreased success rates. Minor camera viewpoint adjustments often led to complete failures, and placing objects in unseen locations virtually guaranteed unsuccessful attempts.
+          </li>
+        </ul>
+
+        <h2>2. The Data Representation Dilemma</h2>
+        <p>
+          An underexplored aspect in papers is how to properly define "states" and "actions" for these models. I discovered that:
+        </p>
+        <ul>
+          <li>
+            <strong>Action Representation Matters:</strong> For ACT, absolute end-effector poses worked better as actions, while Diffusion Policy performed better with normalized delta end-effector movements.
+          </li>
+          <li>
+            <strong>Normalization Sensitivity:</strong> ACT showed resilience to data normalization choices, but Diffusion Policy required careful normalization to ensure uniform distribution of delta end-effector poses.
+          </li>
+        </ul>
+
+        <h2>3. Performance Across Data Regimes</h2>
+        <p>
+          In the low-data regime (fewer than 100 episodes), ACT consistently outperformed Diffusion Policy by approximately 10% in success rate. This contradicts some papers that emphasize Diffusion Policy's sample efficiency.
+        </p>
+        <p>
+          The 3D Diffusion Policy, despite the theoretical advantages of 3D representation, essentially performed simple replay behaviors when using Azure Kinect for point cloud input, with minimal adaptation to changing conditions.
+        </p>
+
+        <h2>4. The Fundamental Question: What Do These Models Actually Learn?</h2>
+        <p>
+          The most concerning observation is about what these end-to-end neural networks actually learn. Do they understand the state of the environment, grasp the concept of manipulation, or comprehend the goal of actions?
+        </p>
+        <p>
+          Our evidence suggests they don't. Rather than learning meaningful representations, these models appear to perform something akin to template matching—and sometimes worse. For instance, robots frequently failed to grasp objects successfully for subsequent manipulation steps.
+        </p>
+        <p>
+          The models showed limited ability to perform linear interpolation. If we collected data pouring water with a cup at positions A and B, placing the cup between A and B sometimes worked. However, beyond this rudimentary capability, the models failed to demonstrate implicit learning of deeper manipulation principles.
+        </p>
+
+        <h2>5. The Language Model Parallel: Can Scaling Laws Save Robotics?</h2>
+        <p>
+          Looking at the remarkable success of large language models, a natural question arises: Can we apply similar scaling laws to robotics? In language models, we've witnessed extraordinary improvements in generalization as we scale data and parameters. GPT-4, Claude, and others demonstrate how scaling unlocks emergent capabilities that weren't explicitly programmed.
+        </p>
+        
+        <p>
+          Research from Gao Yang's team on "Data Scaling Laws in Imitation Learning for Robotic Manipulation" suggests a similar phenomenon might be possible in robotics. Their finding that roughly 1600 episodes across diverse environments can achieve 90% success for pouring water is encouraging.
+        </p>
+        
+        <div class="math-block">
+          <p>But what would true generalist robotics require in terms of data?</p>
+        </div>
+
+        <h3>5.1 Calculating Generalist Robot Data Requirements</h3>
+        <p>
+          Let's make some reasonable assumptions:
+        </p>
+        <ul>
+          <li>32 environment-object pairs per task for good generalization</li>
+          <li>500 basic manipulation skills to master</li>
+          <li>Non-linear scaling relationship between skills and data (following a power law)</li>
+        </ul>
+        
+        <p>
+          Using a conservative exponent of 0.5 for the scaling law:
+        </p>
+        <div class="math-block">
+          \[\text{Data needed} \propto N^{1/0.5} \text{ where N is the number of skills}\]
+          \[\text{Data needed} \propto 500^2 = 250,000 \text{ times more data than for a single skill}\]
+        </div>
+        
+        <p>
+          If a single skill needs 1600 episodes for 90% success:
+        </p>
+        <div class="math-block">
+          \[1600 \text{ episodes} \times 250,000 = \textbf{400 million episodes}\]
+        </div>
+        
+        <h3>5.2 Long-Horizon Task Combinations</h3>
+        <p>
+          For real-world tasks that combine multiple skills (assuming each task combines 5 basic skills on average), the numbers become even more staggering:
+        </p>
+
+        <div class="math-block">
+          \[\text{Possible combinations} = C(500,5) \approx 2.12 \text{ billion combinations}\]
+        </div>
+        
+        <p>
+          Even with efficient compositional learning that requires seeing just 0.01% of possible combinations, the data requirements remain astronomical.
+        </p>
+
+        <h2>6. Information Density: Language vs. Robotics</h2>
+        <p>
+          To better understand this scaling challenge, let's compare the information density in language data versus robotics data. This analysis reveals why scaling laws alone won't solve robotics in the same way they've advanced language models.
+        </p>
+
+        <h3>6.1 Quantifying Information Content</h3>
+        <p>
+          For a typical 500-step robotics episode:
+        </p>
+        <ul>
+          <li>
+            <strong>Action Information:</strong> Most steps follow predictable trajectories with minimal new information. Only about 5-10% of steps (25-50) contain significant decision points, each encoding information equivalent to 2-4 language tokens. This gives us approximately 100 tokens worth of action information.
+          </li>
+          <li>
+            <strong>State Information:</strong> Visual inputs are high-dimensional but highly redundant. Environmental state changes might contain another 100-200 tokens worth of information.
+          </li>
+          <li>
+            <strong>Task Context:</strong> Initial conditions, goal specification, and object properties add roughly 50 tokens of information.
+          </li>
+        </ul>
+        
+        <p>
+          <strong>Total estimated information:</strong> ~300 tokens per 500-step episode
+        </p>
+
+        <h3>6.2 Translating to Language Model Scale</h3>
+        <p>
+          Current large language models train on:
+        </p>
+        <ul>
+          <li>GPT-3: ~300 billion tokens</li>
+          <li>GPT-4/Claude 3 class models: Estimated 1-8 trillion tokens</li>
+        </ul>
+        
+        <p>
+          Converting this to robotics episodes:
+        </p>
+        <div class="math-block">
+          \[300 \text{ billion tokens} \div 300 \text{ tokens/episode} = \textbf{1 billion episodes}\]
+          \[5 \text{ trillion tokens} \div 300 \text{ tokens/episode} = \textbf{16.7 billion episodes}\]
+        </div>
+
+        <h3>6.3 The Physical Bottleneck</h3>
+        <p>
+          Even with 1,000 robots collecting data 24/7, accomplishing:
+        </p>
+        <ul>
+          <li>1,000 steps per hour per robot</li>
+          <li>24,000 steps per day per robot</li>
+          <li>8.76 million steps per year per robot</li>
+          <li>8.76 billion steps per year across 1,000 robots</li>
+        </ul>
+        
+        <p>
+          <strong>Time required:</strong> 57 to 913 years of continuous data collection
+        </p>
+        
+        <p>
+          This stark calculation reveals why generalization in robotics is so challenging compared to language. While language models benefited from virtually unlimited text data on the internet, robotics faces a fundamental physical bottleneck that no algorithm can fully overcome.
+        </p>
+
+        <h2>7. The Path Forward: Beyond Pure End-to-End Learning</h2>
+        <p>
+          These calculations make it clear that pure end-to-end learning, while appealing in its simplicity, faces fundamental scaling challenges that can't be easily overcome. What alternatives might lead to genuinely adaptive and general-purpose robotics?
+        </p>
+        
+        <h3>7.1 Hybrid Approaches</h3>
+        <p>
+          Combining neural networks with classical robotics techniques for planning and control offers a more practical path:
+        </p>
+        <ul>
+          <li>
+            <strong>Hierarchical Learning:</strong> Learn basic skills first, then learn to compose them (rather than learning compositions from scratch)
+          </li>
+          <li>
+            <strong>Foundation Models with Priors:</strong> Incorporate physical and causal priors into models to reduce data requirements
+          </li>
+          <li>
+            <strong>Self-supervised Learning in Simulation:</strong> Generate billions of interactions in simulation with careful domain randomization
+          </li>
+        </ul>
+        
+        <h3>7.2 Information Efficiency</h3>
+        <p>
+          Developing architectures that can learn more from less data:
+        </p>
+        <ul>
+          <li>
+            <strong>Factorized Learning:</strong> Separate perception, planning, and control into more manageable components
+          </li>
+          <li>
+            <strong>Structured Representations:</strong> Incorporate explicit physical and causal models that can generalize across scenarios
+          </li>
+          <li>
+            <strong>Transfer Learning:</strong> Leverage cross-embodiment and cross-task learning to maximize data efficiency
+          </li>
+        </ul>
+
+        <h2>Conclusion</h2>
+        <p>
+          My experiments with end-to-end neural networks for robotics have illuminated both the promise and limitations of current approaches. While papers often highlight successes in controlled settings, the practical reality reveals significant challenges in generalization, understanding, and adaptability.
+        </p>
+        
+        <p>
+          The scaling laws comparison with language models provides a sobering perspective on the data requirements for truly general robotics systems. The physical bottleneck of data collection presents a fundamental challenge that pure scaling cannot overcome.
+        </p>
+        
+        <p>
+          The future of robotics likely lies not in merely collecting more data or building larger models, but in developing more efficient architectures that can learn from less data by incorporating appropriate inductive biases, physical understanding, and compositional reasoning.
+        </p>
+        
+        <p>
+          As researchers and engineers, we need to embrace these challenges honestly. End-to-end neural network approaches have their place, but achieving genuinely adaptive and general-purpose robotics will require innovations that go beyond what has worked for language models.
+        </p>
+
+        <div
+          class="citation-section"
+          style="
+            margin-top: 2rem;
+            padding: 1rem;
+            background-color: #f4f4f4;
+            border-radius: 4px;
+          "
+        >
+          <h2
+            style="
+              font-family: &quot;Lora&quot;, serif;
+              font-size: 1.5rem;
+              margin-bottom: 0.5rem;
+              color: #222;
+            "
+          >
+            Citation
+          </h2>
+          <p
+            style="
+              font-family: &quot;JetBrains Mono&quot;, monospace;
+              font-size: 0.9rem;
+              color: #333;
+            "
+          >
+            Please cite this work as:
+          </p>
+
+          <pre
+            style="
+              background-color: #fff;
+              padding: 0.75rem;
+              border: 1px solid #ccc;
+              border-radius: 4px;
+              font-family: &quot;Fira Code&quot;, monospace;
+              font-size: 0.85rem;
+              overflow-x: auto;
+            "
+          >
+@misc{robotics-scaling-limitations,
+  author    = {Your Name},
+  title     = {Beyond the Papers: Scaling Laws and Data Requirements in End-to-End Robotics},
+  year      = {2025},
+  publisher = {GitHub},
+  url       = {https://yourdomain.github.io/blog/posts/robotics-scaling-limitations.html}
+}</pre>
+        </div>
+      </article>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: "$", right: "$", display: true },
+            { left: "\\[", right: "\\]", display: true },
+            { left: "\\(", right: "\\)", display: false },
+            { left: "$", right: "$", display: false },
+          ],
+          throwOnError: false,
+        });
+      });
+    </script>
