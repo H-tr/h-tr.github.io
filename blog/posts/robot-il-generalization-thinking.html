@@ -60,227 +60,244 @@
       </header>
 
       <article class="blog-post-content">
-        <h2>Introduction</h2>
-        <p>
-          After several months implementing and testing various end-to-end neural network approaches for robotics, I've discovered some interesting insights about what papers often don't tell us. I've trained ACT, Diffusion Policy, and 3D Diffusion Policy on both household manipulation tasks (opening fridges, microwaves, cabinets) and tabletop skills (pouring water, cutting, punching, sweeping, brushing)-but the results weren't quite what the papers led me to expect.
-        </p>
-        <p>
-          While papers paint optimistic pictures of generalization capabilities and sample efficiency, the practical reality tells a different story. In this blog, I'll share my observations on overfitting problems, the challenges of data representation, and perhaps most importantly—what scaling laws might tell us about the future of end-to-end robotics.
-        </p>
+        <!-- Section 1: Introduction -->
+        <section class="blog-section">
+          <h2>Introduction</h2>
+          <p>
+            After several months implementing and testing various end-to-end neural network approaches for robotics, I've discovered some interesting insights about what papers often don't tell us. I've trained ACT [1], Diffusion Policy [2,3], and 3D Diffusion Policy [4] on both household manipulation tasks (opening fridges, microwaves, cabinets) and tabletop skills (pouring water, cutting, punching, sweeping, brushing)-but the results weren't quite what the papers led me to expect. <strong>You can never predict the model's behaviors with your experience as human!</strong>
+          </p>
+          <p>
+            While papers paint optimistic pictures of generalization capabilities and sample efficiency, the practical reality tells a different story. In this blog, I'll share my observations on overfitting problems, the challenges of data representation, and perhaps most importantly—what scaling laws might tell us about the future of end-to-end robotics.
+          </p>
+        </section>
 
-        <h2>1. The Overfitting Problem</h2>
-        <p>
-          Despite claims in the literature, my experiments reveal that current end-to-end policies primarily overfit to training conditions. The evidence is overwhelming:
-        </p>
-        <ul>
-          <li>
-            <strong>Fixed Initial Poses Required:</strong> All models demanded identical initial poses for each skill execution. Even slight deviations from training positions significantly reduced success rates.
-          </li>
-          <li>
-            <strong>Limited Generalization:</strong> When testing door-closing with approximately 200 episodes featuring different initial door angles, models showed minimal adaptation. The original papers claimed Diffusion Policy could handle push-T tasks with similar data volumes, but our robots still struggled with the fundamental problem of "where to put their hand to close the door."
-          </li>
-          <li>
-            <strong>Poor Visual Transfer:</strong> Simple changes like switching from a purple cup to a yellow one noticeably decreased success rates. Minor camera viewpoint adjustments often led to complete failures, and placing objects in unseen locations virtually guaranteed unsuccessful attempts.
-          </li>
-        </ul>
+        <!-- Section 2: Problems and Implementation Tricks -->
+        <section class="blog-section">
+          <h2>Reality Check: What Papers Don't Tell You About End-to-End Policy</h2>
+          
+          <h3>1. Generalization: Expectation vs. Reality</h3>
+          
+          <p><strong>What We Expected:</strong> At first glance, these learning-based policies seemed magical - train on a few hundred demonstrations and the robot should be able to perform the task in new situations. The promise of diffusion models felt especially compelling: just like they can generate images from noise, they should handle noise in robot trajectories too. We imagined the robot learning the essence of tasks - "grab the cup," "close the door" - rather than specific motions. Show it a few examples with a VR controller, and the robot would extract the underlying principles, not just memorize exact movements.</p>
 
-        <h2>2. The Data Representation Dilemma</h2>
-        <p>
-          An underexplored aspect in papers is how to properly define "states" and "actions" for these models. I discovered that:
-        </p>
-        <ul>
-          <li>
-            <strong>Action Representation Matters:</strong> For ACT, absolute end-effector poses worked better as actions, while Diffusion Policy performed better with normalized delta end-effector movements.
-          </li>
-          <li>
-            <strong>Normalization Sensitivity:</strong> ACT showed resilience to data normalization choices, but Diffusion Policy required careful normalization to ensure uniform distribution of delta end-effector poses.
-          </li>
-        </ul>
+          <p>We also expected that using pretrained vision models would significantly improve performance. Since the image and depth views are embedded as conditions for the diffusion network, leveraging powerful vision backbones like DINOv2 or CLIP with their pretrained weights should help the model extract richer scene information and improve generalization.</p>
+                    
+          <p><strong>What We Observed:</strong></p>
+          <ul>
+            <li>
+              <strong>Initial Pose Sensitivity:</strong> What surprised us was how even small deviations from training positions caused dramatic performance drops. Moving a robot just 2-3cm from its training position often meant complete failure - something we didn't anticipate for a learning-based system.
+            </li>
+            <li>
+              <strong>Limited Task Adaptation:</strong> Despite collecting 200 demonstrations of door-closing from different starting angles, models struggled to understand the basic task structure. The robot couldn't consistently find the door handle and then close it, despite our expectation that this volume of data would be sufficient.
+            </li>
+            <li>
+              <strong>Visual Transfer Failure:</strong> Changing a purple cup to a yellow one reduced success rates by 40%. Slight camera angle changes led to complete failure. Objects in new locations weren't recognized. These visual generalization gaps were much wider than we initially expected.
+            </li>
+            <li>
+              <strong>Vision Backbone Indifference:</strong> Networks without any pretrained weights achieved exactly the same success rates as those with pretrained models! We extensively tested with various visual backbones including DINOv2 and CLIP, but found no observable performance difference compared to a basic ResNet18, except that they ran slower. Even more surprising, with DINOv2, using a single global feature performed identically to aggregating local features!
+            </li>
+            <li>
+              <strong>Validation Loss Trick:</strong> Validation loss cannot give us good enough estimation of the success rate here. We (and many other papers) found just increase the number of epoches and let the validation loss increase could give us smoother trajectory and higher success rate.
+            </li>
+          </ul>
+                    
+          <p><strong>Our Takeaway:</strong> These models don't generalize as broadly as we had hoped. They seem to be performing sophisticated pattern matching rather than learning meaningful task representations. When conditions closely match training data, they succeed impressively. But the boundaries of what constitutes a "similar enough" scenario are much narrower than we initially thought.</p>
 
-        <h2>3. Performance Across Data Regimes</h2>
-        <p>
-          In the low-data regime (fewer than 100 episodes), ACT consistently outperformed Diffusion Policy by approximately 10% in success rate. This contradicts some papers that emphasize Diffusion Policy's sample efficiency.
-        </p>
-        <p>
-          The 3D Diffusion Policy, despite the theoretical advantages of 3D representation, essentially performed simple replay behaviors when using Azure Kinect for point cloud input, with minimal adaptation to changing conditions.
-        </p>
+          <h3>2. Data Representation: The Hidden Variable</h3>
+          
+          <p><strong>What We Expected:</strong> While papers mention action representation choices, we were surprised by how much the implementation details were left open to interpretation. We knew papers mentioned that positional actions worked better than velocity actions, but there were still several viable representation options: joint states, end-effector poses, or delta end-effector poses. For delta poses, we recognized these could be represented in different frames (robot frame or end-effector frame), each with potential benefits.</p>
+                    
+          <p><strong>What We Discovered:</strong></p>
+          <ul>
+            <li>
+              <strong>Action Format Is Critical:</strong> Our experiments revealed dramatic performance differences based on representation choice. ACT performed best with absolute end-effector poses as actions (without normalization), while Diffusion Policy required normalized delta movements in the robot frame (normalized to [-1, 1]). The impact of these choices far exceeded what we anticipated.
+            </li>
+            <li>
+              <strong>Model-Specific Sensitivities:</strong> Different algorithms showed completely different sensitivities to representation choices. ACT was relatively forgiving about normalization schemes, but Diffusion Policy needed careful tuning to ensure proper distribution of action values—a nuance that significantly impacted performance.
+            </li>
+            <li>
+              <strong>Frame of Reference Matters:</strong> For delta end-effector representations, we found the choice of reference frame created meaningful differences. Robot frame representations provided more consistent mapping between action values and view changes, while end-effector frame representations potentially offered better transfer to other robot embodiments.
+            </li>
+          </ul>
+                    
+          <p><strong>Our Takeaway:</strong> Data representation choices often determine success or failure, regardless of the underlying algorithm. The "implementation details" that aren't thoroughly explored in papers can be more important than the core method itself. Different policies appear to have inherent preferences for specific representations, and finding the right match is essential for good performance.</p>
 
-        <h2>4. The Fundamental Question: What Do These Models Actually Learn?</h2>
-        <p>
-          The most concerning observation is about what these end-to-end neural networks actually learn. Do they understand the state of the environment, grasp the concept of manipulation, or comprehend the goal of actions?
-        </p>
-        <p>
-          Our evidence suggests they don't. Rather than learning meaningful representations, these models appear to perform something akin to template matching—and sometimes worse. For instance, robots frequently failed to grasp objects successfully for subsequent manipulation steps.
-        </p>
-        <p>
-          The models showed limited ability to perform linear interpolation. If we collected data pouring water with a cup at positions A and B, placing the cup between A and B sometimes worked. However, beyond this rudimentary capability, the models failed to demonstrate implicit learning of deeper manipulation principles.
-        </p>
+          <h3>3. Sample Efficiency Claims: Truth or Fiction?</h3>
+          
+          <p><strong>What We Expected:</strong> Intuitively, diffusion models should excel at fitting complex, non-linear action distributions compared to simpler approaches like VAEs. Additionally, we expected 3D Diffusion Policy to perform better by leveraging a more straightforward mapping between actions and visual information. The natural progression should have been: 3D Diffusion Policy > Diffusion Policy > VAE approaches like ACT.</p>
+                    
+          <p><strong>What Our Experiments Show:</strong></p>
+          <ul>
+            <li>
+              <strong>Low-Data Performance:</strong> With fewer than 100 episodes, ACT (based on VAE) consistently outperformed Diffusion Policy by about 10% in success rate—completely contrary to our expectations and intuition about these methods.
+            </li>
+            <li>
+              <strong>3D Representations Underwhelm:</strong> Despite theoretical advantages, 3D Diffusion Policy using Azure Kinect largely performed simple replay behaviors with minimal adaptation abilities. It actually performed worse than both standard Diffusion Policy and VAE-based approaches.
+            </li>
+            <li>
+              <strong>Reversed Performance Hierarchy:</strong> We consistently observed VAE methods were more robust than Diffusion Policy, which in turn outperformed 3D Diffusion Policy—exactly the opposite of what theoretical advantages would suggest.
+            </li>
+          </ul>
+                    
+          <p><strong>Our Takeaway:</strong> The expected sample efficiency narrative doesn't align with our experimental results. Different approaches excel in different scenarios, and the "most efficient" method depends heavily on specific task characteristics and implementation details that aren't always evident from theoretical considerations.</p>
 
-        <h2>5. The Language Model Parallel: Can Scaling Laws Save Robotics?</h2>
-        <p>
-          Looking at the remarkable success of large language models, a natural question arises: Can we apply similar scaling laws to robotics? In language models, we've witnessed extraordinary improvements in generalization as we scale data and parameters. GPT-4, Claude, and others demonstrate how scaling unlocks emergent capabilities that weren't explicitly programmed.
-        </p>
-        
-        <p>
-          Research from Gao Yang's team on "Data Scaling Laws in Imitation Learning for Robotic Manipulation" suggests a similar phenomenon might be possible in robotics. Their finding that roughly 1600 episodes across diverse environments can achieve 90% success for pouring water is encouraging.
-        </p>
-        
-        <div class="math-block">
-          <p>But what would true generalist robotics require in terms of data?</p>
-        </div>
+          <h3>4. The Core Problem: Understanding vs. Mimicry</h3>
+          
+          <p><strong>What We Hoped For:</strong> Models that truly understand manipulation concepts: what a door is, how handles work, the physics of pouring liquid, or the functional purpose of actions.</p>
+                    
+          <p><strong>What We Found:</strong></p>
+          <ul>
+            <li>
+              <strong>Limited Adaptation at Key Points:</strong> We didn't observe adaptive capabilities at critical moments like grasping and pouring. When an object was slightly moved from its training position, the robot would often attempt to grasp a "virtual object" at the original location rather than adapt to the new position.
+            </li>
+            <li>
+              <strong>No Failure Recovery:</strong> Our training data didn't contain recovery from mistakes (failed grasps were discarded during data collection). Consequently, the models showed no ability to recover from errors - they would continue executing the trajectory even when failing to grasp an object.
+            </li>
+            <li>
+              <strong>Interpolation Without Adaptation:</strong> If we collected data pouring water with a cup at positions A and B, placing the cup between A and B sometimes worked. But adaptation to positions outside this range or to different objects revealed limitations in true understanding.
+            </li>
+          </ul>
+                    
+          <p><strong>Our Takeaway:</strong> Current models seem to rely more on trajectory playback with some interpolation capabilities rather than developing a deeper understanding of manipulation tasks. Their behavior suggests a form of sophisticated template matching that works well within the bounds of training examples, but lacks the conceptual understanding needed for robust generalization to new situations.</p>
+          
+        </section>
 
-        <h3>5.1 Calculating Generalist Robot Data Requirements</h3>
-        <p>
-          Let's make some reasonable assumptions:
-        </p>
-        <ul>
-          <li>32 environment-object pairs per task for good generalization</li>
-          <li>500 basic manipulation skills to master</li>
-          <li>Non-linear scaling relationship between skills and data (following a power law)</li>
-        </ul>
-        
-        <p>
-          Using a conservative exponent of 0.5 for the scaling law:
-        </p>
-        <div class="math-block">
-          \[\text{Data needed} \propto N^{1/0.5} \text{ where N is the number of skills}\]
-          \[\text{Data needed} \propto 500^2 = 250,000 \text{ times more data than for a single skill}\]
-        </div>
-        
-        <p>
-          If a single skill needs 1600 episodes for 90% success:
-        </p>
-        <div class="math-block">
-          \[1600 \text{ episodes} \times 250,000 = \textbf{400 million episodes}\]
-        </div>
-        
-        <h3>5.2 Long-Horizon Task Combinations</h3>
-        <p>
-          For real-world tasks that combine multiple skills (assuming each task combines 5 basic skills on average), the numbers become even more staggering:
-        </p>
+        <!-- Section 3: Scaling Laws and Future Directions -->
+        <section class="blog-section">
+          <h2>Scaling Laws and the Future of End-to-End Robotics</h2>
+          
+          <h3>The Language Model Parallel: Can Scaling Laws Save Robotics?</h3>
+          <p>
+            Looking at the remarkable success of large language models, a natural question arises: Can we apply similar scaling laws to robotics? In language models, we've witnessed extraordinary improvements in generalization as we scale data and parameters. GPT-4, Claude, and others demonstrate how scaling unlocks emergent capabilities that weren't explicitly programmed.
+          </p>
+          
+          <p>
+            Research from Gao Yang's team on "Data Scaling Laws in Imitation Learning for Robotic Manipulation" [5] suggests a similar phenomenon might be possible in robotics. Their finding that roughly 1600 episodes across diverse environments can achieve 90% success for pouring water is encouraging.
+          </p>
+          
+          <p>
+            But what would true generalist robotics require in terms of data?
+          </p>
 
-        <div class="math-block">
-          \[\text{Possible combinations} = C(500,5) \approx 2.12 \text{ billion combinations}\]
-        </div>
-        
-        <p>
-          Even with efficient compositional learning that requires seeing just 0.01% of possible combinations, the data requirements remain astronomical.
-        </p>
+          <h3>Calculating Generalist Robot Data Requirements</h3>
+          <p>
+            Let's make some reasonable assumptions according to the previous paper we mentioned:
+          </p>
+          <ul>
+            <li>32 environment-object pairs per task for good generalization</li>
+            <li>50 basic manipulation skills to master</li>
+            <li>Non-linear scaling relationship between skills and data (following a power law)</li>
+          </ul>
+          
+          <p>
+            Using a conservative exponent of 0.5 for the scaling law:
+          </p>
+          
+          <div class="math-block">
+            \[\text{Data needed} \propto N^{1/\alpha}\]
+          </div>
+          
+          <p>where \(\alpha = 0.5\) (power law exponent) and \(N = 50\) (number of skills).</p>
+          
+          <p>
+            Substituting these values:
+          </p>
+          
+          <div class="math-block">
+            \[\text{Data needed} \propto 50^{1/0.5}\]
+            \[\text{Data needed} \propto 50^2\]
+            \[\text{Data needed} \propto 2,500\]
+          </div>
+          
+          <p>This means we need 2,500 times more data than for a single skill.</p>
+          
+          <p>
+            If a single skill needs 1,600 episodes for 90% success:
+          </p>
+          
+          <div class="math-block">
+            \[\text{Total episodes for basic skills} = 1,600 \text{ episodes} \times 2,500\]
+            \[\text{Total episodes for basic skills} = 4,000,000 \text{ episodes}\]
+          </div>
+          
+          <h3>Long-Horizon Task Combinations</h3>
+          <p>
+            For real-world tasks that combine multiple skills (assuming each task combines 5 basic skills on average), we need to consider how much additional data is required for each combination.
+          </p>
 
-        <h2>6. Information Density: Language vs. Robotics</h2>
-        <p>
-          To better understand this scaling challenge, let's compare the information density in language data versus robotics data. This analysis reveals why scaling laws alone won't solve robotics in the same way they've advanced language models.
-        </p>
+          <p>
+            First, let's calculate the total number of possible 5-skill combinations:
+          </p>
 
-        <h3>6.1 Quantifying Information Content</h3>
-        <p>
-          For a typical 500-step robotics episode:
-        </p>
-        <ul>
-          <li>
-            <strong>Action Information:</strong> Most steps follow predictable trajectories with minimal new information. Only about 5-10% of steps (25-50) contain significant decision points, each encoding information equivalent to 2-4 language tokens. This gives us approximately 100 tokens worth of action information.
-          </li>
-          <li>
-            <strong>State Information:</strong> Visual inputs are high-dimensional but highly redundant. Environmental state changes might contain another 100-200 tokens worth of information.
-          </li>
-          <li>
-            <strong>Task Context:</strong> Initial conditions, goal specification, and object properties add roughly 50 tokens of information.
-          </li>
-        </ul>
-        
-        <p>
-          <strong>Total estimated information:</strong> ~300 tokens per 500-step episode
-        </p>
+          <div class="math-block">
+            \[\text{Possible combinations} = C(n,k) = \binom{n}{k}\]
+            \[\text{Possible combinations} = \binom{50}{5}\]
+            \[\text{Possible combinations} = \frac{50!}{5!(50-5)!}\]
+            \[\text{Possible combinations} = \frac{50!}{5!45!}\]
+            \[\text{Possible combinations} = \frac{50 \times 49 \times 48 \times 47 \times 46}{5 \times 4 \times 3 \times 2 \times 1}\]
+            \[\text{Possible combinations} = \frac{254,251,200}{120}\]
+            \[\text{Possible combinations} = 2,118,760\]
+          </div>
+          
+          <p>
+            Now, assuming a conservative linear relationship between task length and data requirements, each 5-skill combination task would require additional training data beyond just learning the individual skills. Let's assume each combination requires an additional 20% data compared to the sum of its individual skills:
+          </p>
+          
+          <div class="math-block">
+            \[\text{Data per combination} = 5 \times 1,600 \times 1.2\]
+            \[\text{Data per combination} = 9,600 \text{ episodes}\]
+          </div>
+          
+          <p>
+            If we needed to learn all possible combinations:
+          </p>
+          
+          <div class="math-block">
+            \[\text{Total combination data} = 2,118,760 \times 9,600\]
+            \[\text{Total combination data} = 20,340,096,000 \text{ episodes}\]
+          </div>
+          
+          <p>
+            This is clearly infeasible. Even if we learn just 0.01% of all possible combinations:
+          </p>
+          
+          <div class="math-block">
+            \[\text{Practical combinations} = 2,118,760 \times 0.0001\]
+            \[\text{Practical combinations} = 212 \text{ combinations}\]
+          </div>
+          
+          <div class="math-block">
+            \[\text{Practical combination data} = 212 \times 9,600\]
+            \[\text{Practical combination data} = 2,035,200 \text{ episodes}\]
+          </div>
+          
+          <p>
+            Therefore, the total data requirement becomes:
+          </p>
+          
+          <div class="math-block">
+            \[\text{Total data requirement} = 4,000,000 + 2,035,200\]
+            \[\text{Total data requirement} = 6,035,200 \text{ episodes}\]
+          </div>
+        </section>
 
-        <h3>6.2 Translating to Language Model Scale</h3>
-        <p>
-          Current large language models train on:
-        </p>
-        <ul>
-          <li>GPT-3: ~300 billion tokens</li>
-          <li>GPT-4/Claude 3 class models: Estimated 1-8 trillion tokens</li>
-        </ul>
-        
-        <p>
-          Converting this to robotics episodes:
-        </p>
-        <div class="math-block">
-          \[300 \text{ billion tokens} \div 300 \text{ tokens/episode} = \textbf{1 billion episodes}\]
-          \[5 \text{ trillion tokens} \div 300 \text{ tokens/episode} = \textbf{16.7 billion episodes}\]
-        </div>
-
-        <h3>6.3 The Physical Bottleneck</h3>
-        <p>
-          Even with 1,000 robots collecting data 24/7, accomplishing:
-        </p>
-        <ul>
-          <li>1,000 steps per hour per robot</li>
-          <li>24,000 steps per day per robot</li>
-          <li>8.76 million steps per year per robot</li>
-          <li>8.76 billion steps per year across 1,000 robots</li>
-        </ul>
-        
-        <p>
-          <strong>Time required:</strong> 57 to 913 years of continuous data collection
-        </p>
-        
-        <p>
-          This stark calculation reveals why generalization in robotics is so challenging compared to language. While language models benefited from virtually unlimited text data on the internet, robotics faces a fundamental physical bottleneck that no algorithm can fully overcome.
-        </p>
-
-        <h2>7. The Path Forward: Beyond Pure End-to-End Learning</h2>
-        <p>
-          These calculations make it clear that pure end-to-end learning, while appealing in its simplicity, faces fundamental scaling challenges that can't be easily overcome. What alternatives might lead to genuinely adaptive and general-purpose robotics?
-        </p>
-        
-        <h3>7.1 Hybrid Approaches</h3>
-        <p>
-          Combining neural networks with classical robotics techniques for planning and control offers a more practical path:
-        </p>
-        <ul>
-          <li>
-            <strong>Hierarchical Learning:</strong> Learn basic skills first, then learn to compose them (rather than learning compositions from scratch)
-          </li>
-          <li>
-            <strong>Foundation Models with Priors:</strong> Incorporate physical and causal priors into models to reduce data requirements
-          </li>
-          <li>
-            <strong>Self-supervised Learning in Simulation:</strong> Generate billions of interactions in simulation with careful domain randomization
-          </li>
-        </ul>
-        
-        <h3>7.2 Information Efficiency</h3>
-        <p>
-          Developing architectures that can learn more from less data:
-        </p>
-        <ul>
-          <li>
-            <strong>Factorized Learning:</strong> Separate perception, planning, and control into more manageable components
-          </li>
-          <li>
-            <strong>Structured Representations:</strong> Incorporate explicit physical and causal models that can generalize across scenarios
-          </li>
-          <li>
-            <strong>Transfer Learning:</strong> Leverage cross-embodiment and cross-task learning to maximize data efficiency
-          </li>
-        </ul>
-
-        <h2>Conclusion</h2>
-        <p>
-          My experiments with end-to-end neural networks for robotics have illuminated both the promise and limitations of current approaches. While papers often highlight successes in controlled settings, the practical reality reveals significant challenges in generalization, understanding, and adaptability.
-        </p>
-        
-        <p>
-          The scaling laws comparison with language models provides a sobering perspective on the data requirements for truly general robotics systems. The physical bottleneck of data collection presents a fundamental challenge that pure scaling cannot overcome.
-        </p>
-        
-        <p>
-          The future of robotics likely lies not in merely collecting more data or building larger models, but in developing more efficient architectures that can learn from less data by incorporating appropriate inductive biases, physical understanding, and compositional reasoning.
-        </p>
-        
-        <p>
-          As researchers and engineers, we need to embrace these challenges honestly. End-to-end neural network approaches have their place, but achieving genuinely adaptive and general-purpose robotics will require innovations that go beyond what has worked for language models.
-        </p>
+        <section class="blog-section">
+          <h2>Conclusion</h2>
+          <p>
+            Throughout this analysis, I've been grappling with a sobering realization: our back-of-the-envelope calculations only scratch the surface of the true challenge. While collecting millions of episodes for basic skills might be feasible with enough parallelization and time, the deeper complexity of generalist robotics presents hurdles that go far beyond simple data scaling.
+          </p>
+          <p>
+            Task planning—the ability to sequence actions toward a goal—introduces a level of complexity that likely doesn't scale linearly with data. The decision-making process in long-horizon tasks is inherently sparse; critical decision points might occur only occasionally within a trajectory, making the signal-to-noise ratio extremely unfavorable. To develop genuine reasoning capabilities, we might need billions of trajectories to capture enough meaningful decision points across diverse contexts.
+          </p>
+          <p>
+            Even more daunting is the challenge of building a unified latent space between language and action. Unlike language models that can scrape the internet for nearly unlimited text, robotic data requires physical interactions that cannot be synthetically generated with the same fidelity. Each trajectory needs meaningful labeling to connect abstract concepts to physical behaviors—a process that's both labor-intensive and conceptually complex.
+          </p>
+          <p>
+            What's becoming clear is that today's vision-language-action (VLA) models face a fundamental data bottleneck. While language models can scale through self-supervised learning on readily available text, robotics lacks an equivalent data source. The discrete skills and combinations we've discussed represent just the foundation; building a true generalist that can reason about novel tasks requires orders of magnitude more data with rich semantic connections.
+          </p>
+          <p>
+            This isn't to say the challenge is insurmountable, but rather that we need to be realistic about the path forward. Approaches that can learn from fewer examples, leverage simulation intelligently, or build compositional understanding will be essential. The generalist robot of our imagination isn't impossible—it just might require rethinking our approach to learning itself.
+          </p>
+        </section>
 
         <div
           class="citation-section"
@@ -323,12 +340,57 @@
             "
           >
 @misc{robotics-scaling-limitations,
-  author    = {Your Name},
+  author    = {Tianrun Hu},
   title     = {Beyond the Papers: Scaling Laws and Data Requirements in End-to-End Robotics},
   year      = {2025},
   publisher = {GitHub},
-  url       = {https://yourdomain.github.io/blog/posts/robotics-scaling-limitations.html}
+  url       = {https://tianrunhu.github.io/blog/posts/robot-il-generalization-thinking.html}
 }</pre>
+        </div>
+
+        <div
+          class="references-section"
+          style="
+            margin-top: 2rem;
+            padding: 1rem;
+            background-color: #f4f4f4;
+            border-radius: 4px;
+          "
+        >
+          <h2
+            style="
+              font-family: &quot;Lora&quot;, serif;
+              font-size: 1.5rem;
+              margin-bottom: 0.5rem;
+              color: #222;
+            "
+          >
+            References
+          </h2>
+          <ol
+            style="
+              font-family: &quot;JetBrains Mono&quot;, monospace;
+              font-size: 0.95rem;
+              color: #333;
+              padding-left: 1.5rem;
+            "
+          >
+            <li style="margin-bottom: 0.5rem">
+              Fu, Z., Zhao, T. Z., & Finn, C. (2024). Mobile ALOHA: Learning Bimanual Mobile Manipulation with Low-Cost Whole-Body Teleoperation. arXiv preprint arXiv:2401.02117.
+            </li>
+            <li style="margin-bottom: 0.5rem">
+              Chi, C., Feng, S., Du, Y., Xu, Z., Cousineau, E., Burchfiel, B., & Song, S. (2023). Diffusion Policy: Visuomotor Policy Learning via Action Diffusion. In Proceedings of Robotics: Science and Systems (RSS).
+            </li>
+            <li style="margin-bottom: 0.5rem">
+              Chi, C., Xu, Z., Feng, S., Cousineau, E., Du, Y., Burchfiel, B., Tedrake, R., & Song, S. (2024). Diffusion Policy: Visuomotor Policy Learning via Action Diffusion. The International Journal of Robotics Research.
+            </li>
+            <li style="margin-bottom: 0.5rem">
+              Ze, Y., Zhang, G., Zhang, K., Hu, C., Wang, M., & Xu, H. (2024). 3D Diffusion Policy: Generalizable Visuomotor Policy Learning via Simple 3D Representations. In Proceedings of Robotics: Science and Systems (RSS).
+            </li>
+            <li style="margin-bottom: 0.5rem">
+              Lin, F., Hu, Y., Sheng, P., Wen, C., You, J., & Gao, Y. (2025). Data Scaling Laws in Imitation Learning for Robotic Manipulation. arXiv preprint arXiv:2410.18647.
+            </li>
+          </ol>
         </div>
       </article>
     </div>
@@ -346,3 +408,5 @@
         });
       });
     </script>
+  </body>
+</html>
