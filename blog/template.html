@@ -88,6 +88,123 @@ def hello_world():
         
         For additional languages, add them to the languages array in prism-init.js
         -->
+        
+        <!-- 
+        Math Expressions with KaTeX:
+        
+        1. Block math (displayed equation):
+        <div class="math-block">
+          $E = mc^2$
+        </div>
+        
+        2. Inline math (within paragraphs):
+        Use the format: (\(\int \mathbf{v}_{\text{cmd}}(\tau) d\tau\))
+        
+        Example: The velocity (\(\mathbf{v}\)) of the robot can be calculated as the derivative of position (\(\mathbf{p}\)) with respect to time (\(t\)).
+        
+        Note: For inline math, wrap the LaTeX expression with (\( and \))
+        -->
+        
+        <!-- 
+        Citation Section Example:
+        
+        <div
+          class="citation-section"
+          style="
+            margin-top: 2rem;
+            padding: 1rem;
+            background-color: #f4f4f4;
+            border-radius: 4px;
+          "
+        >
+          <h2
+            style="
+              font-family: &quot;Lora&quot;, serif;
+              font-size: 1.5rem;
+              margin-bottom: 0.5rem;
+              color: #222;
+            "
+          >
+            Citation
+          </h2>
+          <p
+            style="
+              font-family: &quot;JetBrains Mono&quot;, monospace;
+              font-size: 0.9rem;
+              color: #333;
+            "
+          >
+            If you use this code in your research, please cite:
+          </p>
+
+          <pre
+            style="
+              background-color: #fff;
+              padding: 0.75rem;
+              border: 1px solid #ccc;
+              border-radius: 4px;
+              font-family: &quot;Fira Code&quot;, monospace;
+              font-size: 0.85rem;
+              overflow-x: auto;
+            "
+          >
+  @misc{blog-post-id,
+    author    = {Author Name},
+    title     = {Your Post Title},
+    year      = {2025},
+    publisher = {GitHub},
+    url       = {https://your-url.com}
+  }
+  
+  @inproceedings{reference_id,
+    author    = {Author Name and Second Author},
+    title     = {Reference Paper Title},
+    booktitle = {Conference Name},
+    pages     = {page-numbers},
+    year      = {year},
+    doi       = {doi-number},
+    url       = {paper-url}
+  }
+          </pre>
+        </div>
+        
+        <!-- References Section Example -->
+        <div
+          class="references-section"
+          style="
+            margin-top: 2rem;
+            padding: 1rem;
+            background-color: #f4f4f4;
+            border-radius: 4px;
+          "
+        >
+          <h2
+            style="
+              font-family: &quot;Lora&quot;, serif;
+              font-size: 1.5rem;
+              margin-bottom: 0.5rem;
+              color: #222;
+            "
+          >
+            References
+          </h2>
+          <ol
+            style="
+              font-family: &quot;JetBrains Mono&quot;, monospace;
+              font-size: 0.95rem;
+              color: #333;
+              padding-left: 1.5rem;
+            "
+          >
+            <li style="margin-bottom: 0.5rem">
+              Author, A., & Author, B. (Year). Paper Title. In Conference Name (pp. page-numbers).
+            </li>
+            <li style="margin-bottom: 0.5rem">
+              Author, C., Author, D., & Author, E. (Year). Journal Article Title. Journal Name, Volume(Issue), page-numbers.
+            </li>
+          </ol>
+        </div>
+        -->
       </article>
     </div>
 

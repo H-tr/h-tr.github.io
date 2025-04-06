@@ -54,7 +54,7 @@
 
       <header class="blog-post-header">
         <h1 class="blog-post-title">
-          Making Robots Move Naturally: Our Whole-Body Controller for Mobile Manipulators
+          Making Robots Move Naturally: Our Whole-Body Controller for Holistic Mobile Manipulators
         </h1>
         <div class="blog-post-date">April 6, 2025</div>
       </header>
@@ -62,29 +62,58 @@
       <article class="blog-post-content">
         <h2>Why We Need Better Robot Movement</h2>
         <p>
-          Have you ever watched a robot try to reach for something while rolling around? If you have, you probably noticed that most robots seem to move in a rather unnatural, robotic way (shocking, I know). They'll drive to a spot, stop completely, and then start moving their arm - as if they can't walk and chew gum at the same time.
+          Picture a robot trying to pick up objects while moving around. Current robots typically do this in a clunky way - first they drive somewhere, come to a complete stop, and only then start reaching for things. It's like they can't walk and reach at the same time! This makes them slow and inefficient at many everyday tasks.
         </p>
         <p>
-          This isn't just an aesthetic issue - it's a practical problem that makes robots slower and less efficient at many tasks. And when I started looking for solutions, I was surprised to find very little practical guidance on how to make mobile manipulators (robots with both arms and wheels) move more naturally and efficiently.
+          We tackled this problem by building a system that helps robots move more fluidly. Our solution uses some pretty cool tech - VAMP (Vectorized Autonomous Motion Planning)[1] and multilayer RRTC[2] - to figure out smooth paths that let the robot's wheels and arm work together. But having a good plan is only half the battle - the robot needs to actually follow that plan accurately.
         </p>
         <p>
-          So we decided to build our own solution: a unified controller that coordinates both the arm and wheels simultaneously, allowing our robot to move smoothly while avoiding obstacles. Think of it as teaching the robot to "dance" with its whole body instead of moving one part at a time.
-        </p>
-
-        <h2>1. Why Traditional Robot Controllers Fall Short</h2>
-        <p>
-          Before diving into our solution, let's look at why typical robot controllers aren't great for this kind of coordinated movement:
+          That's where our controller comes in, and it's what we'll focus on in this article. While working on our system, we found that existing robot controllers just weren't up to the task. They were great at moving either the wheels or the arm, but not both at once. So we created our own controller that could handle this complex coordination - keeping the wheels and arm moving together smoothly, just like they do in our plans.
         </p>
 
-        <h3>1.1 PD Controllers: The "Are We There Yet?" Approach</h3>
+        <h2>1. Limitations of Traditional Control Approaches</h2>
         <p>
-          Most robots use simple PD (Proportional-Derivative) controllers. These work a bit like a kid in the back seat constantly asking "are we there yet?" and adjusting speed based on the answer. But they have some serious drawbacks:
+          Before examining our solution, let's analyze why conventional control approaches are insufficient for coordinated whole-body motion:
+        </p>
+
+        <h3>1.1 PD Control Limitations</h3>
+        <p>
+          Most robotic systems rely on PD (Proportional-Derivative) controllers for trajectory tracking. While effective for single-component control, these controllers have several significant limitations for whole-body coordination:
         </p>
         <ul>
-          <li><strong>Jerky movements:</strong> They speed up and slow down abruptly, leading to that distinctive "robotic" movement style.</li>
-          <li><strong>Poor trajectory following:</strong> They struggle to follow smooth curved paths, especially when coordinating multiple joints.</li>
-          <li><strong>No look-ahead ability:</strong> They can't anticipate obstacles or plan ahead - they just react to the current situation.</li>
+          <li><strong>Discontinuous motion profiles:</strong> The controllers produce abrupt acceleration changes, resulting in inefficient and imprecise movement patterns.</li>
+          <li><strong>Limited trajectory tracking:</strong> They struggle with complex curved paths, particularly when coordinating multiple degrees of freedom.</li>
+          <li><strong>Reactive-only behavior:</strong> The lack of predictive capability limits their effectiveness in dynamic environments and coordinated movements.</li>
         </ul>
+        <p>
+          Consider a standard PD controller with sampling period (\(\Delta t\)) attempting to follow a pose trajectory (\(x_{ref}(t)\)) without velocity information:
+        </p>
+        
+        <div class="math-block">
+          $u(t) = K_p(x_{ref}(t) - x(t)) - K_d\dot{x}(t)$
+        </div>
+        
+        <p>
+          When following a trajectory defined only by discrete positions (\(x_{ref}(t_k)\)) at fixed intervals, the controller faces several mathematical challenges:
+        </p>
+        
+        <ol>
+          <p><strong>Velocity Estimation Error:</strong> Without explicit trajectory velocities, the controller must estimate velocity from consecutive position goals:</p>
+          <div class="math-block">
+            $\dot{x}_{est}(t_k) = \frac{x_{ref}(t_k) - x_{ref}(t_{k-1})}{\Delta t}$
+          </div>
+          <p>This estimation introduces significant quantization errors, especially for complex trajectories with varying curvatures.</p>
+          
+          <p><strong>Transient Response Limitations:</strong> For a standard second-order system under PD control, the minimum settling time is bounded by:</p>
+          <div class="math-block">
+            $t_s \geq \frac{4}{\zeta \omega_n}$
+          </div>
+          <p>where (\(\zeta\)) is the damping ratio and (\(\omega_n\)) is the natural frequency. For fixed gains (\(K_p\)) and (\(K_d\)), this creates a fundamental trade-off between speed and overshooting that cannot be circumvented.</p>
+        </ol>
+        
+        <p>
+          These limitations become particularly problematic when attempting to coordinate multiple degrees of freedom simultaneously, especially when the robot has a noisy localization system and big impedance mismatch between the arm and the base.
+        </p>
 
         <h3>1.2 Separate Controllers: The "Left Hand Doesn't Know What the Right Is Doing" Problem</h3>
         <p>
@@ -96,81 +125,186 @@
           <li><strong>Sequential instead of simultaneous:</strong> The robot tends to move in stages rather than flowing naturally from one action to the next.</li>
         </ul>
 
-        <h2>2. Our Whole-Body Controller: Teaching the Robot to Dance</h2>
+        <h2>2. Our Whole-Body Controller</h2>
         <p>
-          Our approach uses something called Model Predictive Control (MPC). Don't let the fancy name intimidate you - the concept is actually quite intuitive! 
+          Our approach builds on Model Predictive Control (MPC), which has become a standard technique in mobile robot navigation. In the navigation domain, MPC is widely used as both a local planner and controller, leveraging optimization solvers to generate trajectories that are smooth, feasible, and safe while keeping velocities within hardware constraints.
         </p>
         <p>
-          Imagine you're driving a car. You don't just look at where you are now - you look ahead at the road, anticipate curves, and adjust your steering and speed accordingly. That's essentially what MPC does for our robot - it plans several steps ahead and optimizes the entire movement sequence.
+          While MPC has been successfully deployed in numerous open-source navigation solutions, these implementations typically focus solely on base motion. We extend this paradigm to encompass whole-body control, simultaneously coordinating the mobile base, torso, and manipulator arm through a unified optimization framework.
         </p>
 
-        <h3>2.1 The Robot's "Body Awareness"</h3>
+        <h3>2.1 State and Control Definitions</h3>
         <p>
-          First, we need to define what our robot is "aware" of about itself:
+          We formulate the problem by defining the complete state vector for the mobile manipulator:
         </p>
 
         <div class="math-block">
           $x = [x_b, y_b, \theta_b, q_{torso}, q_{arm}]^T$
           
-          <p>In plain English, this includes:</p>
+          <p>This state vector encompasses:</p>
           <ul>
-            <li>Where the base is located and which way it's facing</li>
-            <li>The position of the torso (whether it's extended upward or not)</li>
-            <li>The positions of all 7 arm joints</li>
+            <li>Base position coordinates (\(x_b, y_b\)) and orientation (\(\theta_b\))</li>
+            <li>Torso prismatic joint position (\(q_{torso}\))</li>
+            <li>Arm joint configuration vector (\(q_{arm} \in \mathbb{R}^7\))</li>
           </ul>
           
-          <p>The robot can control:</p>
+          <p>The control input vector is defined as:</p>
           $u = [v, \omega, \dot{q}_{torso}, \dot{q}_{arm}]^T$
           
           <ul>
-            <li>How fast it drives forward</li>
-            <li>How fast it turns</li>
-            <li>How fast the torso and arm joints move</li>
+            <li>Linear and angular base velocities (\(v, \omega\))</li>
+            <li>Torso joint velocity (\(\dot{q}_{torso}\))</li>
+            <li>Arm joint velocity vector (\(\dot{q}_{arm} \in \mathbb{R}^7\))</li>
           </ul>
         </div>
 
-        <h3>2.2 Predicting Future Movement</h3>
+        <h3>2.2 System Dynamics Model</h3>
         <p>
-          Our controller uses a simplified model to predict how the robot will move when given certain commands:
+          Our controller implements a discrete-time kinematic model to predict future states based on current state and control inputs. Since the mobile base is non-holonomic (i.e., it cannot move sideways directly), the state transition equations must respect these constraints:
         </p>
 
         <div class="math-block">
-          $x_{k+1} = x_k + \Delta t \cdot f(x_k, u_k)$
+          $f(x_k, u_k) = \begin{bmatrix} 
+          v \cos(\theta_b) \\
+          v \sin(\theta_b) \\
+          \omega \\
+          \dot{q}_{torso} \\
+          \dot{q}_{arm}
+          \end{bmatrix}$
         </div>
         
         <p>
-          This is just a fancy way of saying "where the robot will be next depends on where it is now, what commands we give it, and how much time passes." The magic happens when we use this model to plan several steps ahead.
+          The discrete state update equation then becomes:
+        </p>
+        
+        <div class="math-block">
+          $x_{k+1} = x_k + \Delta t \cdot f(x_k, u_k) + s_k$
+        </div>
+        
+        <p>
+          Where (\(s_k\)) represents slack variables that slightly relax the dynamics constraints. These slack variables are crucial for computational tractability in real-time applications, allowing the optimizer to find feasible solutions even when perfect dynamics satisfaction would be challenging due to discretization errors or model simplifications.
+        </p>
+        
+        <p>
+          In our implementation, this dynamics constraint is formulated as:
+        </p>
+        
+        <pre><code class="language-python">
+for i in range(self.N):
+    x = X[:,i]
+    u = U[:,i]
+    
+    dx = ca.vertcat(
+        u[0] * ca.cos(x[2]),  # x
+        u[0] * ca.sin(x[2]),  # y
+        u[1],                 # theta
+        u[2],                 # torso
+        u[3:]                 # arm joints
+    )
+    
+    # Relax dynamics constraints with slack variables
+    opti.subject_to(X[:,i+1] == x + dx * self.dt + slack_dynamics[:,i])
+        </code></pre>
+        
+        <p>
+          This formulation allows the controller to project the robot's state evolution over a finite prediction horizon while accounting for the non-holonomic constraints of the mobile base, enabling coordinated whole-body motion planning.
         </p>
 
-        <h3>2.3 The "How Well Am I Dancing?" Score</h3>
+        <h3>2.3 Optimization Problem Formulation</h3>
         <p>
-          Our controller continuously evaluates how well the robot is following its intended path:
+          The MPC controller optimizes a quadratic cost function over the prediction horizon while satisfying various constraints:
         </p>
 
         <div class="math-block">
-          $J = \sum_{i=0}^{N-1} \left[ (x_i - x_{ref,i})^T Q (x_i - x_{ref,i}) + u_i^T R u_i \right]$
+          $J = \sum_{i=0}^{N-1} \left[ (x_i - x_{ref,i})^T Q (x_i - x_{ref,i}) + u_i^T R u_i + \alpha_1\|s_{dyn,i}\|_2^2 + \alpha_2\|s_{cbf,i}\|_2^2 \right]$
         </div>
         
         <p>
-          Though the math looks complicated, the idea is simple: we're balancing two goals:
+          This objective function balances four competing criteria:
         </p>
         <ol>
-          <li>Stay as close as possible to the desired path</li>
-          <li>Don't use excessive energy or make jerky movements</li>
+          <li>Tracking error minimization (weighted by positive definite matrix \(Q\))</li>
+          <li>Control effort efficiency (weighted by positive definite matrix \(R\))</li>
+          <li>Dynamics constraint satisfaction (penalized by \(\alpha_1\))</li>
+          <li>Safety constraint satisfaction (penalized by \(\alpha_2\))</li>
         </ol>
         
         <p>
-          By minimizing this "dance score," our robot moves smoothly and efficiently while following the intended trajectory.
+          The optimization is subject to several constraints:
         </p>
 
-        <h2>3. Teaching Robots to Avoid Bumping Into Things</h2>
+        <pre><code class="language-python">
+# Input constraints
+for i in range(self.N):
+    # Linear velocity
+    opti.subject_to(U[0,i] <= self.max_linear_vel)
+    opti.subject_to(U[0,i] >= -self.max_linear_vel)
+    
+    # Angular velocity
+    opti.subject_to(U[1,i] <= self.max_angular_vel)
+    opti.subject_to(U[1,i] >= -self.max_angular_vel)
+    
+    # Torso and arm joint velocities
+    for j in range(self.n_torso_joints + self.n_arm_joints):
+        opti.subject_to(U[2+j,i] <= self.max_joint_vel[j])
+        opti.subject_to(U[2+j,i] >= -self.max_joint_vel[j])
+
+# Non-negativity constraints for slack variables
+opti.subject_to(opti.bounded(0, slack_dynamics, 1.0))
+
+# Initial state constraint (no slack)
+opti.subject_to(X[:,0] == X0)</code></pre>
+
         <p>
-          A really cool part of our controller is how it handles obstacles. We use something called Control Barrier Functions (CBFs), which are essentially "force fields" that push the robot away from obstacles.
+          These constraints ensure that:
+        </p>
+        <ul>
+          <li>Control inputs remain within hardware limits</li>
+          <li>Slack variables are bounded to prevent excessive constraint violation</li>
+          <li>The initial state matches the current robot state exactly</li>
+        </ul>
+
+        <h2>3. Obstacle Avoidance with Control Barrier Functions</h2>
+        <p>
+          While our whole-body motion planner generates collision-free trajectories through sampling-based methods, we still need robust collision avoidance in the controller. This is because sampling-based planners may generate trajectories that, while technically collision-free, can be dangerous in practice. For example, the planner might generate paths that:
+        </p>
+        <ul>
+          <li><strong>Pass close to obstacles:</strong> Moving very close to a table corner or along a wall might be collision-free in theory, but becomes risky when accounting for localization errors or tracking inaccuracies</li>
+          <li><strong>Have minimal clearance:</strong> The planned path might maintain just enough distance to avoid collision, leaving no margin for real-world uncertainties</li>
+          <li><strong>Assume perfect execution:</strong> The planner doesn't account for controller tracking errors or dynamic obstacles</li>
+        </ul>
+        <p>
+          To address these challenges, we implement Control Barrier Functions (CBFs) within our optimization framework. CBFs provide a mathematically rigorous way to enforce safety constraints while maintaining smooth motion, effectively creating a safety buffer around obstacles that adapts to the robot's movement.
         </p>
 
-        <h3>3.1 Creating Virtual Force Fields</h3>
+        <h3>3.1 Barrier Function Theory</h3>
         <p>
-          For each obstacle, we create a mathematical "force field" that the robot tries to stay outside of:
+          A Control Barrier Function is a tool from nonlinear control theory that transforms safety constraints into forward-invariant sets. For a dynamical system with state (\(x\)) and control input (\(u\)), a CBF is defined through a continuously differentiable function (\(h: \mathbb{R}^n \rightarrow \mathbb{R}\)) where the safe set is described as:
+        </p>
+
+        <div class="math-block">
+          $\mathcal{C} = \{x \in \mathbb{R}^n : h(x) \geq 0\}$
+        </div>
+
+        <p>
+          The key property of a CBF is that if (\(h(x) \geq 0\)) initially, then the system can be controlled to ensure (\(h(x) \geq 0\)) for all future time. This is achieved by enforcing the following condition:
+        </p>
+
+        <div class="math-block">
+          $\dot{h}(x) + \gamma h(x) \geq 0$
+        </div>
+
+        <p>
+          Where (\(\gamma > 0\)) is a tuning parameter that determines how aggressively the system maintains safety. This continuous-time condition translates to our discrete-time MPC setting as:
+        </p>
+
+        <div class="math-block">
+          $h(x_{k+1}) \geq (1 - \gamma \Delta t)h(x_k)$
+        </div>
+
+        <h3>3.2 CBF Formulation for Obstacle Avoidance</h3>
+        <p>
+          For mobile robot navigation, we define the barrier function for each obstacle as:
         </p>
 
         <div class="math-block">
@@ -178,181 +312,147 @@
         </div>
         
         <p>
-          This is just the mathematical way of saying "keep a distance of at least d_safe from each obstacle." When this value is positive, the robot is at a safe distance; when negative, it's too close.
+          This formulation has several advantageous properties:
         </p>
+        <ul>
+          <li>Differentiable everywhere, making it suitable for gradient-based optimization</li>
+          <li>Radially symmetric, providing uniform safety margins around obstacles</li>
+          <li>Computationally efficient to evaluate and differentiate</li>
+          <li>Natural interpretation: positive values indicate safe distances, negative values indicate constraint violation</li>
+        </ul>
 
-        <h3>3.2 Making Sure We Don't Cross the Force Field</h3>
+        <h3>3.3 Relaxed CBF Constraints</h3>
         <p>
-          The controller ensures the robot never gets too close to obstacles by adding this constraint:
+          In practice, we implement a relaxed version of the CBF constraints using slack variables to ensure optimization feasibility:
         </p>
 
         <div class="math-block">
-          $h(x_{k+1}, y_{k+1}) \geq (1 - \gamma) \cdot h(x_k, y_k)$
+          $h(x_{k+1}, y_{k+1}) \geq (1 - \gamma_k)h(x_k, y_k) - s_{cbf}$
         </div>
-        
+
         <p>
-          In plain English: "Make sure you're not getting too much closer to any obstacle with each step you take." This allows the robot to move near obstacles when necessary, but prevents collisions.
+          The slack variables (\(s_{cbf}\)) are penalized in the objective function with weight (\(\alpha_2\)):
         </p>
 
-        <h2>4. How We Built It</h2>
+        <div class="math-block">
+          $J_{cbf} = \alpha_2\sum_{i=0}^{N-1}\sum_{j=0}^{M}\|s_{cbf,j,i}\|_2^2$
+        </div>
+
         <p>
-          We implemented our controller using the CasADi optimization library and ROS (Robot Operating System) on a Fetch mobile manipulator. Let me share some of the interesting technical bits!
+          This formulation provides several key benefits:
         </p>
+        <ul>
+          <li>Guaranteed feasibility of the optimization problem</li>
+          <li>Smooth degradation of safety constraints when necessary</li>
+          <li>Tunable trade-off between safety and performance via (\(\alpha_2\))</li>
+          <li>Ability to handle multiple obstacles with different priorities</li>
+        </ul>
 
-        <h3>4.1 Looking Ahead</h3>
+        <h3>3.4 Efficient Obstacle Processing</h3>
         <p>
-          Our controller plans 10 steps ahead, with each step representing 0.1 seconds - so it's planning about 1 second into the future at all times. This gives it enough foresight to move smoothly while not getting bogged down in too much computation:
-        </p>
-
-        <pre><code class="language-python">
-def __init__(self, params):
-    self.N = params['prediction_horizon']  # Typically 10 steps
-    self.dt = 1.0 / params['control_rate']  # Typically 0.1s (10Hz)
-    
-    # State and control dimensions
-    self.n_arm_joints = 7
-    self.n_torso_joints = 1
-    self.n_base_pose = 3
-    self.nx = self.n_base_pose + self.n_torso_joints + self.n_arm_joints
-    self.nu = 2 + 1 + self.n_arm_joints  # base_vel(2) + torso_vel + arm_vels
-</code></pre>
-
-        <h3>4.2 Finding Obstacles</h3>
-        <p>
-          The robot uses its laser scanner to detect obstacles. Here's how we process that data:
+          A critical challenge in implementing CBF-based collision avoidance is processing real-world sensor data efficiently. Our robot uses a 2D LIDAR sensor that provides hundreds of obstacle points per scan. Including all these points as constraints would make the optimization problem computationally intractable for real-time control. We solve this through an efficient voxelization approach:
         </p>
 
         <ol>
-          <li>Ignore measurements that are too far away or invalid</li>
-          <li>Convert the measurements to the map's coordinate system</li>
-          <li>Group nearby points together (like seeing a chair as one obstacle, not hundreds of individual points)</li>
-          <li>Find the center of each group of points</li>
-          <li>Focus on the obstacles that are closest to the robot</li>
+          <li><strong>Data Collection:</strong> Raw LIDAR scans are processed at 5Hz, independent of the 10Hz control loop, to maintain real-time performance</li>
+          <li><strong>Voxel Grid Filtering:</strong> The 2D space is divided into a grid of voxels (0.2m × 0.2m), and points within each voxel are represented by their centroid</li>
+          <li><strong>Proximity-Based Selection:</strong> Voxel centroids are sorted by distance to the robot, and only the 10 nearest obstacles are included in the optimization</li>
         </ol>
 
         <p>
-          Here's a glimpse of the code that does this grouping of nearby points:
+          This processing pipeline is implemented as follows:
         </p>
 
         <pre><code class="language-python">
-def process_lidar_data(self):
-    # Group points into voxels (3D pixels, basically)
-    voxel_dict = {}
-    for x, y in points_map:
-        voxel_x = int(x / self.params['voxel_size'])
-        voxel_y = int(y / self.params['voxel_size'])
-        
-        voxel_key = (voxel_x, voxel_y)
-        if voxel_key not in voxel_dict:
-            voxel_dict[voxel_key] = []
-            
-        voxel_dict[voxel_key].append((x, y))
-    
-    # Calculate center of each group
-    obstacle_positions = []
-    for voxel_points in voxel_dict.values():
-        x_sum = sum(p[0] for p in voxel_points)
-        y_sum = sum(p[1] for p in voxel_points)
-        count = len(voxel_points)
-        
-        centroid = (x_sum / count, y_sum / count)
-        obstacle_positions.append(centroid)
-</code></pre>
+# Group points into voxels using a dictionary for efficiency
+voxel_dict = {}
+for x, y in points_map:
+    voxel_x = int(x / voxel_size)
+    voxel_y = int(y / voxel_size)
+    voxel_key = (voxel_x, voxel_y)
+    if voxel_key not in voxel_dict:
+        voxel_dict[voxel_key] = []
+    voxel_dict[voxel_key].append((x, y))
 
-        <h3>4.3 Setting Up the Optimization Problem</h3>
+# Calculate centroid of each voxel
+obstacle_positions = []
+for voxel_points in voxel_dict.values():
+    x_sum = sum(p[0] for p in voxel_points)
+    y_sum = sum(p[1] for p in voxel_points)
+    count = len(voxel_points)
+    centroid = (x_sum / count, y_sum / count)
+    obstacle_positions.append(centroid)
+
+# Sort by distance to robot and keep closest N
+obstacle_positions.sort(key=lambda p: 
+    (p[0] - robot_x)**2 + (p[1] - robot_y)**2)
+obstacle_positions = obstacle_positions[:max_obstacle_points]</code></pre>
+
         <p>
-          The heart of our controller is an optimization problem that finds the best possible movement plan. Here's a snippet of how we set that up:
+          This approach provides several benefits:
         </p>
+        <ul>
+          <li><strong>Computational Efficiency:</strong> Reduces hundreds of LIDAR points to a manageable set of constraints</li>
+          <li><strong>Spatial Coverage:</strong> Voxelization ensures obstacles are represented across the entire sensor range</li>
+          <li><strong>Dynamic Updates:</strong> Processing runs in a separate thread, allowing continuous obstacle tracking without impacting control performance</li>
+        </ul>
 
-        <pre><code class="language-python">
-def setup_optimization(self):
-    opti = ca.Opti()
-    
-    # Decision variables (what the controller gets to choose)
-    X = opti.variable(self.nx, self.N+1)  # States
-    U = opti.variable(self.nu, self.N)    # Controls
-    
-    # Slack variables (allowing small violations when necessary)
-    slack_dynamics = opti.variable(self.nx, self.N)
-    cbf_slack = opti.variable(self.max_obstacle_points, self.M_CBF)
-    
-    # Parameters (things we don't control but need to account for)
-    X_ref = opti.parameter(self.nx, self.N+1)  # Reference trajectory
-    X0 = opti.parameter(self.nx)               # Initial state
-    obstacle_params = opti.parameter(2, self.max_obstacle_points * (self.N+1))
-</code></pre>
-
-        <h3>4.4 Implementing the Force Fields</h3>
+        <h3>3.5 Implementation Details</h3>
         <p>
-          This code shows how we implement the "force fields" around obstacles:
+          The CBF constraints are implemented with careful consideration of numerical stability and computational efficiency:
         </p>
 
         <pre><code class="language-python">
-# Define the barrier function
 def h(x_, y_):
     return (x_[0] - y_[0])**2 + (x_[1] - y_[1])**2 - self.safe_distance**2
 
-# Add constraints for each obstacle
+# Add CBF constraints for each obstacle
 for j in range(self.max_obstacle_points):
     for i in range(self.M_CBF):
-        # Current and next robot positions
+        # Current and next state positions
         robot_curr = X[:2, i]
         robot_next = X[:2, i+1]
         
-        # Get obstacle positions
-        obs_curr = ca.vertcat(obstacle_params[0, j*(self.N+1) + i], 
-                             obstacle_params[1, j*(self.N+1) + i])
-        obs_next = ca.vertcat(obstacle_params[0, j*(self.N+1) + i+1], 
-                             obstacle_params[1, j*(self.N+1) + i+1])
+        # Get obstacle positions from parameter array
+        obs_curr_x = obstacle_params[0, j*(self.N+1) + i]
+        obs_curr_y = obstacle_params[1, j*(self.N+1) + i]
+        obs_next_x = obstacle_params[0, j*(self.N+1) + i+1]
+        obs_next_y = obstacle_params[1, j*(self.N+1) + i+1]
         
-        # Add the "force field" constraint
+        obs_curr = ca.vertcat(obs_curr_x, obs_curr_y)
+        obs_next = ca.vertcat(obs_next_x, obs_next_y)
+        
+        # Add CBF constraint with slack
         opti.subject_to(
             h(robot_next, obs_next) >= 
             (1 - self.gamma_k) * h(robot_curr, obs_curr) - cbf_slack[j, i]
-        )
-</code></pre>
-
-        <h2>5. How Well Does It Work?</h2>
+        )</code></pre>
+        
         <p>
-          So, does all this math and code actually make our robot move better? The short answer is yes! Here's what we observed:
-        </p>
-
-        <h3>5.1 Smooth Movement</h3>
-        <p>
-          The biggest improvement is in how naturally the robot moves. Instead of the typical "stop-and-go" robotic motion, our controller produces fluid, coordinated movements where the base and arm work together seamlessly.
-        </p>
-        <p>
-          If you've ever watched professional movers carry a sofa through a doorway, you've seen how they coordinate their bodies to make a complex task look effortless. Our controller brings that same kind of coordination to robots.
-        </p>
-
-        <h3>5.2 Slick Obstacle Dodging</h3>
-        <p>
-          The obstacle avoidance works really well! The robot smoothly navigates around obstacles without jerky changes in direction or unnecessary stopping. It's like watching someone weave through a crowd at a cocktail party while carrying a drink - smooth and controlled.
-        </p>
-
-        <div class="result-figure">
-          <img
-            src="/media/images/blog/mpc-controller/obstacle_avoidance_demo.png"
-            alt="Obstacle avoidance demonstration"
-          />
-          <p class="caption">
-            Figure 1: Our robot dodging obstacles (red cylinders) while maintaining a smooth path. Notice how it adjusts its trajectory to maintain safe distances without drastic course changes.
-          </p>
-        </div>
-
-        <h3>5.3 Real-Time Performance</h3>
-        <p>
-          Despite all the complex math happening under the hood, our controller is fast enough to run in real-time on standard hardware:
+          Key implementation considerations include:
         </p>
         <ul>
-          <li>It updates commands 10 times per second</li>
-          <li>Each update typically takes about 50ms to calculate</li>
-          <li>Even in the worst case, it takes less than 80ms</li>
+          <li>Efficient vectorization of constraints using CasADi's symbolic framework</li>
+          <li>Separate slack variables for each obstacle and timestep to allow fine-grained constraint relaxation</li>
+          <li>Prediction of obstacle motion to maintain safety margins during dynamic scenarios</li>
+          <li>Gradual decay rate (\(\gamma_k\)) to prevent aggressive avoidance maneuvers</li>
+        </ul>
+
+        <h3>3.6 Theoretical Guarantees</h3>
+        <p>
+          The CBF formulation provides several important theoretical guarantees:
+        </p>
+        <ul>
+          <li><strong>Forward Invariance:</strong> If the initial state is safe and (\(s_{cbf} = 0\)), the system remains safe for all future time</li>
+          <li><strong>Lipschitz Continuity:</strong> The barrier function's gradients are bounded, ensuring numerical stability</li>
+          <li><strong>Recursive Feasibility:</strong> If a solution exists at time k, a solution will exist at time k+1 (with slack variables)</li>
+          <li><strong>Minimal Conservatism:</strong> The constraints only activate when necessary, allowing optimal performance in safe regions</li>
         </ul>
 
         <p>
-          This performance comes from careful optimization and configuration:
+          The complete optimization problem is solved using IPOPT with the following configuration:
         </p>
+
         <pre><code class="language-python">
 # Set solver options
 opts = {
@@ -361,48 +461,39 @@ opts = {
     'ipopt.max_iter': 100,
     'ipopt.tol': 1e-4,
     'ipopt.acceptable_tol': 1e-3,
+    'ipopt.acceptable_obj_change_tol': 1e-4,
     'ipopt.warm_start_init_point': 'yes'
 }
 
 # Create and call the solver
-self.opti.solver('ipopt', opts)
-sol = self.opti.solve()
-</code></pre>
+self.opti.solver('ipopt', opts)</code></pre>
 
-        <h2>6. What We'd Like to Improve</h2>
         <p>
-          While our controller works well, it's not perfect. Here are some limitations and ideas for future improvements:
+          The solver is configured to balance computational efficiency with solution quality, using warm starts to improve convergence speed in subsequent iterations.
         </p>
 
-        <h3>6.1 Current Limitations</h3>
-        <ul>
-          <li><strong>Simplified Physics:</strong> We use a simple model that doesn't account for things like inertia or motor torque limits.</li>
-          <li><strong>2D Obstacles Only:</strong> Our approach only considers obstacles at the base level, not full 3D shapes.</li>
-          <li><strong>Static Obstacle Assumption:</strong> We assume obstacles don't move during the robot's motion.</li>
-        </ul>
-
-        <h3>6.2 Cool Ideas for the Future</h3>
+        <h2>4. Implementation Results</h2>
         <p>
-          Here's what we're excited to work on next:
-        </p>
-        <ul>
-          <li><strong>Predicting Moving Obstacles:</strong> Anticipate where people or other moving objects will be.</li>
-          <li><strong>Full Arm Collision Prevention:</strong> Extend the "force fields" to protect the entire arm, not just the base.</li>
-          <li><strong>End-Effector Control:</strong> Define trajectories based on where the gripper should go, not individual joint movements.</li>
-          <li><strong>AI-Enhanced Models:</strong> Use machine learning to improve our physics models or give the optimization a head start.</li>
-        </ul>
-
-        <h2>Wrapping Up</h2>
-        <p>
-          Getting robots to move naturally turns out to be pretty challenging! Traditional approaches tend to produce those jerky, obviously "robotic" movements we're all familiar with. Our unified MPC controller offers a better way by coordinating the entire robot body as a single system and using virtual "force fields" (Control Barrier Functions) to avoid obstacles.
+          Our implementation achieves real-time performance with a 10Hz control loop, where each MPC optimization takes approximately 70ms to solve. Below is a demonstration of our controller in action:
         </p>
 
-        <p>
-          The results speak for themselves - smoother, more natural movement that's more efficient and pleasant to watch. And the best part is that all of this can run in real-time on standard hardware.
-        </p>
+        <div class="result-figure" style="text-align: center; margin: 2rem auto;">
+          <img
+            src="/media/images/blog/mpc-controller/mpc_controller_fast.gif"
+            alt="Whole-body MPC controller demonstration"
+            style="max-width: 80%; margin: 0 auto;"
+          />
+          <p class="caption" style="margin-top: 1rem; font-style: italic; color: #555;">
+            Figure 1: Real-time demonstration of our whole-body MPC controller (8x playback speed). The robot performs coordinated base and arm motions while maintaining safe distances from obstacles, represented by red circles (voxel centroids). Note how the controller smoothly adjusts the robot's trajectory to maintain safety margins around detected obstacles.
+          </p>
+        </div>
 
+        <h2>5. Conclusion</h2>
         <p>
-          We've made our full implementation available as a ROS package that can be adapted for different mobile manipulator robots beyond the Fetch robot we used in our tests. We hope this contribution helps push forward the state of robot control, making robots more capable and natural in their movements.
+          This work demonstrates how mathematical rigor and practical engineering can come together to solve a fundamental robotics challenge. By combining MPC with control barrier functions, we showed that robots can move more naturally and safely, breaking free from the traditional stop-and-go paradigm. The key insight is that complex robotic behaviors don't always need complex solutions - sometimes they just need the right mathematical framework and careful implementation.
+        </p>
+        <p>
+          Our open-source implementation runs at 10Hz on standard hardware, showing that advanced control techniques are becoming increasingly practical for real-world applications. We hope this work inspires others to push the boundaries of robot control, making robots more capable partners in our daily lives.
         </p>
 
         <div
@@ -453,6 +544,42 @@ sol = self.opti.solve()
     url       = {https://github.com/username/whole-body-mpc}
   }
           </pre>
+        </div>
+
+        <div
+          class="references-section"
+          style="
+            margin-top: 2rem;
+            padding: 1rem;
+            background-color: #f4f4f4;
+            border-radius: 4px;
+          "
+        >
+          <h2
+            style="
+              font-family: &quot;Lora&quot;, serif;
+              font-size: 1.5rem;
+              margin-bottom: 0.5rem;
+              color: #222;
+            "
+          >
+            References
+          </h2>
+          <ol
+            style="
+              font-family: &quot;JetBrains Mono&quot;, monospace;
+              font-size: 0.95rem;
+              color: #333;
+              padding-left: 1.5rem;
+            "
+          >
+            <li style="margin-bottom: 0.5rem">
+              Thomason, W., Kingston, Z., & Kavraki, L. E. (2024). Motions in Microseconds via Vectorized Sampling-Based Planning. In IEEE International Conference on Robotics and Automation (ICRA) (pp. 8749-8756).
+            </li>
+            <li style="margin-bottom: 0.5rem">
+              Wu, C., Wang, R., Song, M., Gao, F., Mei, J., & Zhou, B. (2024). Real-time Whole-body Motion Planning for Mobile Manipulators Using Environment-adaptive Search and Spatial-temporal Optimization. In IEEE International Conference on Robotics and Automation (ICRA) (pp. 1369-1375).
+            </li>
+          </ol>
         </div>
       </article>
     </div>
