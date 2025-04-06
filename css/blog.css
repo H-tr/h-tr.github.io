@@ -144,7 +144,7 @@ nav a:hover {
 
 .blog-post-content {
   font-size: 1.1rem;
-  line-height: 1.8;
+  line-height: 1.4;
 }
 
 .back-button {
@@ -210,3 +210,17 @@ nav a:hover {
     font-size: 1.6rem;
   }
 }
+
+/* Simple fix for math equations sizing */
+.katex {
+  font-size: 1em;
+}
+
+/* Fix line spacing in blog posts */
+.blog-post-content,
+.blog-post-content p,
+.blog-post-content li {
+  line-height: 1.4 !important;
+}
+
+/* Code block styling is now handled by Prism.js */

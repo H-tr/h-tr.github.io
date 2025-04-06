@@ -405,8 +405,8 @@
           uncertainty modeling would be the star of the show, but it turns out
           that distinguishing places that look frustratingly similar—those hard
           negatives—is the real MVP. It's less about embracing uncertainty and
-          more about sharpening the system's ability to say, “No, this isn't the
-          same place.”
+          more about sharpening the system's ability to say, "No, this isn't the
+          same place."
         </p>
 
         <p>
@@ -509,7 +509,14 @@
           ],
           throwOnError: false,
         });
+        
+        // Simple fix to make math size match text size
+        document.head.insertAdjacentHTML('beforeend', 
+          '<style>.katex { font-size: 1em; }</style>'
+        );
       });
     </script>
+    <!-- Blog styling and spacing script -->
+    <script src="/js/blog.js"></script>
   </body>
 </html>

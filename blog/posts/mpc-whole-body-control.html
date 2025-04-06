@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Making Robots Move Naturally: Our Whole-Body Controller for Mobile Manipulators</title>
+
+    <!-- Fonts -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Prism.js initialization - single script that loads everything -->
+    <script src="/js/prism-init.js"></script>
+
+    <!-- KaTeX Math Support -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Site Assets -->
+    <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg" />
+    <link href="/css/blog.css" rel="stylesheet" />
+
+    <!-- KaTeX Scripts -->
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"
+    ></script>
+  </head>
+  <body>
+    <div class="blog-post">
+      <a href="../" class="back-button">
+        <i class="fas fa-arrow-left"></i>Back to Blog
+      </a>
+
+      <header class="blog-post-header">
+        <h1 class="blog-post-title">
+          Making Robots Move Naturally: Our Whole-Body Controller for Mobile Manipulators
+        </h1>
+        <div class="blog-post-date">April 6, 2025</div>
+      </header>
+
+      <article class="blog-post-content">
+        <h2>Why We Need Better Robot Movement</h2>
+        <p>
+          Have you ever watched a robot try to reach for something while rolling around? If you have, you probably noticed that most robots seem to move in a rather unnatural, robotic way (shocking, I know). They'll drive to a spot, stop completely, and then start moving their arm - as if they can't walk and chew gum at the same time.
+        </p>
+        <p>
+          This isn't just an aesthetic issue - it's a practical problem that makes robots slower and less efficient at many tasks. And when I started looking for solutions, I was surprised to find very little practical guidance on how to make mobile manipulators (robots with both arms and wheels) move more naturally and efficiently.
+        </p>
+        <p>
+          So we decided to build our own solution: a unified controller that coordinates both the arm and wheels simultaneously, allowing our robot to move smoothly while avoiding obstacles. Think of it as teaching the robot to "dance" with its whole body instead of moving one part at a time.
+        </p>
+
+        <h2>1. Why Traditional Robot Controllers Fall Short</h2>
+        <p>
+          Before diving into our solution, let's look at why typical robot controllers aren't great for this kind of coordinated movement:
+        </p>
+
+        <h3>1.1 PD Controllers: The "Are We There Yet?" Approach</h3>
+        <p>
+          Most robots use simple PD (Proportional-Derivative) controllers. These work a bit like a kid in the back seat constantly asking "are we there yet?" and adjusting speed based on the answer. But they have some serious drawbacks:
+        </p>
+        <ul>
+          <li><strong>Jerky movements:</strong> They speed up and slow down abruptly, leading to that distinctive "robotic" movement style.</li>
+          <li><strong>Poor trajectory following:</strong> They struggle to follow smooth curved paths, especially when coordinating multiple joints.</li>
+          <li><strong>No look-ahead ability:</strong> They can't anticipate obstacles or plan ahead - they just react to the current situation.</li>
+        </ul>
+
+        <h3>1.2 Separate Controllers: The "Left Hand Doesn't Know What the Right Is Doing" Problem</h3>
+        <p>
+          Another common approach is to use entirely separate controllers for the arm and base. This is like having two different people controlling different parts of the robot without talking to each other. As you might imagine, this leads to problems:
+        </p>
+        <ul>
+          <li><strong>Coordination nightmares:</strong> Getting the timing right between arm and base movements is incredibly tricky.</li>
+          <li><strong>Wasted motion:</strong> Without considering how the whole system works together, movements are often inefficient or awkward.</li>
+          <li><strong>Sequential instead of simultaneous:</strong> The robot tends to move in stages rather than flowing naturally from one action to the next.</li>
+        </ul>
+
+        <h2>2. Our Whole-Body Controller: Teaching the Robot to Dance</h2>
+        <p>
+          Our approach uses something called Model Predictive Control (MPC). Don't let the fancy name intimidate you - the concept is actually quite intuitive! 
+        </p>
+        <p>
+          Imagine you're driving a car. You don't just look at where you are now - you look ahead at the road, anticipate curves, and adjust your steering and speed accordingly. That's essentially what MPC does for our robot - it plans several steps ahead and optimizes the entire movement sequence.
+        </p>
+
+        <h3>2.1 The Robot's "Body Awareness"</h3>
+        <p>
+          First, we need to define what our robot is "aware" of about itself:
+        </p>
+
+        <div class="math-block">
+          $x = [x_b, y_b, \theta_b, q_{torso}, q_{arm}]^T$
+          
+          <p>In plain English, this includes:</p>
+          <ul>
+            <li>Where the base is located and which way it's facing</li>
+            <li>The position of the torso (whether it's extended upward or not)</li>
+            <li>The positions of all 7 arm joints</li>
+          </ul>
+          
+          <p>The robot can control:</p>
+          $u = [v, \omega, \dot{q}_{torso}, \dot{q}_{arm}]^T$
+          
+          <ul>
+            <li>How fast it drives forward</li>
+            <li>How fast it turns</li>
+            <li>How fast the torso and arm joints move</li>
+          </ul>
+        </div>
+
+        <h3>2.2 Predicting Future Movement</h3>
+        <p>
+          Our controller uses a simplified model to predict how the robot will move when given certain commands:
+        </p>
+
+        <div class="math-block">
+          $x_{k+1} = x_k + \Delta t \cdot f(x_k, u_k)$
+        </div>
+        
+        <p>
+          This is just a fancy way of saying "where the robot will be next depends on where it is now, what commands we give it, and how much time passes." The magic happens when we use this model to plan several steps ahead.
+        </p>
+
+        <h3>2.3 The "How Well Am I Dancing?" Score</h3>
+        <p>
+          Our controller continuously evaluates how well the robot is following its intended path:
+        </p>
+
+        <div class="math-block">
+          $J = \sum_{i=0}^{N-1} \left[ (x_i - x_{ref,i})^T Q (x_i - x_{ref,i}) + u_i^T R u_i \right]$
+        </div>
+        
+        <p>
+          Though the math looks complicated, the idea is simple: we're balancing two goals:
+        </p>
+        <ol>
+          <li>Stay as close as possible to the desired path</li>
+          <li>Don't use excessive energy or make jerky movements</li>
+        </ol>
+        
+        <p>
+          By minimizing this "dance score," our robot moves smoothly and efficiently while following the intended trajectory.
+        </p>
+
+        <h2>3. Teaching Robots to Avoid Bumping Into Things</h2>
+        <p>
+          A really cool part of our controller is how it handles obstacles. We use something called Control Barrier Functions (CBFs), which are essentially "force fields" that push the robot away from obstacles.
+        </p>
+
+        <h3>3.1 Creating Virtual Force Fields</h3>
+        <p>
+          For each obstacle, we create a mathematical "force field" that the robot tries to stay outside of:
+        </p>
+
+        <div class="math-block">
+          $h(x, y) = (x - y_x)^2 + (y - y_y)^2 - d_{safe}^2$
+        </div>
+        
+        <p>
+          This is just the mathematical way of saying "keep a distance of at least d_safe from each obstacle." When this value is positive, the robot is at a safe distance; when negative, it's too close.
+        </p>
+
+        <h3>3.2 Making Sure We Don't Cross the Force Field</h3>
+        <p>
+          The controller ensures the robot never gets too close to obstacles by adding this constraint:
+        </p>
+
+        <div class="math-block">
+          $h(x_{k+1}, y_{k+1}) \geq (1 - \gamma) \cdot h(x_k, y_k)$
+        </div>
+        
+        <p>
+          In plain English: "Make sure you're not getting too much closer to any obstacle with each step you take." This allows the robot to move near obstacles when necessary, but prevents collisions.
+        </p>
+
+        <h2>4. How We Built It</h2>
+        <p>
+          We implemented our controller using the CasADi optimization library and ROS (Robot Operating System) on a Fetch mobile manipulator. Let me share some of the interesting technical bits!
+        </p>
+
+        <h3>4.1 Looking Ahead</h3>
+        <p>
+          Our controller plans 10 steps ahead, with each step representing 0.1 seconds - so it's planning about 1 second into the future at all times. This gives it enough foresight to move smoothly while not getting bogged down in too much computation:
+        </p>
+
+        <pre><code class="language-python">
+def __init__(self, params):
+    self.N = params['prediction_horizon']  # Typically 10 steps
+    self.dt = 1.0 / params['control_rate']  # Typically 0.1s (10Hz)
+    
+    # State and control dimensions
+    self.n_arm_joints = 7
+    self.n_torso_joints = 1
+    self.n_base_pose = 3
+    self.nx = self.n_base_pose + self.n_torso_joints + self.n_arm_joints
+    self.nu = 2 + 1 + self.n_arm_joints  # base_vel(2) + torso_vel + arm_vels
+</code></pre>
+
+        <h3>4.2 Finding Obstacles</h3>
+        <p>
+          The robot uses its laser scanner to detect obstacles. Here's how we process that data:
+        </p>
+
+        <ol>
+          <li>Ignore measurements that are too far away or invalid</li>
+          <li>Convert the measurements to the map's coordinate system</li>
+          <li>Group nearby points together (like seeing a chair as one obstacle, not hundreds of individual points)</li>
+          <li>Find the center of each group of points</li>
+          <li>Focus on the obstacles that are closest to the robot</li>
+        </ol>
+
+        <p>
+          Here's a glimpse of the code that does this grouping of nearby points:
+        </p>
+
+        <pre><code class="language-python">
+def process_lidar_data(self):
+    # Group points into voxels (3D pixels, basically)
+    voxel_dict = {}
+    for x, y in points_map:
+        voxel_x = int(x / self.params['voxel_size'])
+        voxel_y = int(y / self.params['voxel_size'])
+        
+        voxel_key = (voxel_x, voxel_y)
+        if voxel_key not in voxel_dict:
+            voxel_dict[voxel_key] = []
+            
+        voxel_dict[voxel_key].append((x, y))
+    
+    # Calculate center of each group
+    obstacle_positions = []
+    for voxel_points in voxel_dict.values():
+        x_sum = sum(p[0] for p in voxel_points)
+        y_sum = sum(p[1] for p in voxel_points)
+        count = len(voxel_points)
+        
+        centroid = (x_sum / count, y_sum / count)
+        obstacle_positions.append(centroid)
+</code></pre>
+
+        <h3>4.3 Setting Up the Optimization Problem</h3>
+        <p>
+          The heart of our controller is an optimization problem that finds the best possible movement plan. Here's a snippet of how we set that up:
+        </p>
+
+        <pre><code class="language-python">
+def setup_optimization(self):
+    opti = ca.Opti()
+    
+    # Decision variables (what the controller gets to choose)
+    X = opti.variable(self.nx, self.N+1)  # States
+    U = opti.variable(self.nu, self.N)    # Controls
+    
+    # Slack variables (allowing small violations when necessary)
+    slack_dynamics = opti.variable(self.nx, self.N)
+    cbf_slack = opti.variable(self.max_obstacle_points, self.M_CBF)
+    
+    # Parameters (things we don't control but need to account for)
+    X_ref = opti.parameter(self.nx, self.N+1)  # Reference trajectory
+    X0 = opti.parameter(self.nx)               # Initial state
+    obstacle_params = opti.parameter(2, self.max_obstacle_points * (self.N+1))
+</code></pre>
+
+        <h3>4.4 Implementing the Force Fields</h3>
+        <p>
+          This code shows how we implement the "force fields" around obstacles:
+        </p>
+
+        <pre><code class="language-python">
+# Define the barrier function
+def h(x_, y_):
+    return (x_[0] - y_[0])**2 + (x_[1] - y_[1])**2 - self.safe_distance**2
+
+# Add constraints for each obstacle
+for j in range(self.max_obstacle_points):
+    for i in range(self.M_CBF):
+        # Current and next robot positions
+        robot_curr = X[:2, i]
+        robot_next = X[:2, i+1]
+        
+        # Get obstacle positions
+        obs_curr = ca.vertcat(obstacle_params[0, j*(self.N+1) + i], 
+                             obstacle_params[1, j*(self.N+1) + i])
+        obs_next = ca.vertcat(obstacle_params[0, j*(self.N+1) + i+1], 
+                             obstacle_params[1, j*(self.N+1) + i+1])
+        
+        # Add the "force field" constraint
+        opti.subject_to(
+            h(robot_next, obs_next) >= 
+            (1 - self.gamma_k) * h(robot_curr, obs_curr) - cbf_slack[j, i]
+        )
+</code></pre>
+
+        <h2>5. How Well Does It Work?</h2>
+        <p>
+          So, does all this math and code actually make our robot move better? The short answer is yes! Here's what we observed:
+        </p>
+
+        <h3>5.1 Smooth Movement</h3>
+        <p>
+          The biggest improvement is in how naturally the robot moves. Instead of the typical "stop-and-go" robotic motion, our controller produces fluid, coordinated movements where the base and arm work together seamlessly.
+        </p>
+        <p>
+          If you've ever watched professional movers carry a sofa through a doorway, you've seen how they coordinate their bodies to make a complex task look effortless. Our controller brings that same kind of coordination to robots.
+        </p>
+
+        <h3>5.2 Slick Obstacle Dodging</h3>
+        <p>
+          The obstacle avoidance works really well! The robot smoothly navigates around obstacles without jerky changes in direction or unnecessary stopping. It's like watching someone weave through a crowd at a cocktail party while carrying a drink - smooth and controlled.
+        </p>
+
+        <div class="result-figure">
+          <img
+            src="/media/images/blog/mpc-controller/obstacle_avoidance_demo.png"
+            alt="Obstacle avoidance demonstration"
+          />
+          <p class="caption">
+            Figure 1: Our robot dodging obstacles (red cylinders) while maintaining a smooth path. Notice how it adjusts its trajectory to maintain safe distances without drastic course changes.
+          </p>
+        </div>
+
+        <h3>5.3 Real-Time Performance</h3>
+        <p>
+          Despite all the complex math happening under the hood, our controller is fast enough to run in real-time on standard hardware:
+        </p>
+        <ul>
+          <li>It updates commands 10 times per second</li>
+          <li>Each update typically takes about 50ms to calculate</li>
+          <li>Even in the worst case, it takes less than 80ms</li>
+        </ul>
+
+        <p>
+          This performance comes from careful optimization and configuration:
+        </p>
+        <pre><code class="language-python">
+# Set solver options
+opts = {
+    'ipopt.print_level': 0 if not self.debug else 3,
+    'print_time': 0 if not self.debug else 1,
+    'ipopt.max_iter': 100,
+    'ipopt.tol': 1e-4,
+    'ipopt.acceptable_tol': 1e-3,
+    'ipopt.warm_start_init_point': 'yes'
+}
+
+# Create and call the solver
+self.opti.solver('ipopt', opts)
+sol = self.opti.solve()
+</code></pre>
+
+        <h2>6. What We'd Like to Improve</h2>
+        <p>
+          While our controller works well, it's not perfect. Here are some limitations and ideas for future improvements:
+        </p>
+
+        <h3>6.1 Current Limitations</h3>
+        <ul>
+          <li><strong>Simplified Physics:</strong> We use a simple model that doesn't account for things like inertia or motor torque limits.</li>
+          <li><strong>2D Obstacles Only:</strong> Our approach only considers obstacles at the base level, not full 3D shapes.</li>
+          <li><strong>Static Obstacle Assumption:</strong> We assume obstacles don't move during the robot's motion.</li>
+        </ul>
+
+        <h3>6.2 Cool Ideas for the Future</h3>
+        <p>
+          Here's what we're excited to work on next:
+        </p>
+        <ul>
+          <li><strong>Predicting Moving Obstacles:</strong> Anticipate where people or other moving objects will be.</li>
+          <li><strong>Full Arm Collision Prevention:</strong> Extend the "force fields" to protect the entire arm, not just the base.</li>
+          <li><strong>End-Effector Control:</strong> Define trajectories based on where the gripper should go, not individual joint movements.</li>
+          <li><strong>AI-Enhanced Models:</strong> Use machine learning to improve our physics models or give the optimization a head start.</li>
+        </ul>
+
+        <h2>Wrapping Up</h2>
+        <p>
+          Getting robots to move naturally turns out to be pretty challenging! Traditional approaches tend to produce those jerky, obviously "robotic" movements we're all familiar with. Our unified MPC controller offers a better way by coordinating the entire robot body as a single system and using virtual "force fields" (Control Barrier Functions) to avoid obstacles.
+        </p>
+
+        <p>
+          The results speak for themselves - smoother, more natural movement that's more efficient and pleasant to watch. And the best part is that all of this can run in real-time on standard hardware.
+        </p>
+
+        <p>
+          We've made our full implementation available as a ROS package that can be adapted for different mobile manipulator robots beyond the Fetch robot we used in our tests. We hope this contribution helps push forward the state of robot control, making robots more capable and natural in their movements.
+        </p>
+
+        <div
+          class="citation-section"
+          style="
+            margin-top: 2rem;
+            padding: 1rem;
+            background-color: #f4f4f4;
+            border-radius: 4px;
+          "
+        >
+          <h2
+            style="
+              font-family: &quot;Lora&quot;, serif;
+              font-size: 1.5rem;
+              margin-bottom: 0.5rem;
+              color: #222;
+            "
+          >
+            Citation
+          </h2>
+          <p
+            style="
+              font-family: &quot;JetBrains Mono&quot;, monospace;
+              font-size: 0.9rem;
+              color: #333;
+            "
+          >
+            If you use this code in your research, please cite:
+          </p>
+
+          <pre
+            style="
+              background-color: #fff;
+              padding: 0.75rem;
+              border: 1px solid #ccc;
+              border-radius: 4px;
+              font-family: &quot;Fira Code&quot;, monospace;
+              font-size: 0.85rem;
+              overflow-x: auto;
+            "
+          >
+  @misc{whole-body-mpc,
+    author    = {Author Name},
+    title     = {Unified Whole-Body MPC Controller for Mobile Manipulators},
+    year      = {2025},
+    publisher = {GitHub},
+    url       = {https://github.com/username/whole-body-mpc}
+  }
+          </pre>
+        </div>
+      </article>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: "$", right: "$", display: true },
+            { left: "\\[", right: "\\]", display: true },
+            { left: "\\(", right: "\\)", display: false },
+            { left: "$", right: "$", display: false },
+          ],
+          throwOnError: false,
+        });
+        
+        // Simple fix to make math size match text size
+        document.head.insertAdjacentHTML('beforeend', 
+          '<style>.katex { font-size: 1em; }</style>'
+        );
+      });
+    </script>
+    <!-- Blog styling and spacing script -->
+    <script src="/js/blog.js"></script>
+  </body>
+</html>

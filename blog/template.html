@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>[BLOG_TITLE]</title>
+
+    <!-- Fonts -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Prism.js initialization - single script that loads everything -->
+    <script src="/js/prism-init.js"></script>
+    
+    <!-- KaTeX Math Support -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Site Assets -->
+    <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg" />
+    <link href="/css/blog.css" rel="stylesheet" />
+
+    <!-- KaTeX Scripts -->
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"
+    ></script>
+  </head>
+  <body>
+    <div class="blog-post">
+      <a href="../" class="back-button">
+        <i class="fas fa-arrow-left"></i>Back to Blog
+      </a>
+
+      <header class="blog-post-header">
+        <h1 class="blog-post-title">[BLOG_TITLE]</h1>
+        <div class="blog-post-date">[DATE]</div>
+      </header>
+
+      <article class="blog-post-content">
+        <!-- YOUR CONTENT HERE -->
+        
+        <!-- 
+        Code block examples with Prism.js:
+        
+        1. Simple code block with language:
+        <pre><code class="language-python">
+def hello_world():
+    print("Hello, world!")
+        </code></pre>
+        
+        2. Code block with filename shown in comment:
+        <pre><code class="language-python">
+# File: hello.py
+def hello_world():
+    print("Hello, world!")
+        </code></pre>
+        
+        3. Inline code: <code class="language-python">print("Hello")</code>
+        
+        Supported languages included by default:
+        - python (language-python)
+        - javascript (language-javascript)
+        - css (language-css)
+        - bash/shell (language-bash)
+        - yaml (language-yaml)
+        - json (language-json)
+        
+        For additional languages, add them to the languages array in prism-init.js
+        -->
+      </article>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: "$", right: "$", display: true },
+            { left: "\\[", right: "\\]", display: true },
+            { left: "\\(", right: "\\)", display: false },
+            { left: "$", right: "$", display: false },
+          ],
+          throwOnError: false,
+        });
+        
+        // Simple fix to make math size match text size
+        document.head.insertAdjacentHTML('beforeend', 
+          '<style>.katex { font-size: 1em; }</style>'
+        );
+      });
+    </script>
+    <!-- Blog styling and spacing script -->
+    <script src="/js/blog.js"></script>
+  </body>
+</html> 

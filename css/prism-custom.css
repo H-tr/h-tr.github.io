@@ -1,0 +1,132 @@
+/* Prism.js custom styling */
+:root {
+  --prism-font-size: 0.9em;
+}
+
+/* Set Prism font size to match regular text */
+code[class*="language-"],
+pre[class*="language-"] {
+  font-size: var(--prism-font-size);
+  line-height: 1.5;
+  font-family: "Fira Code", monospace;
+}
+
+/* Make sure inline code matches */
+:not(pre) > code[class*="language-"] {
+  font-size: calc(var(--prism-font-size) * 0.9);
+  padding: 0.2em 0.4em;
+}
+
+/* Add a little space around code blocks */
+div.code-toolbar {
+  margin: 1.5em 0;
+}
+
+/* Style the copy button - GitHub style */
+div.code-toolbar > .toolbar {
+  position: absolute;
+  top: 0.3em;
+  right: 0.2em;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* Show the toolbar when hovering over the code block */
+div.code-toolbar:hover > .toolbar {
+  opacity: 1;
+}
+
+div.code-toolbar > .toolbar button {
+  font-size: 0.8em;
+  padding: 0.3em;
+  background: transparent;
+  color: #6e7781;
+  border: 0;
+  box-shadow: none;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+/* Replace "Copy" text with icon */
+div.code-toolbar > .toolbar button span {
+  display: none;
+}
+
+div.code-toolbar > .toolbar button:before {
+  content: "\f0c5"; /* Font Awesome copy icon */
+  font-family: "Font Awesome 6 Free";
+  font-weight: 400;
+}
+
+div.code-toolbar > .toolbar button:hover,
+div.code-toolbar > .toolbar button:focus {
+  color: #0969da;
+  background-color: rgba(235, 245, 255, 0.6);
+  transform: translateY(-1px);
+}
+
+/* When copy is successful */
+div.code-toolbar > .toolbar button.copy-success:before {
+  content: "\f00c"; /* Font Awesome check icon */
+  color: #1a7f37;
+}
+
+/* Additional GitHub-like styling */
+pre[class*="language-"] {
+  background: #f6f8fa;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  position: relative;
+}
+
+code[class*="language-"] {
+  color: #24292e;
+}
+
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #6a737d;
+}
+
+.token.punctuation {
+  color: #24292e;
+}
+
+.token.property,
+.token.tag,
+.token.boolean,
+.token.number,
+.token.constant,
+.token.symbol {
+  color: #005cc5;
+}
+
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin {
+  color: #032f62;
+}
+
+.token.operator,
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string {
+  color: #d73a49;
+  background: transparent;
+}
+
+.token.atrule,
+.token.attr-value,
+.token.keyword {
+  color: #d73a49;
+}
+
+.token.function,
+.token.class-name {
+  color: #6f42c1;
+} 

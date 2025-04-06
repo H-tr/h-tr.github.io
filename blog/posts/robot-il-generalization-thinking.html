@@ -406,7 +406,14 @@
           ],
           throwOnError: false,
         });
+        
+        // Simple fix to make math size match text size
+        document.head.insertAdjacentHTML('beforeend', 
+          '<style>.katex { font-size: 1em; }</style>'
+        );
       });
     </script>
+    <!-- Blog styling and spacing script -->
+    <script src="/js/blog.js"></script>
   </body>
 </html>
