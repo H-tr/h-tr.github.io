@@ -98,12 +98,25 @@ nav a:active {
 }
 
 .contact-info a {
-  color: inherit;
+  color: #6495ED; /* Cornflower Blue */
   text-decoration: none;
+  transition: color 0.2s ease;
 }
 
 .contact-info a:hover {
-  text-decoration: underline;
+  color: #4173C4; /* Darker Cornflower Blue on hover */
+  text-decoration: none;
+}
+
+/* Specific style for email links in contact info */
+.contact-info a[href^="mailto:"] {
+  color: #555; /* Grey for email links */
+  transition: color 0.2s ease;
+}
+
+.contact-info a[href^="mailto:"]:hover {
+  color: #333; /* Darker grey on hover for email links */
+  text-decoration: none;
 }
 
 /* Social Links */
@@ -121,6 +134,18 @@ nav a:active {
 
 .social-links a:hover {
   color: #000;
+}
+
+/* General Link Styles */
+a {
+  color: #4682B4; /* Steel Blue */
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: #3A6A97; /* Darker Steel Blue on hover */
+  text-decoration: none;
 }
 
 /* About Section */
