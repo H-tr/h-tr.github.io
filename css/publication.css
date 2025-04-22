@@ -4,13 +4,18 @@
 }
 
 body {
-  font-family: "Lora", Georgia, serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
   line-height: 1.7;
   max-width: var(--content-width);
   margin: 0 auto;
   padding: 2rem;
   color: var(--text-color);
   background: #fff;
+}
+
+/* Set default header weight */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 500;
 }
 
 /* Header */
@@ -36,7 +41,7 @@ nav a {
   color: #000;
   text-decoration: none;
   margin-right: 1.5rem;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 nav a:hover {
@@ -101,7 +106,7 @@ nav a:hover {
 
 .publication-title {
   font-size: 1.3rem;
-  font-weight: bold;
+  font-weight: 500;
   margin-bottom: 0.8rem;
   color: #1a1a1a;
   line-height: 1.4;
@@ -115,17 +120,20 @@ nav a:hover {
   font-size: 0.9rem;
   color: #666;
   margin-bottom: 0.8rem;
+  font-weight: 300;
 }
 
 .publication-authors {
   font-style: italic;
   margin-bottom: 0.8rem;
   line-height: 1.5;
+  font-weight: 300;
 }
 
 .publication-venue {
   color: #666;
   margin-bottom: 0.8rem;
+  font-weight: 300;
 }
 
 .publication-abstract {
@@ -133,6 +141,7 @@ nav a:hover {
   margin: 1rem 0;
   color: #444;
   line-height: 1.8;
+  font-weight: 300;
 }
 
 .publication-links {
@@ -216,4 +225,9 @@ nav a:hover {
 
 pre {
   margin: 0;
+}
+
+/* Make specific author names slightly bolder */
+.publication-authors strong {
+  font-weight: 500;
 }

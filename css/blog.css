@@ -4,13 +4,18 @@
 }
 
 body {
-  font-family: "Lora", Georgia, serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
   line-height: 1.7;
   max-width: var(--content-width);
   margin: 0 auto;
   padding: 2rem;
   color: var(--text-color);
   background: #fff;
+}
+
+/* Set default header weight */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 500;
 }
 
 /* Header */
@@ -36,7 +41,7 @@ nav a {
   color: #000;
   text-decoration: none;
   margin-right: 1.5rem;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 nav a:hover {
@@ -73,9 +78,9 @@ nav a:hover {
 
 .blog-title {
   font-size: 1.3rem;
-  font-weight: bold;
+  font-weight: 500;
   color: #1a1a1a;
-  line-height: 1.4;
+  line-height: 1.7;
   margin: 0;
 }
 
@@ -87,7 +92,8 @@ nav a:hover {
 
 .blog-summary {
   margin-bottom: 0.8rem;
-  line-height: 1.5;
+  line-height: 1.7;
+  font-weight: 300;
 }
 
 .blog-links {
@@ -122,7 +128,7 @@ nav a:hover {
 
 /* Blog Post Page */
 .blog-post {
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
   padding: 2rem 0;
 }
@@ -135,6 +141,7 @@ nav a:hover {
 .blog-post-title {
   font-size: 2rem;
   margin-bottom: 1rem;
+  font-weight: 500;
 }
 
 .blog-post-date {
@@ -144,7 +151,18 @@ nav a:hover {
 
 .blog-post-content {
   font-size: 1.1rem;
-  line-height: 1.4;
+  line-height: 1.7;
+  font-weight: 300;
+}
+
+/* Reduce boldness of headers within blog posts */
+.blog-post-content h1,
+.blog-post-content h2,
+.blog-post-content h3,
+.blog-post-content h4,
+.blog-post-content h5,
+.blog-post-content h6 {
+  font-weight: 500; /* Set to normal weight */
 }
 
 .back-button {
@@ -220,7 +238,7 @@ nav a:hover {
 .blog-post-content,
 .blog-post-content p,
 .blog-post-content li {
-  line-height: 1.4 !important;
+  line-height: 1.7 !important;
 }
 
 /* Code block styling is now handled by Prism.js */
