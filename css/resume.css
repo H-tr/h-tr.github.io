@@ -28,23 +28,50 @@ h1, h2, h3, h4, h5, h6 {
   color: #000;
 }
 
+/* Navigation */
 nav {
   margin: 2rem 0;
   padding: 1rem 0;
-  border-top: 1px solid #eee;
-  border-bottom: 1px solid #eee;
+  border-top: 1px solid #eee; /* Light grey */
+  border-bottom: 1px solid #eee; /* Light grey */
 }
 
 nav a {
-  color: #000;
+  color: #555; /* Dark grey default */
   text-decoration: none;
   margin-right: 1.5rem;
-  font-weight: 400;
+  font-weight: 400; /* Normal weight */
+  padding-bottom: 0;
+  border-bottom: none;
+  transition: color 0.2s ease, font-weight 0.2s ease; /* Smooth transition for color and weight */
 }
 
 nav a:hover {
-  text-decoration: underline;
+  color: #000; /* Black on hover */
+  font-weight: 500; /* Slightly bolder on hover */
+  text-decoration: none;
 }
+
+/* Style for the active page link */
+nav a.active {
+  color: #000; /* Black */
+  font-weight: 600; /* Bolder */
+  text-decoration: none;
+}
+
+/* Ensure visited links don't get unwanted styles */
+nav a:visited {
+    color: #555; /* Keep default color */
+    text-decoration: none;
+}
+
+/* Style for the link while being clicked (momentary) */
+nav a:active {
+    color: #000; /* Black when clicking */
+    text-decoration: none;
+}
+
+/* --- END OF NAVIGATION STYLES --- */
 
 h2.resume-name {
   font-size: 2rem;
