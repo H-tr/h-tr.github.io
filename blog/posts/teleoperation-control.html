@@ -551,25 +551,7 @@
       </article>
     </div>
 
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        renderMathInElement(document.body, {
-          delimiters: [
-            { left: "$", right: "$", display: true },
-            { left: "\\[", right: "\\]", display: true },
-            { left: "\\(", right: "\\)", display: false },
-            { left: "$", right: "$", display: false },
-          ],
-          throwOnError: false,
-        });
-        
-        // Simple fix to make math size match text size
-        document.head.insertAdjacentHTML('beforeend', 
-          '<style>.katex { font-size: 1em; }</style>'
-        );
-      });
-    </script>
-    <!-- Blog styling and spacing script -->
-    <script src="/js/blog.js"></script>
+    <script defer src="/js/blog.js"></script>
+    <script defer src="/js/katex-init.js"></script>
   </body>
 </html>

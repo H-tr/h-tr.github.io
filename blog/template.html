@@ -107,47 +107,16 @@ def hello_world():
         
         <!-- 
         Citation Section Example:
-        
-        <div
-          class="citation-section"
-          style="
-            margin-top: 2rem;
-            padding: 1rem;
-            background-color: #f4f4f4;
-            border-radius: 4px;
-          "
-        >
-          <h2
-            style="
-              font-family: &quot;Lora&quot;, serif;
-              font-size: 1.5rem;
-              margin-bottom: 0.5rem;
-              color: #222;
-            "
-          >
+        -->
+        <div class="citation-section">
+          <h2 class="citation-header">
             Citation
           </h2>
-          <p
-            style="
-              font-family: &quot;JetBrains Mono&quot;, monospace;
-              font-size: 0.9rem;
-              color: #333;
-            "
-          >
+          <p class="citation-text">
             If you use this code in your research, please cite:
           </p>
 
-          <pre
-            style="
-              background-color: #fff;
-              padding: 0.75rem;
-              border: 1px solid #ccc;
-              border-radius: 4px;
-              font-family: &quot;Fira Code&quot;, monospace;
-              font-size: 0.85rem;
-              overflow-x: auto;
-            "
-          >
+          <pre class="citation-pre">
   @misc{blog-post-id,
     author    = {Author Name},
     title     = {Your Post Title},
@@ -169,64 +138,24 @@ def hello_world():
         </div>
         
         <!-- References Section Example -->
-        <div
-          class="references-section"
-          style="
-            margin-top: 2rem;
-            padding: 1rem;
-            background-color: #f4f4f4;
-            border-radius: 4px;
-          "
-        >
-          <h2
-            style="
-              font-family: &quot;Lora&quot;, serif;
-              font-size: 1.5rem;
-              margin-bottom: 0.5rem;
-              color: #222;
-            "
-          >
+        <div class="references-section">
+          <h2 class="references-header">
             References
           </h2>
-          <ol
-            style="
-              font-family: &quot;JetBrains Mono&quot;, monospace;
-              font-size: 0.95rem;
-              color: #333;
-              padding-left: 1.5rem;
-            "
-          >
-            <li style="margin-bottom: 0.5rem">
+          <ol class="references-list">
+            <li>
               Author, A., & Author, B. (Year). Paper Title. In Conference Name (pp. page-numbers).
             </li>
-            <li style="margin-bottom: 0.5rem">
+            <li>
               Author, C., Author, D., & Author, E. (Year). Journal Article Title. Journal Name, Volume(Issue), page-numbers.
             </li>
           </ol>
         </div>
-        -->
       </article>
     </div>
 
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        renderMathInElement(document.body, {
-          delimiters: [
-            { left: "$", right: "$", display: true },
-            { left: "\\[", right: "\\]", display: true },
-            { left: "\\(", right: "\\)", display: false },
-            { left: "$", right: "$", display: false },
-          ],
-          throwOnError: false,
-        });
-        
-        // Simple fix to make math size match text size
-        document.head.insertAdjacentHTML('beforeend', 
-          '<style>.katex { font-size: 1em; }</style>'
-        );
-      });
-    </script>
     <!-- Blog styling and spacing script -->
-    <script src="/js/blog.js"></script>
+    <script defer src="/js/blog.js"></script>
+    <script defer src="/js/katex-init.js"></script>
   </body>
 </html> 

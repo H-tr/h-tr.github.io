@@ -446,77 +446,27 @@
           innovation might lie.
         </p>
 
-        <div
-          class="citation-section"
-          style="
-            margin-top: 2rem;
-            padding: 1rem;
-            background-color: #f4f4f4;
-            border-radius: 4px;
-          "
-        >
-          <h2
-            style="
-              font-family: &quot;Lora&quot;, serif;
-              font-size: 1.5rem;
-              margin-bottom: 0.5rem;
-              color: #222;
-            "
-          >
+        <div class="citation-section">
+          <h2 class="citation-header">
             Citation
           </h2>
-          <p
-            style="
-              font-family: &quot;JetBrains Mono&quot;, monospace;
-              font-size: 0.9rem;
-              color: #333;
-            "
-          >
+          <p class="citation-text">
             Please cite this work as:
           </p>
 
-          <pre
-            style="
-              background-color: #fff;
-              padding: 0.75rem;
-              border: 1px solid #ccc;
-              border-radius: 4px;
-              font-family: &quot;Fira Code&quot;, monospace;
-              font-size: 0.85rem;
-              overflow-x: auto;
-            "
-          >
+          <pre class="citation-pre">
 @misc{stochastic-modeling-vpr,
   author    = {Hu Tianrun},
   title     = {Exploring Stochastic Modeling in Visual Place Recognition},
   year      = {2025},
   publisher = {GitHub},
   url       = {https://h-tr.github.io/blog/posts/stochastic-modeling-vpr.html}
-  </pre
-          >
+  </pre>
         </div>
       </article>
     </div>
 
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        renderMathInElement(document.body, {
-          delimiters: [
-            { left: "$", right: "$", display: true },
-            { left: "\\[", right: "\\]", display: true },
-            { left: "\\(", right: "\\)", display: false },
-            { left: "$", right: "$", display: false },
-          ],
-          throwOnError: false,
-        });
-        
-        // Simple fix to make math size match text size
-        document.head.insertAdjacentHTML('beforeend', 
-          '<style>.katex { font-size: 1em; }</style>'
-        );
-      });
-    </script>
-    <!-- Blog styling and spacing script -->
-    <script src="/js/blog.js"></script>
+    <script defer src="/js/blog.js"></script>
+    <script defer src="/js/katex-init.js"></script>
   </body>
 </html>

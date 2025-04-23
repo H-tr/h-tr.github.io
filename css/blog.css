@@ -263,3 +263,58 @@ nav a:active {
 }
 
 /* Code block styling is now handled by Prism.js */
+
+/* Citation and References Sections */
+.citation-section,
+.references-section {
+  margin-top: 2rem;
+  padding: 1rem;
+  background-color: #f4f4f4;
+  border-radius: 4px;
+}
+
+.citation-header,
+.references-header {
+  font-family: "Lora", serif;
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: #222;
+  font-weight: 500; /* Match other headers */
+}
+
+.citation-text {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.citation-pre {
+  background-color: #fff;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-family: "Fira Code", monospace;
+  font-size: 0.85rem;
+  overflow-x: auto;
+  white-space: pre-wrap; /* Allow wrapping */
+  word-wrap: break-word; /* Break long words */
+}
+
+.references-list {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.95rem;
+  color: #333;
+  padding-left: 1.5rem; /* Keep original padding */
+  margin: 0; /* Remove default list margin */
+  list-style-position: outside; /* Ensure numbers are outside */
+}
+
+.references-list li {
+  margin-bottom: 0.5rem;
+  padding-left: 0.5rem; /* Add some space between number and text */
+}
+
+/* Additional Katex styling */
+.katex {
+  font-size: 1em;
+}

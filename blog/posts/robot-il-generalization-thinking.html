@@ -299,46 +299,14 @@
           </p>
         </section>
 
-        <div
-          class="citation-section"
-          style="
-            margin-top: 2rem;
-            padding: 1rem;
-            background-color: #f4f4f4;
-            border-radius: 4px;
-          "
-        >
-          <h2
-            style="
-              font-family: &quot;Lora&quot;, serif;
-              font-size: 1.5rem;
-              margin-bottom: 0.5rem;
-              color: #222;
-            "
-          >
+        <div class="citation-section">
+          <h2 class="citation-header">
             Citation
           </h2>
-          <p
-            style="
-              font-family: &quot;JetBrains Mono&quot;, monospace;
-              font-size: 0.9rem;
-              color: #333;
-            "
-          >
+          <p class="citation-text">
             Please cite this work as:
           </p>
-
-          <pre
-            style="
-              background-color: #fff;
-              padding: 0.75rem;
-              border: 1px solid #ccc;
-              border-radius: 4px;
-              font-family: &quot;Fira Code&quot;, monospace;
-              font-size: 0.85rem;
-              overflow-x: auto;
-            "
-          >
+          <pre class="citation-pre">
 @misc{robotics-scaling-limitations,
   author    = {Hu Tianrun},
   title     = {Beyond the Papers: Scaling Laws and Data Requirements in End-to-End Robotics},
@@ -348,46 +316,24 @@
 }</pre>
         </div>
 
-        <div
-          class="references-section"
-          style="
-            margin-top: 2rem;
-            padding: 1rem;
-            background-color: #f4f4f4;
-            border-radius: 4px;
-          "
-        >
-          <h2
-            style="
-              font-family: &quot;Lora&quot;, serif;
-              font-size: 1.5rem;
-              margin-bottom: 0.5rem;
-              color: #222;
-            "
-          >
+        <div class="references-section">
+          <h2 class="references-header">
             References
           </h2>
-          <ol
-            style="
-              font-family: &quot;JetBrains Mono&quot;, monospace;
-              font-size: 0.95rem;
-              color: #333;
-              padding-left: 1.5rem;
-            "
-          >
-            <li style="margin-bottom: 0.5rem">
+          <ol class="references-list">
+            <li>
               Fu, Z., Zhao, T. Z., & Finn, C. (2024). Mobile ALOHA: Learning Bimanual Mobile Manipulation with Low-Cost Whole-Body Teleoperation. arXiv preprint arXiv:2401.02117.
             </li>
-            <li style="margin-bottom: 0.5rem">
+            <li>
               Chi, C., Feng, S., Du, Y., Xu, Z., Cousineau, E., Burchfiel, B., & Song, S. (2023). Diffusion Policy: Visuomotor Policy Learning via Action Diffusion. In Proceedings of Robotics: Science and Systems (RSS).
             </li>
-            <li style="margin-bottom: 0.5rem">
+            <li>
               Chi, C., Xu, Z., Feng, S., Cousineau, E., Du, Y., Burchfiel, B., Tedrake, R., & Song, S. (2024). Diffusion Policy: Visuomotor Policy Learning via Action Diffusion. The International Journal of Robotics Research.
             </li>
-            <li style="margin-bottom: 0.5rem">
+            <li>
               Ze, Y., Zhang, G., Zhang, K., Hu, C., Wang, M., & Xu, H. (2024). 3D Diffusion Policy: Generalizable Visuomotor Policy Learning via Simple 3D Representations. In Proceedings of Robotics: Science and Systems (RSS).
             </li>
-            <li style="margin-bottom: 0.5rem">
+            <li>
               Lin, F., Hu, Y., Sheng, P., Wen, C., You, J., & Gao, Y. (2025). Data Scaling Laws in Imitation Learning for Robotic Manipulation. arXiv preprint arXiv:2410.18647.
             </li>
           </ol>
@@ -395,25 +341,7 @@
       </article>
     </div>
 
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        renderMathInElement(document.body, {
-          delimiters: [
-            { left: "$", right: "$", display: true },
-            { left: "\\[", right: "\\]", display: true },
-            { left: "\\(", right: "\\)", display: false },
-            { left: "$", right: "$", display: false },
-          ],
-          throwOnError: false,
-        });
-        
-        // Simple fix to make math size match text size
-        document.head.insertAdjacentHTML('beforeend', 
-          '<style>.katex { font-size: 1em; }</style>'
-        );
-      });
-    </script>
-    <!-- Blog styling and spacing script -->
-    <script src="/js/blog.js"></script>
+    <script defer src="/js/blog.js"></script>
+    <script defer src="/js/katex-init.js"></script>
   </body>
 </html>

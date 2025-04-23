@@ -496,46 +496,15 @@ self.opti.solver('ipopt', opts)</code></pre>
           Our open-source implementation runs at 10Hz on standard hardware, showing that advanced control techniques are becoming increasingly practical for real-world applications. We hope this work inspires others to push the boundaries of robot control, making robots more capable partners in our daily lives.
         </p>
 
-        <div
-          class="citation-section"
-          style="
-            margin-top: 2rem;
-            padding: 1rem;
-            background-color: #f4f4f4;
-            border-radius: 4px;
-          "
-        >
-          <h2
-            style="
-              font-family: &quot;Lora&quot;, serif;
-              font-size: 1.5rem;
-              margin-bottom: 0.5rem;
-              color: #222;
-            "
-          >
+        <div class="citation-section">
+          <h2 class="citation-header">
             Citation
           </h2>
-          <p
-            style="
-              font-family: &quot;JetBrains Mono&quot;, monospace;
-              font-size: 0.9rem;
-              color: #333;
-            "
-          >
+          <p class="citation-text">
             If you use this code in your research, please cite:
           </p>
 
-          <pre
-            style="
-              background-color: #fff;
-              padding: 0.75rem;
-              border: 1px solid #ccc;
-              border-radius: 4px;
-              font-family: &quot;Fira Code&quot;, monospace;
-              font-size: 0.85rem;
-              overflow-x: auto;
-            "
-          >
+          <pre class="citation-pre">
   @misc{whole-body-mpc,
     author    = {Author Name},
     title     = {Unified Whole-Body MPC Controller for Mobile Manipulators},
@@ -546,37 +515,15 @@ self.opti.solver('ipopt', opts)</code></pre>
           </pre>
         </div>
 
-        <div
-          class="references-section"
-          style="
-            margin-top: 2rem;
-            padding: 1rem;
-            background-color: #f4f4f4;
-            border-radius: 4px;
-          "
-        >
-          <h2
-            style="
-              font-family: &quot;Lora&quot;, serif;
-              font-size: 1.5rem;
-              margin-bottom: 0.5rem;
-              color: #222;
-            "
-          >
+        <div class="references-section">
+          <h2 class="references-header">
             References
           </h2>
-          <ol
-            style="
-              font-family: &quot;JetBrains Mono&quot;, monospace;
-              font-size: 0.95rem;
-              color: #333;
-              padding-left: 1.5rem;
-            "
-          >
-            <li style="margin-bottom: 0.5rem">
+          <ol class="references-list">
+            <li>
               Thomason, W., Kingston, Z., & Kavraki, L. E. (2024). Motions in Microseconds via Vectorized Sampling-Based Planning. In IEEE International Conference on Robotics and Automation (ICRA) (pp. 8749-8756).
             </li>
-            <li style="margin-bottom: 0.5rem">
+            <li>
               Wu, C., Wang, R., Song, M., Gao, F., Mei, J., & Zhou, B. (2024). Real-time Whole-body Motion Planning for Mobile Manipulators Using Environment-adaptive Search and Spatial-temporal Optimization. In IEEE International Conference on Robotics and Automation (ICRA) (pp. 1369-1375).
             </li>
           </ol>
@@ -584,25 +531,8 @@ self.opti.solver('ipopt', opts)</code></pre>
       </article>
     </div>
 
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        renderMathInElement(document.body, {
-          delimiters: [
-            { left: "$", right: "$", display: true },
-            { left: "\\[", right: "\\]", display: true },
-            { left: "\\(", right: "\\)", display: false },
-            { left: "$", right: "$", display: false },
-          ],
-          throwOnError: false,
-        });
-        
-        // Simple fix to make math size match text size
-        document.head.insertAdjacentHTML('beforeend', 
-          '<style>.katex { font-size: 1em; }</style>'
-        );
-      });
-    </script>
     <!-- Blog styling and spacing script -->
-    <script src="/js/blog.js"></script>
+    <script defer src="/js/blog.js"></script>
+    <script defer src="/js/katex-init.js"></script>
   </body>
 </html>
