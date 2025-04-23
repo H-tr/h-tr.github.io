@@ -8,35 +8,68 @@
     </filter>
     
     <!-- Arrow markers -->
-    <marker id="arrow-marker" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-      <path d="M0,0 L8,3 L0,6" fill="#666666"/>
+    <marker id="arrow-marker-blue-green" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8" fill="#66aa66"/>
     </marker>
+    
+    <marker id="arrow-marker-yellow-purple" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8" fill="#aa66aa"/>
+    </marker>
+    
+    <marker id="arrow-marker-blue-yellow" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8" fill="#6699cc"/>
+    </marker>
+    
+    <marker id="arrow-marker-purple-green" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8" fill="#66aa66"/>
+    </marker>
+    
+    <!-- Gradient definitions for arrows -->
+    <linearGradient id="blue-to-green" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6699cc" />
+      <stop offset="100%" stop-color="#66aa66" />
+    </linearGradient>
+    
+    <linearGradient id="yellow-to-purple" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#cccc66" />
+      <stop offset="100%" stop-color="#aa66aa" />
+    </linearGradient>
+    
+    <linearGradient id="blue-to-yellow" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#cccc66" />
+      <stop offset="100%" stop-color="#6699cc" />
+    </linearGradient>
+    
+    <linearGradient id="purple-to-green" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#aa66aa" />
+      <stop offset="100%" stop-color="#66aa66" />
+    </linearGradient>
   </defs>
 
   <!-- Background -->
   <rect width="900" height="650" fill="#ffffff"/>
   
-  <!-- Connection lines - Made dynamic with opposite flow direction -->
+  <!-- Connection lines - Made thicker with gradients -->
   
-  <!-- Original bidirectional connections made dynamic with opposite flow -->
-  <path d="M 330 180 Q 450 130, 570 180" stroke="#666666" stroke-width="0.75" stroke-dasharray="4,2" fill="none" marker-end="url(#arrow-marker)">
-    <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="2s" repeatCount="indefinite" />
+  <!-- Learning to TAMP connection (Blue to Green) -->
+  <path d="M 330 180 Q 450 130, 570 180" stroke="url(#blue-to-green)" stroke-width="3" stroke-dasharray="6,3" fill="none" marker-end="url(#arrow-marker-blue-green)">
+    <animate attributeName="stroke-dashoffset" from="0" to="-30" dur="2s" repeatCount="indefinite" />
   </path>
 
-  <path d="M 330 420 Q 450 470, 570 420" stroke="#666666" stroke-width="0.75" stroke-dasharray="4,2" fill="none" marker-end="url(#arrow-marker)">
-    <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="2.3s" repeatCount="indefinite" />
+  <!-- HRI to Uncertainty connection (Yellow to Purple) -->
+  <path d="M 330 420 Q 450 470, 570 420" stroke="url(#yellow-to-purple)" stroke-width="3" stroke-dasharray="6,3" fill="none" marker-end="url(#arrow-marker-yellow-purple)">
+    <animate attributeName="stroke-dashoffset" from="0" to="-30" dur="2.3s" repeatCount="indefinite" />
   </path>
   
-  <path d="M 200 350 Q 160 300, 200 250" stroke="#666666" stroke-width="0.75" stroke-dasharray="3,2" fill="none" marker-end="url(#arrow-marker)">
-    <animate attributeName="stroke-dashoffset" from="0" to="-15" dur="1.7s" repeatCount="indefinite" />
+  <!-- Learning to HRI connection (Blue to Yellow) -->
+  <path d="M 200 350 Q 160 300, 200 250" stroke="url(#blue-to-yellow)" stroke-width="3" stroke-dasharray="5,3" fill="none" marker-end="url(#arrow-marker-blue-yellow)">
+    <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="1.7s" repeatCount="indefinite" />
   </path>
   
-  <path d="M 700 350 Q 740 300, 700 250" stroke="#666666" stroke-width="0.75" stroke-dasharray="3,2" fill="none" marker-end="url(#arrow-marker)">
-    <animate attributeName="stroke-dashoffset" from="0" to="-15" dur="1.9s" repeatCount="indefinite" />
+  <!-- Uncertainty to TAMP connection (Purple to Green) -->
+  <path d="M 700 350 Q 740 300, 700 250" stroke="url(#purple-to-green)" stroke-width="3" stroke-dasharray="5,3" fill="none" marker-end="url(#arrow-marker-purple-green)">
+    <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="1.9s" repeatCount="indefinite" />
   </path>
-
-  <!-- Central placeholder - REMOVED -->
-
 
   <!-- Learning from Human Demonstration node (Blue) - Main module with strongest color -->
   <g>
@@ -190,5 +223,18 @@
     
     <rect x="55" y="7" width="10" height="10" fill="#f5e6ff" stroke="#999999" stroke-width="0.5"/>
     <text x="70" y="16" font-family="Arial, sans-serif" font-size="10" text-anchor="start" fill="#666666">Uncertainty</text>
+  </g>
+    
+  <!-- Central Hub: Enhanced Integration Zone (BIGGER with LIGHTER colors) -->
+  <g transform="translate(450, 300)">
+      <!-- Circles hinting at the source nodes, slightly offset towards center - BIGGER and LIGHTER -->
+      <circle cx="-30" cy="-30" r="60" fill="#e1eeff" fill-opacity="0.5"/> <!-- From LfD (Blue) -->
+      <circle cx="-30" cy="30" r="60" fill="#fffbe0" fill-opacity="0.5"/>  <!-- From HRI (Yellow) -->
+      <circle cx="30" cy="-30" r="60" fill="#e1ffe1" fill-opacity="0.5"/>  <!-- From TAMP (Green) -->
+      <circle cx="30" cy="30" r="60" fill="#f5e1ff" fill-opacity="0.5"/>   <!-- From Uncertainty (Purple) -->
+
+      <!-- Central Text Overlay - BIGGER -->
+      <text x="0" y="0" font-family="Arial, sans-serif" font-size="16" font-weight="600" text-anchor="middle" fill="#333333">System Integration</text>
+      <text x="0" y="25" font-family="Arial, sans-serif" font-size="12" font-style="italic" text-anchor="middle" fill="#555555">for Unstructured Environment and Tasks</text>
   </g>
 </svg>
