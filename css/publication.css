@@ -253,5 +253,5 @@ pre {
 
 /* Make specific author names slightly bolder */
 .publication-authors strong {
-  font-weight: 500;
+  font-weight: bold;
 }
