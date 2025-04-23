@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 900 650" xmlns="http://www.w3.org/2000/svg">
+  <!-- Definitions -->
+  <defs>
+    <!-- Subtle shadow filter -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="1" dy="1" stdDeviation="1" flood-opacity="0.1"/>
+    </filter>
+    
+    <!-- Arrow markers -->
+    <marker id="arrow-marker" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#666666"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="900" height="650" fill="#ffffff"/>
+  
+  <!-- Connection lines - Made dynamic with opposite flow direction -->
+  
+  <!-- Original bidirectional connections made dynamic with opposite flow -->
+  <path d="M 330 180 Q 450 130, 570 180" stroke="#666666" stroke-width="0.75" stroke-dasharray="4,2" fill="none" marker-end="url(#arrow-marker)">
+    <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="2s" repeatCount="indefinite" />
+  </path>
+
+  <path d="M 330 420 Q 450 470, 570 420" stroke="#666666" stroke-width="0.75" stroke-dasharray="4,2" fill="none" marker-end="url(#arrow-marker)">
+    <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="2.3s" repeatCount="indefinite" />
+  </path>
+  
+  <path d="M 200 350 Q 160 300, 200 250" stroke="#666666" stroke-width="0.75" stroke-dasharray="3,2" fill="none" marker-end="url(#arrow-marker)">
+    <animate attributeName="stroke-dashoffset" from="0" to="-15" dur="1.7s" repeatCount="indefinite" />
+  </path>
+  
+  <path d="M 700 350 Q 740 300, 700 250" stroke="#666666" stroke-width="0.75" stroke-dasharray="3,2" fill="none" marker-end="url(#arrow-marker)">
+    <animate attributeName="stroke-dashoffset" from="0" to="-15" dur="1.9s" repeatCount="indefinite" />
+  </path>
+
+  <!-- Central placeholder - REMOVED -->
+
+
+  <!-- Learning from Human Demonstration node (Blue) - Main module with strongest color -->
+  <g>
+    <rect x="150" y="155" width="180" height="90" rx="3" fill="#e6f2ff" stroke="#999999" stroke-width="0.5"/>
+    <text x="240" y="180" font-family="Arial, sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="#333333">Learning from</text>
+    <text x="240" y="200" font-family="Arial, sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="#333333">Human Demonstration</text>
+    
+    <!-- Mathematical function representation -->
+    <text x="240" y="225" font-family="Arial, sans-serif" font-size="11" font-style="italic" text-anchor="middle" fill="#666666">BC(D) → π</text>
+    
+    <!-- Function explanation -->
+    <rect x="180" y="115" width="120" height="30" rx="3" fill="rgba(255, 255, 255, 0.7)" stroke="#999999" stroke-width="0.5"/>
+    <text x="240" y="130" font-family="Arial, sans-serif" font-size="9" text-anchor="middle" fill="#666666">BC: behavior cloning</text>
+    <text x="240" y="140" font-family="Arial, sans-serif" font-size="9" text-anchor="middle" fill="#666666">D: demos, π: policy</text>
+    
+    <!-- Sub-nodes with different transparency levels -->
+    <g>
+      <rect x="110" y="85" width="100" height="25" rx="3" fill="rgba(240, 248, 255, 0.8)" stroke="#999999" stroke-width="0.5"/>
+      <text x="160" y="100" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#333333">Imitation Learning</text>
+    </g>
+    
+    <g>
+      <rect x="190" y="65" width="100" height="25" rx="3" fill="rgba(240, 248, 255, 0.6)" stroke="#999999" stroke-width="0.5"/>
+      <text x="240" y="80" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#333333">Behavior Cloning</text>
+    </g>
+  </g>
+
+  <!-- HRI node (Yellow) - Main module with strongest color -->
+  <g>
+    <rect x="150" y="355" width="180" height="90" rx="3" fill="#fffde6" stroke="#999999" stroke-width="0.5"/>
+    <text x="240" y="380" font-family="Arial, sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="#333333">Human-Robot</text>
+    <text x="240" y="400" font-family="Arial, sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="#333333">Interaction</text>
+    
+    <!-- Mathematical function representation -->
+    <text x="240" y="425" font-family="Arial, sans-serif" font-size="11" font-style="italic" text-anchor="middle" fill="#666666">I(H, R) → D</text>
+    
+    <!-- Function explanation -->
+    <rect x="180" y="455" width="120" height="30" rx="3" fill="rgba(255, 255, 255, 0.7)" stroke="#999999" stroke-width="0.5"/>
+    <text x="240" y="470" font-family="Arial, sans-serif" font-size="9" text-anchor="middle" fill="#666666">I: interaction function</text>
+    <text x="240" y="480" font-family="Arial, sans-serif" font-size="9" text-anchor="middle" fill="#666666">H: human, R: robot, D: demos</text>
+    
+    <!-- Sub-nodes with different transparency levels -->
+    <g>
+      <rect x="120" y="495" width="100" height="25" rx="3" fill="rgba(255, 253, 240, 0.8)" stroke="#999999" stroke-width="0.5"/>
+      <text x="170" y="510" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#333333">Teleoperation</text>
+    </g>
+    
+    <g>
+      <rect x="200" y="515" width="100" height="35" rx="3" fill="rgba(255, 253, 240, 0.6)" stroke="#999999" stroke-width="0.5"/>
+      <text x="250" y="530" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#333333">Natural Interaction</text>
+      <text x="250" y="545" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#333333">Paradigms</text>
+    </g>
+  </g>
+
+  <!-- TAMP node (Green) - Main module with strongest color -->
+  <g>
+    <rect x="570" y="155" width="180" height="90" rx="3" fill="#e6ffe6" stroke="#999999" stroke-width="0.5"/>
+    <text x="660" y="180" font-family="Arial, sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="#333333">Task &amp; Motion</text>
+    <text x="660" y="200" font-family="Arial, sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="#333333">Planning</text>
+    
+    <!-- Mathematical function representation -->
+    <text x="660" y="225" font-family="Arial, sans-serif" font-size="11" font-style="italic" text-anchor="middle" fill="#666666">f(π, G, S, p, E) → π*</text>
+    
+    <!-- Function explanation -->
+    <rect x="585" y="105" width="150" height="40" rx="3" fill="rgba(255, 255, 255, 0.7)" stroke="#999999" stroke-width="0.5"/>
+    <text x="660" y="120" font-family="Arial, sans-serif" font-size="9" text-anchor="middle" fill="#666666">f: planning algorithm</text>
+    <text x="660" y="132" font-family="Arial, sans-serif" font-size="9" text-anchor="middle" fill="#666666">π: policy, G: goals, S: state</text>
+    <text x="660" y="144" font-family="Arial, sans-serif" font-size="9" text-anchor="middle" fill="#666666">p: uncertainty, E: environment</text>
+    
+    <!-- Sub-nodes with different transparency levels -->
+    <g>
+      <rect x="520" y="75" width="100" height="35" rx="3" fill="rgba(240, 255, 240, 0.8)" stroke="#999999" stroke-width="0.5"/>
+      <text x="570" y="90" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#333333">Demonstration</text>
+      <text x="570" y="105" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#333333">Aware Planning</text>
+    </g>
+    
+    <g>
+      <rect x="610" y="65" width="100" height="25" rx="3" fill="rgba(240, 255, 240, 0.6)" stroke="#999999" stroke-width="0.5"/>
+      <text x="660" y="80" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#333333">Motion Planning</text>
+    </g>
+  </g>
+
+  <!-- Uncertainty node (Purple) - Main module with strongest color -->
+  <g>
+    <rect x="570" y="355" width="180" height="90" rx="3" fill="#f5e6ff" stroke="#999999" stroke-width="0.5"/>
+    <text x="660" y="380" font-family="Arial, sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="#333333">Uncertainty</text>
+    <text x="660" y="400" font-family="Arial, sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="#333333">Modeling</text>
+    
+    <!-- Mathematical function representation -->
+    <text x="660" y="425" font-family="Arial, sans-serif" font-size="11" font-style="italic" text-anchor="middle" fill="#666666">p(s | o, D)</text>
+    
+    <!-- Function explanation -->
+    <rect x="600" y="455" width="120" height="40" rx="3" fill="rgba(255, 255, 255, 0.7)" stroke="#999999" stroke-width="0.5"/>
+    <text x="660" y="470" font-family="Arial, sans-serif" font-size="9" text-anchor="middle" fill="#666666">p: probability distribution</text>
+    <text x="660" y="480" font-family="Arial, sans-serif" font-size="9" text-anchor="middle" fill="#666666">s: state, o: observations</text>
+    <text x="660" y="490" font-family="Arial, sans-serif" font-size="9" text-anchor="middle" fill="#666666">D: demonstrations</text>
+    
+    <!-- Sub-nodes with different transparency levels -->
+    <g>
+      <rect x="540" y="505" width="100" height="25" rx="3" fill="rgba(250, 240, 255, 0.8)" stroke="#999999" stroke-width="0.5"/>
+      <text x="590" y="520" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#333333">POMDP</text>
+    </g>
+    
+    <g>
+      <rect x="650" y="505" width="100" height="25" rx="3" fill="rgba(250, 240, 255, 0.6)" stroke="#999999" stroke-width="0.5"/>
+      <text x="700" y="520" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#333333">State Representation</text>
+    </g>
+  </g>
+
+  <!-- Mathematical annotations with explanations -->
+  <!-- HRI to Uncertainty - Even softer style with sharp rectangle -->
+  <g>
+    <rect x="390" y="420" width="120" height="30" rx="0" fill="#f9f9f9" stroke="none"/>
+    <text x="450" y="434" font-family="Georgia, serif" font-size="9" text-anchor="middle" fill="#778899">Teaching and guidance</text>
+    <text x="450" y="446" font-family="Georgia, serif" font-size="9" text-anchor="middle" fill="#778899">for uncertainty</text>
+  </g>
+  
+  <!-- Learning to HRI with softer style -->
+  <g>
+    <rect x="115" y="300" width="120" height="30" rx="0" fill="#f9f9f9" stroke="none"/>
+    <text x="175" y="314" font-family="Georgia, serif" font-size="9" text-anchor="middle" fill="#778899">Provide data</text>
+    <text x="175" y="326" font-family="Georgia, serif" font-size="9" text-anchor="middle" fill="#778899">for learning</text>
+  </g>
+  
+  <!-- Learning to TAMP with softer style -->
+  <g>
+    <rect x="390" y="130" width="120" height="30" rx="0" fill="#f9f9f9" stroke="none"/>
+    <text x="450" y="144" font-family="Georgia, serif" font-size="9" text-anchor="middle" fill="#778899">Low level policy and</text>
+    <text x="450" y="156" font-family="Georgia, serif" font-size="9" text-anchor="middle" fill="#778899">affordance</text>
+  </g>
+  
+  <!-- Uncertainty to TAMP with softer style -->
+  <g>
+    <rect x="665" y="300" width="120" height="30" rx="0" fill="#f9f9f9" stroke="none"/>
+    <text x="725" y="314" font-family="Georgia, serif" font-size="9" text-anchor="middle" fill="#778899">Better clean state</text>
+    <text x="725" y="326" font-family="Georgia, serif" font-size="9" text-anchor="middle" fill="#778899">representation</text>
+  </g>
+
+  <!-- Legend -->
+  <g transform="translate(450, 600)">
+    <rect x="-180" y="0" width="360" height="25" rx="3" fill="#ffffff" stroke="#999999" stroke-width="0.5"/>
+    
+    <rect x="-155" y="7" width="10" height="10" fill="#e6f2ff" stroke="#999999" stroke-width="0.5"/>
+    <text x="-140" y="16" font-family="Arial, sans-serif" font-size="10" text-anchor="start" fill="#666666">Learning</text>
+    
+    <rect x="-85" y="7" width="10" height="10" fill="#fffde6" stroke="#999999" stroke-width="0.5"/>
+    <text x="-70" y="16" font-family="Arial, sans-serif" font-size="10" text-anchor="start" fill="#666666">HRI</text>
+    
+    <rect x="-15" y="7" width="10" height="10" fill="#e6ffe6" stroke="#999999" stroke-width="0.5"/>
+    <text x="0" y="16" font-family="Arial, sans-serif" font-size="10" text-anchor="start" fill="#666666">TAMP</text>
+    
+    <rect x="55" y="7" width="10" height="10" fill="#f5e6ff" stroke="#999999" stroke-width="0.5"/>
+    <text x="70" y="16" font-family="Arial, sans-serif" font-size="10" text-anchor="start" fill="#666666">Uncertainty</text>
+  </g>
+</svg>
