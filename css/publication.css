@@ -231,25 +231,6 @@ nav a:active {
     margin: 0 0.75rem;
   }
 }
-/* BibTeX Styling */
-.bibtex-content {
-  background-color: #f8f8f8;
-  padding: 1rem;
-  border-radius: 4px;
-  margin-top: 1rem;
-  font-family: monospace;
-  font-size: 0.85rem;
-  white-space: pre-wrap;
-  overflow-x: auto;
-}
-
-.bibtex-button {
-  cursor: pointer;
-}
-
-pre {
-  margin: 0;
-}
 
 /* Make specific author names slightly bolder */
 .publication-authors strong {

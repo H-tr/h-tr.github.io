@@ -12,16 +12,6 @@
     <link href="../css/transitions.css" rel="stylesheet" />
     <link href="../css/publication.css" rel="stylesheet" />
     <script src="../js/page-transition.js" defer></script>
-    <script>
-      function toggleBibtex(id) {
-        const bibtex = document.getElementById(id);
-        if (bibtex.style.display === "none") {
-          bibtex.style.display = "block";
-        } else {
-          bibtex.style.display = "none";
-        }
-      }
-    </script>
   </head>
   <body>
     <header class="header">
@@ -38,6 +28,40 @@
     </nav>
 
     <section class="publications">
+      <div class="publication-item">
+        <div class="publication-media">
+          <img
+            src="../media/images/coa/chain_of_action.png"
+            alt="Chain-of-Action System"
+          />
+        </div>
+        <div class="publication-content">
+          <div class="publication-title">
+            Chain-of-Action: Trajectory Autoregressive Modeling for Robotic
+            Manipulation
+          </div>
+          <div class="publication-status">Under Review</div>
+          <div class="publication-authors">
+            Wenbo Zhang*, <strong>Tianrun Hu</strong>, Yanyuan Qiao, Hanbo
+            Zhang, Yuchu Qin, Yang Li, Jiajun Liu, Tao Kong, Lingqiao Liu†, Xiao
+            Ma†
+          </div>
+          <div class="publication-links">
+            <a href="https://arxiv.org/abs/2506.09990" target="_blank"
+              ><i class="fas fa-file-pdf"></i>arXiv</a
+            >
+            <a href="https://chain-of-action.github.io/" target="_blank"
+              ><i class="fas fa-globe"></i>Website</a
+            >
+            <a
+              href="https://github.com/zwbx/Chain-of-Action/tree/main"
+              target="_blank"
+              ><i class="fab fa-github"></i>Code</a
+            >
+          </div>
+        </div>
+      </div>
+
       <div class="publication-item">
         <div class="publication-media">
           <img src="../media/images/functo/functo.png" alt="FUNCTO System" />
@@ -65,8 +89,8 @@
             <a href="https://drive.google.com/file/d/1nftQWVU0S1zbom18IhHWdybOpgn_kWoZ/view" target="_blank"
               ><i class="fas fa-file-alt"></i>Appendix</a
             >
-            <a href="#" target="_blank"
-              ><i class="fab fa-github"></i>Code (TBD)</a
+            <a href="https://github.com/mkt1412/FUNCTO_public" target="_blank"
+              ><i class="fab fa-github"></i>Code</a
             >
           </div>
         </div>
@@ -129,24 +153,6 @@
             >
             <a href="https://github.com/NUS-LinS-Lab/ManiFM" target="_blank"
               ><i class="fab fa-github"></i>Code</a
-            >
-            <a
-              href="#"
-              onclick="toggleBibtex('manifm-bibtex')"
-              class="bibtex-button"
-              ><i class="fas fa-quote-right"></i>BibTeX</a
-            >
-          </div>
-          <div id="manifm-bibtex" class="bibtex-content" style="display: none">
-            <pre>
-@misc{xu2024manifoundation,
-      title={ManiFoundation Model for General-Purpose Robotic Manipulation of Contact Synthesis with Arbitrary Objects and Robots}, 
-      author={Zhixuan Xu and Chongkai Gao and Zixuan Liu and Gang Yang and Chenrui Tie and Haozhuo Zheng and Haoyu Zhou and Weikun Peng and Debang Wang and Tianyi Chen and Zhouliang Yu and Lin Shao},
-      year={2024},
-      eprint={2405.06964},
-      archivePrefix={arXiv},
-      primaryClass={cs.RO}
-}</pre
             >
           </div>
         </div>
