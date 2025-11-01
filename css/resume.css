@@ -136,6 +136,20 @@ h2.resume-name {
   object-fit: contain;
 }
 
+/* Container for multiple logos */
+.logo-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 120px;
+}
+
+.logo-container img {
+  width: 120px;
+  height: 60px;
+  object-fit: contain;
+}
+
 .experience-details {
   flex: 1;
 }
@@ -233,6 +247,10 @@ h2.resume-name {
   }
 
   .experience-item img {
+    margin: 0 auto;
+  }
+
+  .logo-container {
     margin: 0 auto;
   }
 
