@@ -144,50 +144,46 @@
 
       <h2>Research Interests</h2>
       <p>
-        My research spans several interconnected areas of robotics and
-        artificial intelligence, focusing on enabling robots to learn
-        generalizable behaviors and plan effectively under uncertainty,
-        particularly by leveraging human guidance:
+        I study how to extract transferable <strong>skills from human demonstrations</strong>.
+        My current focus is organized around three questions: what
+        <strong>representation</strong> captures a skill, how to <strong>extract</strong> it
+        reliably from noisy human data, and how to <strong>apply</strong> it to solve new
+        tasks under uncertainty. While these questions cut across areas like
+        <strong>HRI</strong>, <strong>TAMP</strong>, and <strong>POMDP</strong>-based decision-making,
+        they serve as supporting tools rather than ends in themselves.
       </p>
       <ul>
         <li>
-          <strong>Learning</strong> from Human Demonstration
+          <strong>Representation</strong> of skills and task-relevant state
           <ul>
-            <li><strong>Imitation learning</strong> and <strong>behavior cloning</strong></li>
-            <li>Learning robust policies from imperfect demonstrations</li>
+            <li><strong>Learning state representation</strong> from noisy observations and demonstrations</li>
+            <li><strong>Object-centric</strong> skill representations capturing entities</li>
+            <li><strong>Constraints extraction</strong> from demonstrations to recover task, safety, and kinematic constraints</li>
           </ul>
         </li>
         <li>
-          <strong>HRI</strong> (Human-Robot Interaction)
+          <strong>Extraction</strong> of skill representations from human data
           <ul>
-            <li>Intuitive teleoperation interfaces</li>
-            <li>Natural interaction paradigms for robot teaching</li>
+            <li>Concept learning of task-relevant entities, relations, affordances, and constraints</li>
+            <li>Correspondence matching from demonstrations to novel scenes to ground the representation</li>
           </ul>
         </li>
         <li>
-          <strong>TAMP</strong> (Task and Motion Planning)
+          <strong>Application</strong> of learned skills to new tasks
           <ul>
-            <li><strong>Demonstration-aware planning</strong> algorithms</li>
-            <li>Integration of learned behaviors with classical planning</li>
-          </ul>
-        </li>
-        <li>
-          Uncertainty Modeling in Environments and States
-          <ul>
-            <li><strong>POMDP</strong> (Partially Observable Markov Decision Process) and <strong>decision-making</strong></li>
-            <li>Efficient <strong>state representation</strong> from noisy observations and human demonstrations</li>
+            <li>Using <strong>Learned policy</strong> to apply skill representations across tasks and environments</li>
+            <li>Using <strong>TAMP</strong> to sequence skills and motion primitives</li>
+            <li><strong>POMDP</strong>-style reasoning for decision-making under uncertainty</li>
           </ul>
         </li>
       </ul>
       <p>
-        My long-term research vision centers on developing <strong>demonstration-aware
-          task and motion planning systems</strong> that are robust to real-world
-        uncertainty. This involves creating robots that can effectively learn
-        from human demonstrations while explicitly modeling the complexities
-        and uncertainties of dynamic environments and internal states.
+        My long-term goal is to build <strong>skill-centric, demonstration-aware planning systems</strong>
+        that are robust to real-world uncertainty—robots that learn from people, represent
+        what they learn compactly, and reuse those skills reliably in dynamic environments.
       </p>
       <div class="research-diagram">
-        <object data="media/research_interests.svg" type="image/svg+xml" alt="Research Interests Diagram" style="max-width: 1600px; width: 150%; display: block; margin: 20px auto; position: relative; left: 50%; transform: translateX(-50%);">
+        <object data="media/research_interests.svg" type="image/svg+xml" alt="Research Interests Diagram" style="max-width: 1600px; width: 110%; display: block; margin: 20px auto; position: relative; left: 50%; transform: translateX(-50%);">
           <!-- Fallback content -->
           Your browser does not support SVG images. <a href="media/research_interests.svg">View diagram</a>.
         </object>

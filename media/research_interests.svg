@@ -1,240 +1,305 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg viewBox="0 0 900 650" xmlns="http://www.w3.org/2000/svg">
-  <!-- Definitions -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 650">
   <defs>
-    <!-- Subtle shadow filter -->
-    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="1" dy="1" stdDeviation="1" flood-opacity="0.1"/>
+    <!-- Gradients for depth -->
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f0f7ff;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f0fdf4;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#faf5ff;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="darkGreyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#495057;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#343a40;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Shadows -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+      <feOffset dx="0" dy="2" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.15"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <filter id="lightShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+      <feOffset dx="0" dy="1" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.1"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
     </filter>
     
     <!-- Arrow markers -->
-    <marker id="arrow-marker-blue-green" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto">
-      <path d="M0,0 L10,4 L0,8" fill="#66aa66"/>
+    <marker id="arrowBlack" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#212529"/>
     </marker>
     
-    <marker id="arrow-marker-yellow-purple" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto">
-      <path d="M0,0 L10,4 L0,8" fill="#aa66aa"/>
+    <marker id="arrowGrey" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#6c757d"/>
     </marker>
-    
-    <marker id="arrow-marker-blue-yellow" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto">
-      <path d="M0,0 L10,4 L0,8" fill="#6699cc"/>
-    </marker>
-    
-    <marker id="arrow-marker-purple-green" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto">
-      <path d="M0,0 L10,4 L0,8" fill="#66aa66"/>
-    </marker>
-    
-    <!-- Gradient definitions for arrows -->
-    <linearGradient id="blue-to-green" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#6699cc" />
-      <stop offset="100%" stop-color="#66aa66" />
-    </linearGradient>
-    
-    <linearGradient id="yellow-to-purple" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#cccc66" />
-      <stop offset="100%" stop-color="#aa66aa" />
-    </linearGradient>
-    
-    <linearGradient id="blue-to-yellow" x1="0%" y1="100%" x2="0%" y2="0%">
-      <stop offset="0%" stop-color="#cccc66" />
-      <stop offset="100%" stop-color="#6699cc" />
-    </linearGradient>
-    
-    <linearGradient id="purple-to-green" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#aa66aa" />
-      <stop offset="100%" stop-color="#66aa66" />
-    </linearGradient>
   </defs>
-
+  
   <!-- Background -->
-  <rect width="900" height="650" fill="#ffffff"/>
+  <rect width="1400" height="650" fill="#ffffff"/>
   
-  <!-- Connection lines - Made thicker with gradients -->
-  
-  <!-- Learning to TAMP connection (Blue to Green) -->
-  <path d="M 330 180 Q 450 130, 570 180" stroke="url(#blue-to-green)" stroke-width="3" stroke-dasharray="6,3" fill="none" marker-end="url(#arrow-marker-blue-green)">
-    <animate attributeName="stroke-dashoffset" from="0" to="-30" dur="2s" repeatCount="indefinite" />
-  </path>
-
-  <!-- HRI to Uncertainty connection (Yellow to Purple) -->
-  <path d="M 330 420 Q 450 470, 570 420" stroke="url(#yellow-to-purple)" stroke-width="3" stroke-dasharray="6,3" fill="none" marker-end="url(#arrow-marker-yellow-purple)">
-    <animate attributeName="stroke-dashoffset" from="0" to="-30" dur="2.3s" repeatCount="indefinite" />
-  </path>
-  
-  <!-- Learning to HRI connection (Blue to Yellow) -->
-  <path d="M 200 350 Q 160 300, 200 250" stroke="url(#blue-to-yellow)" stroke-width="3" stroke-dasharray="5,3" fill="none" marker-end="url(#arrow-marker-blue-yellow)">
-    <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="1.7s" repeatCount="indefinite" />
-  </path>
-  
-  <!-- Uncertainty to TAMP connection (Purple to Green) -->
-  <path d="M 700 350 Q 740 300, 700 250" stroke="url(#purple-to-green)" stroke-width="3" stroke-dasharray="5,3" fill="none" marker-end="url(#arrow-marker-purple-green)">
-    <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="1.9s" repeatCount="indefinite" />
-  </path>
-
-  <!-- Learning from Human Demonstration node (Blue) - Main module with strongest color -->
-  <g>
-    <rect x="150" y="155" width="180" height="90" rx="3" fill="#e6f2ff" stroke="#999999" stroke-width="0.5"/>
-    <text x="240" y="180" font-family="Arial, sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="#333333">Learning from</text>
-    <text x="240" y="200" font-family="Arial, sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="#333333">Human Demonstration</text>
+  <!-- STAGE 1: Human Demonstration -->
+  <g id="human-stage" filter="url(#shadow)">
+    <!-- Main card -->
+    <rect x="50" y="90" width="280" height="480" rx="12" fill="#ffffff" stroke="#dbeafe" stroke-width="2"/>
     
-    <!-- Mathematical function representation -->
-    <text x="240" y="225" font-family="Arial, sans-serif" font-size="11" font-style="italic" text-anchor="middle" fill="#666666">BC(D) → π</text>
+    <!-- Header -->
+    <rect x="50" y="90" width="280" height="50" rx="12" fill="#6c757d" stroke="#dee2e6" stroke-width="2"/>
+    <rect x="50" y="115" width="280" height="25" fill="#6c757d"/>
+    <text x="190" y="120" font-family="'Segoe UI', Arial, sans-serif" font-size="15" font-weight="500" text-anchor="middle" fill="#ffffff">
+      Human Demonstration
+    </text>
     
-    <!-- Function explanation -->
-    <rect x="180" y="115" width="120" height="30" rx="3" fill="rgba(255, 255, 255, 0.7)" stroke="#999999" stroke-width="0.5"/>
-    <text x="240" y="130" font-family="Arial, sans-serif" font-size="9" text-anchor="middle" fill="#666666">BC: behavior cloning</text>
-    <text x="240" y="140" font-family="Arial, sans-serif" font-size="9" text-anchor="middle" fill="#666666">D: demos, π: policy</text>
+    <!-- Video placeholder -->
+    <image href="images/research_interest/human_demo.gif" x="70" y="160" width="240" height="180" preserveAspectRatio="xMidYMid slice"/>
+    <rect x="70" y="160" width="240" height="180" rx="8" fill="none" stroke="#495057" stroke-width="1"/>
     
-    <!-- Sub-nodes with different transparency levels -->
-    <g>
-      <rect x="110" y="85" width="100" height="25" rx="3" fill="rgba(240, 248, 255, 0.8)" stroke="#999999" stroke-width="0.5"/>
-      <text x="160" y="100" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#333333">Imitation Learning</text>
-    </g>
-    
-    <g>
-      <rect x="190" y="65" width="100" height="25" rx="3" fill="rgba(240, 248, 255, 0.6)" stroke="#999999" stroke-width="0.5"/>
-      <text x="240" y="80" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#333333">Behavior Cloning</text>
-    </g>
-  </g>
-
-  <!-- HRI node (Yellow) - Main module with strongest color -->
-  <g>
-    <rect x="150" y="355" width="180" height="90" rx="3" fill="#fffde6" stroke="#999999" stroke-width="0.5"/>
-    <text x="240" y="380" font-family="Arial, sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="#333333">Human-Robot</text>
-    <text x="240" y="400" font-family="Arial, sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="#333333">Interaction</text>
-    
-    <!-- Mathematical function representation -->
-    <text x="240" y="425" font-family="Arial, sans-serif" font-size="11" font-style="italic" text-anchor="middle" fill="#666666">I(H, R) → D</text>
-    
-    <!-- Function explanation -->
-    <rect x="180" y="455" width="120" height="30" rx="3" fill="rgba(255, 255, 255, 0.7)" stroke="#999999" stroke-width="0.5"/>
-    <text x="240" y="470" font-family="Arial, sans-serif" font-size="9" text-anchor="middle" fill="#666666">I: interaction function</text>
-    <text x="240" y="480" font-family="Arial, sans-serif" font-size="9" text-anchor="middle" fill="#666666">H: human, R: robot, D: demos</text>
-    
-    <!-- Sub-nodes with different transparency levels -->
-    <g>
-      <rect x="120" y="495" width="100" height="25" rx="3" fill="rgba(255, 253, 240, 0.8)" stroke="#999999" stroke-width="0.5"/>
-      <text x="170" y="510" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#333333">Teleoperation</text>
-    </g>
-    
-    <g>
-      <rect x="200" y="515" width="100" height="35" rx="3" fill="rgba(255, 253, 240, 0.6)" stroke="#999999" stroke-width="0.5"/>
-      <text x="250" y="530" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#333333">Natural Interaction</text>
-      <text x="250" y="545" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#333333">Paradigms</text>
-    </g>
-  </g>
-
-  <!-- TAMP node (Green) - Main module with strongest color -->
-  <g>
-    <rect x="570" y="155" width="180" height="90" rx="3" fill="#e6ffe6" stroke="#999999" stroke-width="0.5"/>
-    <text x="660" y="180" font-family="Arial, sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="#333333">Task &amp; Motion</text>
-    <text x="660" y="200" font-family="Arial, sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="#333333">Planning</text>
-    
-    <!-- Mathematical function representation -->
-    <text x="660" y="225" font-family="Arial, sans-serif" font-size="11" font-style="italic" text-anchor="middle" fill="#666666">f(π, G, S, p, E) → π*</text>
-    
-    <!-- Function explanation -->
-    <rect x="585" y="105" width="150" height="40" rx="3" fill="rgba(255, 255, 255, 0.7)" stroke="#999999" stroke-width="0.5"/>
-    <text x="660" y="120" font-family="Arial, sans-serif" font-size="9" text-anchor="middle" fill="#666666">f: planning algorithm</text>
-    <text x="660" y="132" font-family="Arial, sans-serif" font-size="9" text-anchor="middle" fill="#666666">π: policy, G: goals, S: state</text>
-    <text x="660" y="144" font-family="Arial, sans-serif" font-size="9" text-anchor="middle" fill="#666666">p: uncertainty, E: environment</text>
-    
-    <!-- Sub-nodes with different transparency levels -->
-    <g>
-      <rect x="520" y="75" width="100" height="35" rx="3" fill="rgba(240, 255, 240, 0.8)" stroke="#999999" stroke-width="0.5"/>
-      <text x="570" y="90" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#333333">Demonstration</text>
-      <text x="570" y="105" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#333333">Aware Planning</text>
-    </g>
-    
-    <g>
-      <rect x="610" y="65" width="100" height="25" rx="3" fill="rgba(240, 255, 240, 0.6)" stroke="#999999" stroke-width="0.5"/>
-      <text x="660" y="80" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#333333">Motion Planning</text>
-    </g>
-  </g>
-
-  <!-- Uncertainty node (Purple) - Main module with strongest color -->
-  <g>
-    <rect x="570" y="355" width="180" height="90" rx="3" fill="#f5e6ff" stroke="#999999" stroke-width="0.5"/>
-    <text x="660" y="380" font-family="Arial, sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="#333333">Uncertainty</text>
-    <text x="660" y="400" font-family="Arial, sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="#333333">Modeling</text>
-    
-    <!-- Mathematical function representation -->
-    <text x="660" y="425" font-family="Arial, sans-serif" font-size="11" font-style="italic" text-anchor="middle" fill="#666666">p(s | o, D)</text>
-    
-    <!-- Function explanation -->
-    <rect x="600" y="455" width="120" height="40" rx="3" fill="rgba(255, 255, 255, 0.7)" stroke="#999999" stroke-width="0.5"/>
-    <text x="660" y="470" font-family="Arial, sans-serif" font-size="9" text-anchor="middle" fill="#666666">p: probability distribution</text>
-    <text x="660" y="480" font-family="Arial, sans-serif" font-size="9" text-anchor="middle" fill="#666666">s: state, o: observations</text>
-    <text x="660" y="490" font-family="Arial, sans-serif" font-size="9" text-anchor="middle" fill="#666666">D: demonstrations</text>
-    
-    <!-- Sub-nodes with different transparency levels -->
-    <g>
-      <rect x="540" y="505" width="100" height="25" rx="3" fill="rgba(250, 240, 255, 0.8)" stroke="#999999" stroke-width="0.5"/>
-      <text x="590" y="520" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#333333">POMDP</text>
-    </g>
-    
-    <g>
-      <rect x="650" y="505" width="100" height="25" rx="3" fill="rgba(250, 240, 255, 0.6)" stroke="#999999" stroke-width="0.5"/>
-      <text x="700" y="520" font-family="Arial, sans-serif" font-size="10" text-anchor="middle" fill="#333333">State Representation</text>
-    </g>
-  </g>
-
-  <!-- Mathematical annotations with explanations -->
-  <!-- HRI to Uncertainty - Even softer style with sharp rectangle -->
-  <g>
-    <rect x="390" y="420" width="120" height="30" rx="0" fill="#f9f9f9" stroke="none"/>
-    <text x="450" y="434" font-family="Georgia, serif" font-size="9" text-anchor="middle" fill="#778899">Teaching and guidance</text>
-    <text x="450" y="446" font-family="Georgia, serif" font-size="9" text-anchor="middle" fill="#778899">for uncertainty</text>
+    <!-- Info badge -->
+    <rect x="85" y="380" width="210" height="50" rx="25" fill="#495057" stroke="none"/>
+    <text x="190" y="402" font-family="'Segoe UI', Arial, sans-serif" font-size="12" font-weight="500" text-anchor="middle" fill="#ffffff">
+      1-3 Demonstrations
+    </text>
+    <text x="190" y="418" font-family="'Segoe UI', Arial, sans-serif" font-size="10" text-anchor="middle" fill="#adb5bd">
+      Minimal Supervision
+    </text>
   </g>
   
-  <!-- Learning to HRI with softer style -->
-  <g>
-    <rect x="115" y="300" width="120" height="30" rx="0" fill="#f9f9f9" stroke="none"/>
-    <text x="175" y="314" font-family="Georgia, serif" font-size="9" text-anchor="middle" fill="#778899">Provide data</text>
-    <text x="175" y="326" font-family="Georgia, serif" font-size="9" text-anchor="middle" fill="#778899">for learning</text>
+  <!-- Flow arrow 1 -->
+  <g id="arrow1">
+    <path d="M 330 330 L 370 330" stroke="#adb5bd" stroke-width="3" fill="none"/>
+    <path d="M 370 330 L 410 330" stroke="#495057" stroke-width="3" fill="none" marker-end="url(#arrowBlack)"/>
+    <circle cx="350" cy="330" r="4" fill="#adb5bd"/>
+    <circle cx="390" cy="330" r="4" fill="#495057"/>
   </g>
   
-  <!-- Learning to TAMP with softer style -->
-  <g>
-    <rect x="390" y="130" width="120" height="30" rx="0" fill="#f9f9f9" stroke="none"/>
-    <text x="450" y="144" font-family="Georgia, serif" font-size="9" text-anchor="middle" fill="#778899">Low level policy and</text>
-    <text x="450" y="156" font-family="Georgia, serif" font-size="9" text-anchor="middle" fill="#778899">affordance</text>
+  <!-- STAGE 2: Representation Learning -->
+  <g id="representation-stage" filter="url(#shadow)">
+    <!-- Main card -->
+    <rect x="410" y="90" width="380" height="480" rx="12" fill="#ffffff" stroke="#dcfce7" stroke-width="2"/>
+    
+    <!-- Header -->
+    <rect x="410" y="90" width="380" height="50" rx="12" fill="#6c757d" stroke="#dee2e6" stroke-width="2"/>
+    <rect x="410" y="115" width="380" height="25" fill="#6c757d"/>
+    <text x="600" y="120" font-family="'Segoe UI', Arial, sans-serif" font-size="15" font-weight="500" text-anchor="middle" fill="#ffffff">
+      Representation
+    </text>
+    
+    <!-- Two representation modules side by side -->
+    <g id="object-centric" filter="url(#lightShadow)">
+      <rect x="430" y="165" width="165" height="135" rx="8" fill="#ffffff" stroke="#ced4da" stroke-width="1.5"/>
+      <rect x="430" y="165" width="165" height="32" rx="8" fill="#e3f2fd" stroke="#ced4da" stroke-width="1.5"/>
+      <rect x="430" y="181" width="165" height="16" fill="#e3f2fd"/>
+      <text x="512" y="186" font-family="'Segoe UI', Arial, sans-serif" font-size="12" font-weight="600" text-anchor="middle" fill="#495057">
+        Object-Centric
+      </text>
+      
+      <!-- Object nodes -->
+      <circle cx="465" cy="235" r="14" fill="#f8f9fa" stroke="#495057" stroke-width="2"/>
+      <text x="465" y="240" font-family="'Segoe UI', Arial, sans-serif" font-size="10" font-weight="600" text-anchor="middle" fill="#495057">O₁</text>
+      
+      <circle cx="512" cy="235" r="14" fill="#f8f9fa" stroke="#495057" stroke-width="2"/>
+      <text x="512" y="240" font-family="'Segoe UI', Arial, sans-serif" font-size="10" font-weight="600" text-anchor="middle" fill="#495057">O₂</text>
+      
+      <circle cx="559" cy="235" r="14" fill="#f8f9fa" stroke="#495057" stroke-width="2"/>
+      <text x="559" y="240" font-family="'Segoe UI', Arial, sans-serif" font-size="10" font-weight="600" text-anchor="middle" fill="#495057">O₃</text>
+      
+      <!-- Attributes -->
+      <line x1="465" y1="252" x2="465" y2="270" stroke="#adb5bd" stroke-width="1.5"/>
+      <line x1="512" y1="252" x2="512" y2="270" stroke="#adb5bd" stroke-width="1.5"/>
+      <line x1="559" y1="252" x2="559" y2="270" stroke="#adb5bd" stroke-width="1.5"/>
+      
+      <text x="512" y="285" font-family="'Segoe UI', Arial, sans-serif" font-size="8.5" text-anchor="middle" fill="#6c757d">
+        pose · shape · affordance
+      </text>
+    </g>
+    
+    <g id="relation-centric" filter="url(#lightShadow)">
+      <rect x="615" y="165" width="165" height="135" rx="8" fill="#ffffff" stroke="#ced4da" stroke-width="1.5"/>
+      <rect x="615" y="165" width="165" height="32" rx="8" fill="#fff8e1" stroke="#ced4da" stroke-width="1.5"/>
+      <rect x="615" y="181" width="165" height="16" fill="#fff8e1"/>
+      <text x="697" y="186" font-family="'Segoe UI', Arial, sans-serif" font-size="12" font-weight="600" text-anchor="middle" fill="#495057">
+        Relation-Centric
+      </text>
+      
+      <!-- Relation nodes -->
+      <circle cx="655" cy="235" r="14" fill="#f8f9fa" stroke="#495057" stroke-width="2"/>
+      <circle cx="740" cy="235" r="14" fill="#f8f9fa" stroke="#495057" stroke-width="2"/>
+      
+      <!-- Relations with curves -->
+      <path d="M 669 235 L 726 235" stroke="#495057" stroke-width="2" marker-end="url(#arrowBlack)"/>
+      <text x="697" y="228" font-family="'Segoe UI', Arial, sans-serif" font-size="9" font-weight="600" text-anchor="middle" fill="#495057">R</text>
+      
+      <path d="M 655 249 Q 697 275 740 249" stroke="#6c757d" stroke-width="1.5" fill="none" marker-end="url(#arrowGrey)"/>
+      <path d="M 740 249 Q 697 275 655 249" stroke="#6c757d" stroke-width="1.5" fill="none" marker-end="url(#arrowGrey)"/>
+      
+      <text x="697" y="285" font-family="'Segoe UI', Arial, sans-serif" font-size="8.5" text-anchor="middle" fill="#6c757d">
+        spatial · temporal · semantic
+      </text>
+    </g>
+    
+    <!-- Constraint Extraction -->
+    <g id="constraints" filter="url(#lightShadow)">
+      <rect x="430" y="320" width="350" height="200" rx="8" fill="#ffffff" stroke="#ced4da" stroke-width="1.5"/>
+      <rect x="430" y="320" width="350" height="32" rx="8" fill="#f0f0f0" stroke="#ced4da" stroke-width="1.5"/>
+      <rect x="430" y="336" width="350" height="16" fill="#f0f0f0"/>
+      <text x="605" y="341" font-family="'Segoe UI', Arial, sans-serif" font-size="12" font-weight="600" text-anchor="middle" fill="#495057">
+        Constraint Extraction
+      </text>
+      
+      <!-- Five constraint boxes -->
+      <!-- Row 1: 3 boxes -->
+      <rect x="445" y="367" width="100" height="50" rx="6" fill="#f8f9fa" stroke="#adb5bd" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="495" y="397" font-family="'Segoe UI', Arial, sans-serif" font-size="10" font-weight="600" text-anchor="middle" fill="#495057">Spatial</text>
+      
+      <rect x="555" y="367" width="100" height="50" rx="6" fill="#f8f9fa" stroke="#adb5bd" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="605" y="397" font-family="'Segoe UI', Arial, sans-serif" font-size="10" font-weight="600" text-anchor="middle" fill="#495057">Temporal</text>
+      
+      <rect x="665" y="367" width="100" height="50" rx="6" fill="#f8f9fa" stroke="#adb5bd" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="715" y="390" font-family="'Segoe UI', Arial, sans-serif" font-size="10" font-weight="600" text-anchor="middle" fill="#495057">Task-Specific</text>
+      
+      <!-- Row 2: 2 boxes -->
+      <rect x="500" y="432" width="100" height="50" rx="6" fill="#f8f9fa" stroke="#adb5bd" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="550" y="462" font-family="'Segoe UI', Arial, sans-serif" font-size="10" font-weight="600" text-anchor="middle" fill="#495057">Kinematics</text>
+      
+      <rect x="610" y="432" width="100" height="50" rx="6" fill="#f8f9fa" stroke="#adb5bd" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="660" y="462" font-family="'Segoe UI', Arial, sans-serif" font-size="10" font-weight="600" text-anchor="middle" fill="#495057">Geometry</text>
+    </g>
   </g>
   
-  <!-- Uncertainty to TAMP with softer style -->
-  <g>
-    <rect x="665" y="300" width="120" height="30" rx="0" fill="#f9f9f9" stroke="none"/>
-    <text x="725" y="314" font-family="Georgia, serif" font-size="9" text-anchor="middle" fill="#778899">Better clean state</text>
-    <text x="725" y="326" font-family="Georgia, serif" font-size="9" text-anchor="middle" fill="#778899">representation</text>
+  <!-- Flow arrow 2 -->
+  <g id="arrow2">
+    <path d="M 790 330 L 830 330" stroke="#adb5bd" stroke-width="3" fill="none"/>
+    <path d="M 830 330 L 870 330" stroke="#495057" stroke-width="3" fill="none" marker-end="url(#arrowBlack)"/>
+    <circle cx="810" cy="330" r="4" fill="#adb5bd"/>
+    <circle cx="850" cy="330" r="4" fill="#495057"/>
   </g>
-
-  <!-- Legend -->
-  <g transform="translate(450, 600)">
-    <rect x="-180" y="0" width="360" height="25" rx="3" fill="#ffffff" stroke="#999999" stroke-width="0.5"/>
+  
+  <!-- STAGE 3: Planning & Execution -->
+  <g id="planning-execution-stage" filter="url(#shadow)">
+    <!-- Main card -->
+    <rect x="870" y="90" width="480" height="480" rx="12" fill="#ffffff" stroke="#f3e8ff" stroke-width="2"/>
     
-    <rect x="-155" y="7" width="10" height="10" fill="#e6f2ff" stroke="#999999" stroke-width="0.5"/>
-    <text x="-140" y="16" font-family="Arial, sans-serif" font-size="10" text-anchor="start" fill="#666666">Learning</text>
+    <!-- Header -->
+    <rect x="870" y="90" width="480" height="50" rx="12" fill="#6c757d" stroke="#dee2e6" stroke-width="2"/>
+    <rect x="870" y="115" width="480" height="25" fill="#6c757d"/>
+    <text x="1110" y="120" font-family="'Segoe UI', Arial, sans-serif" font-size="15" font-weight="500" text-anchor="middle" fill="#ffffff">
+      Motion Generation
+    </text>
     
-    <rect x="-85" y="7" width="10" height="10" fill="#fffde6" stroke="#999999" stroke-width="0.5"/>
-    <text x="-70" y="16" font-family="Arial, sans-serif" font-size="10" text-anchor="start" fill="#666666">HRI</text>
+    <!-- Planning section -->
+    <g id="planning-section" filter="url(#lightShadow)">
+      <rect x="890" y="155" width="220" height="210" rx="8" fill="#ffffff" stroke="#ced4da" stroke-width="1.5"/>
+      <rect x="890" y="155" width="220" height="32" rx="8" fill="#f3e5f5" stroke="#ced4da" stroke-width="1.5"/>
+      <rect x="890" y="171" width="220" height="16" fill="#f3e5f5"/>
+      <text x="1000" y="176" font-family="'Segoe UI', Arial, sans-serif" font-size="12" font-weight="600" text-anchor="middle" fill="#495057">
+        Planning Module
+      </text>
+      
+      <!-- Planning tree -->
+      <circle cx="1000" cy="215" r="9" fill="#495057"/>
+      <text x="1020" y="220" font-family="'Segoe UI', Arial, sans-serif" font-size="8.5" fill="#6c757d">initial</text>
+      
+      <line x1="1000" y1="224" x2="970" y2="250" stroke="#495057" stroke-width="2"/>
+      <line x1="1000" y1="224" x2="1030" y2="250" stroke="#495057" stroke-width="2"/>
+      
+      <circle cx="970" cy="250" r="7" fill="#f8f9fa" stroke="#495057" stroke-width="2"/>
+      <circle cx="1030" cy="250" r="7" fill="#f8f9fa" stroke="#495057" stroke-width="2"/>
+      
+      <line x1="970" y1="257" x2="955" y2="280" stroke="#6c757d" stroke-width="1.5"/>
+      <line x1="970" y1="257" x2="985" y2="280" stroke="#6c757d" stroke-width="1.5"/>
+      <line x1="1030" y1="257" x2="1015" y2="280" stroke="#6c757d" stroke-width="1.5"/>
+      <line x1="1030" y1="257" x2="1045" y2="280" stroke="#6c757d" stroke-width="1.5"/>
+      
+      <circle cx="955" cy="280" r="5" fill="#495057"/>
+      <circle cx="985" cy="280" r="5" fill="#f8f9fa" stroke="#495057" stroke-width="1.5"/>
+      <circle cx="1015" cy="280" r="5" fill="#f8f9fa" stroke="#495057" stroke-width="1.5"/>
+      <circle cx="1045" cy="280" r="5" fill="#495057"/>
+      
+      <!-- Action policy box -->
+      <rect x="905" y="300" width="190" height="50" rx="6" fill="#f8f9fa" stroke="#adb5bd" stroke-width="1"/>
+      <text x="1000" y="318" font-family="'Segoe UI', Arial, sans-serif" font-size="10" font-weight="600" text-anchor="middle" fill="#495057">
+        Action Policy: π(s) → a
+      </text>
+      <text x="1000" y="334" font-family="'Segoe UI', Arial, sans-serif" font-size="9" text-anchor="middle" fill="#6c757d">
+        grasp · move · orient · place
+      </text>
+      <text x="1000" y="346" font-family="'Segoe UI', Arial, sans-serif" font-size="8" text-anchor="middle" fill="#868e96">
+        subject to constraints C
+      </text>
+    </g>
     
-    <rect x="-15" y="7" width="10" height="10" fill="#e6ffe6" stroke="#999999" stroke-width="0.5"/>
-    <text x="0" y="16" font-family="Arial, sans-serif" font-size="10" text-anchor="start" fill="#666666">TAMP</text>
+    <!-- Robot adaptation -->
+    <rect x="890" y="380" width="220" height="70" rx="8" fill="#495057" stroke="none" opacity="0.03"/>
+    <rect x="890" y="380" width="220" height="70" rx="8" fill="none" stroke="#868e96" stroke-width="1.5" stroke-dasharray="6,4"/>
+    <text x="1000" y="403" font-family="'Segoe UI', Arial, sans-serif" font-size="11" font-weight="600" text-anchor="middle" fill="#495057">
+      Robot-Specific Adaptation
+    </text>
+    <text x="1000" y="420" font-family="'Segoe UI', Arial, sans-serif" font-size="8.5" text-anchor="middle" fill="#6c757d">
+      Kinematics: K(θ) → x
+    </text>
+    <text x="1000" y="433" font-family="'Segoe UI', Arial, sans-serif" font-size="8.5" text-anchor="middle" fill="#6c757d">
+      Dynamics: M(θ)θ̈ + C(θ,θ̇) = τ
+    </text>
+    <text x="1000" y="445" font-family="'Segoe UI', Arial, sans-serif" font-size="8.5" text-anchor="middle" fill="#6c757d">
+      End-effector constraints
+    </text>
     
-    <rect x="55" y="7" width="10" height="10" fill="#f5e6ff" stroke="#999999" stroke-width="0.5"/>
-    <text x="70" y="16" font-family="Arial, sans-serif" font-size="10" text-anchor="start" fill="#666666">Uncertainty</text>
-  </g>
+    <!-- Arrow to robot videos -->
+    <path d="M 1110 310 L 1150 310" stroke="#495057" stroke-width="2.5" fill="none" marker-end="url(#arrowBlack)"/>
     
-  <!-- Central Hub: Enhanced Integration Zone (BIGGER with LIGHTER colors) -->
-  <g transform="translate(450, 300)">
-      <!-- Circles hinting at the source nodes, slightly offset towards center - BIGGER and LIGHTER -->
-      <circle cx="-30" cy="-30" r="60" fill="#e1eeff" fill-opacity="0.5"/> <!-- From LfD (Blue) -->
-      <circle cx="-30" cy="30" r="60" fill="#fffbe0" fill-opacity="0.5"/>  <!-- From HRI (Yellow) -->
-      <circle cx="30" cy="-30" r="60" fill="#e1ffe1" fill-opacity="0.5"/>  <!-- From TAMP (Green) -->
-      <circle cx="30" cy="30" r="60" fill="#f5e1ff" fill-opacity="0.5"/>   <!-- From Uncertainty (Purple) -->
-
-      <!-- Central Text Overlay - BIGGER -->
-      <text x="0" y="0" font-family="Arial, sans-serif" font-size="16" font-weight="600" text-anchor="middle" fill="#333333">System Integration</text>
-      <text x="0" y="25" font-family="Arial, sans-serif" font-size="12" font-style="italic" text-anchor="middle" fill="#555555">for Unstructured Environment and Tasks</text>
+    <!-- Robot execution videos -->
+    <g id="robot-section">
+      
+      <!-- Video 1 -->
+      <g filter="url(#lightShadow)">
+        <image href="images/research_interest/robot_video1.gif" x="1150" y="155" width="180" height="105" preserveAspectRatio="xMidYMid slice"/>
+        <rect x="1150" y="155" width="180" height="105" rx="8" fill="none" stroke="#495057" stroke-width="1.5"/>
+        <rect x="1160" y="265" width="160" height="22" rx="4" fill="#e3f2fd" stroke="none"/>
+        <text x="1240" y="279" font-family="'Segoe UI', Arial, sans-serif" font-size="9" text-anchor="middle" fill="#495057">
+          Environment A
+        </text>
+      </g>
+      
+      <!-- Video 2 -->
+      <g filter="url(#lightShadow)">
+        <image href="images/research_interest/robot_video2.gif" x="1150" y="295" width="180" height="105" preserveAspectRatio="xMidYMid slice"/>
+        <rect x="1150" y="295" width="180" height="105" rx="8" fill="none" stroke="#495057" stroke-width="1.5"/>
+        <rect x="1160" y="405" width="160" height="22" rx="4" fill="#fff8e1" stroke="none"/>
+        <text x="1240" y="419" font-family="'Segoe UI', Arial, sans-serif" font-size="9" text-anchor="middle" fill="#495057">
+          Environment B
+        </text>
+      </g>
+      
+      <!-- Video 3 -->
+      <g filter="url(#lightShadow)">
+        <image href="images/research_interest/robot_video3.gif" x="1150" y="440" width="180" height="105" preserveAspectRatio="xMidYMid slice"/>
+        <rect x="1150" y="440" width="180" height="105" rx="8" fill="none" stroke="#495057" stroke-width="1.5"/>
+        <rect x="1160" y="550" width="160" height="22" rx="4" fill="#f3e5f5" stroke="none"/>
+        <text x="1240" y="564" font-family="'Segoe UI', Arial, sans-serif" font-size="9" text-anchor="middle" fill="#495057">
+          Environment C
+        </text>
+      </g>
+    </g>
   </g>
 </svg>
