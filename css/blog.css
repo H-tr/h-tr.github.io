@@ -160,9 +160,10 @@ nav a:active {
 }
 
 .blog-post-title {
-  font-size: 2rem;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 2.2rem;
   margin-bottom: 1rem;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .blog-post-date {
@@ -171,39 +172,158 @@ nav a:active {
 }
 
 .blog-post-content {
-  font-size: 1.1rem;
-  line-height: 1.7;
-  font-weight: 300;
+  font-family: "Lato", -apple-system, sans-serif;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  font-weight: 400;
 }
 
-/* Reduce boldness of headers within blog posts */
+.blog-post-content p {
+  margin-bottom: 0.5rem;
+}
+
+/* Headings: Playfair Display for elegance */
 .blog-post-content h1,
 .blog-post-content h2,
 .blog-post-content h3,
 .blog-post-content h4,
 .blog-post-content h5,
 .blog-post-content h6 {
-  font-weight: 500; /* Set to normal weight */
+  font-family: "Playfair Display", Georgia, serif;
+  font-weight: 600;
+  margin-top: 2.2rem;
+  margin-bottom: 0.5rem;
 }
 
 .back-button {
+  position: fixed;
+  top: 1.5rem;
+  left: 1.5rem;
   display: inline-flex;
   align-items: center;
   color: #2c3e50;
   text-decoration: none;
-  font-size: 0.9rem;
-  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+  padding: 0.5rem 1rem;
   border: 1px solid #ddd;
-  border-radius: 4px;
+  border-radius: 6px;
   transition: all 0.2s ease;
-  background-color: #fff;
-  margin-bottom: 2rem;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  z-index: 100;
 }
 
 .back-button:hover {
-  background: #f5f5f5;
-  border-color: #ccc;
+  background: #fff;
+  border-color: #999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   transform: translateY(-1px);
+}
+
+/* Hide fixed button on small screens, show inline instead */
+@media (max-width: 1200px) {
+  .back-button {
+    position: static;
+    margin-bottom: 2rem;
+    backdrop-filter: none;
+    box-shadow: none;
+    border-radius: 4px;
+  }
+}
+
+/* ============================================
+   TABLE OF CONTENTS
+   ============================================ */
+.toc {
+  position: fixed;
+  left: 1.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 180px;
+  max-height: 70vh;
+  overflow-y: auto;
+  z-index: 50;
+}
+
+.toc-title {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 0.8rem;
+}
+
+.toc-list,
+.toc-sublist {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.toc-list > li {
+  margin-bottom: 0.4rem;
+}
+
+.toc-sublist {
+  margin: 0;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.toc-sublist.expanded {
+  max-height: 200px;
+  opacity: 1;
+  margin: 0.4rem 0 0.5rem 0;
+}
+
+.toc-sublist li {
+  margin-bottom: 0.25rem;
+}
+
+.toc-link {
+  display: block;
+  font-size: 0.8rem;
+  color: #999;
+  text-decoration: none;
+  padding: 0.2rem 0 0.2rem 0.8rem;
+  border-left: 2px solid #eee;
+  transition: all 0.2s ease;
+  line-height: 1.4;
+}
+
+.toc-link.toc-h2 {
+  font-weight: 500;
+}
+
+.toc-link.toc-h3 {
+  font-size: 0.75rem;
+  padding-left: 1.2rem;
+  color: #aaa;
+}
+
+.toc-link:hover {
+  color: #555;
+  border-left-color: #ccc;
+}
+
+.toc-link.active {
+  color: #1a1a1a;
+  border-left-color: #1a1a1a;
+}
+
+.toc-link.toc-h3.active {
+  color: #333;
+  border-left-color: #666;
+}
+
+@media (max-width: 1200px) {
+  .toc {
+    display: none;
+  }
 }
 
 .back-button i {
@@ -256,10 +376,9 @@ nav a:active {
 }
 
 /* Fix line spacing in blog posts */
-.blog-post-content,
 .blog-post-content p,
 .blog-post-content li {
-  line-height: 1.7 !important;
+  line-height: 1.6;
 }
 
 /* Code block styling is now handled by Prism.js */
@@ -267,54 +386,188 @@ nav a:active {
 /* Citation and References Sections */
 .citation-section,
 .references-section {
-  margin-top: 2rem;
-  padding: 1rem;
-  background-color: #f4f4f4;
-  border-radius: 4px;
+  margin-top: 3rem;
+  padding: 1.5rem 1.5rem 1.5rem 2rem;
+  background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+  border-left: 3px solid #333;
+  border-radius: 0 8px 8px 0;
 }
 
 .citation-header,
 .references-header {
-  font-family: "Lora", serif;
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
-  color: #222;
-  font-weight: 500; /* Match other headers */
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+  color: #1a1a1a;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .citation-text {
-  font-family: "JetBrains Mono", monospace;
   font-size: 0.9rem;
-  color: #333;
+  color: #555;
+  margin-bottom: 0.75rem;
+  font-style: italic;
 }
 
 .citation-pre {
-  background-color: #fff;
-  padding: 0.75rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-family: "Fira Code", monospace;
-  font-size: 0.85rem;
+  background-color: #1a1a1a;
+  color: #e0e0e0;
+  padding: 1.25rem;
+  border: none;
+  border-radius: 6px;
+  font-family: "Fira Code", "JetBrains Mono", monospace;
+  font-size: 0.8rem;
   overflow-x: auto;
-  white-space: pre-wrap; /* Allow wrapping */
-  word-wrap: break-word; /* Break long words */
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  line-height: 1.5;
 }
 
 .references-list {
-  font-family: "JetBrains Mono", monospace;
   font-size: 0.95rem;
-  color: #333;
-  padding-left: 1.5rem; /* Keep original padding */
-  margin: 0; /* Remove default list margin */
-  list-style-position: outside; /* Ensure numbers are outside */
+  color: #444;
+  padding-left: 0;
+  margin: 0;
+  list-style: none;
+  counter-reset: ref-counter;
 }
 
 .references-list li {
-  margin-bottom: 0.5rem;
-  padding-left: 0.5rem; /* Add some space between number and text */
+  margin-bottom: 1rem;
+  padding-left: 2rem;
+  position: relative;
+  line-height: 1.5;
+}
+
+.references-list li::before {
+  content: "[" counter(ref-counter) "]";
+  counter-increment: ref-counter;
+  position: absolute;
+  left: 0;
+  color: #888;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.references-list a {
+  color: #2c3e50;
+  text-decoration: none;
+  border-bottom: 1px solid #ccc;
+  transition: border-color 0.2s ease;
+}
+
+.references-list a:hover {
+  border-color: #333;
 }
 
 /* Additional Katex styling */
 .katex {
   font-size: 1em;
+}
+
+/* ============================================
+   VIDEO EMBEDDING - Clean Black & White Style
+   ============================================ */
+
+/* Outer wrapper - centered section */
+.video-section {
+  margin: 2.5rem 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Video grid container */
+.video-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 0;
+  max-width: 900px;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .video-grid {
+    flex-direction: row;
+    gap: 2.5rem;
+  }
+}
+
+/* Individual video item */
+.video-grid > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Video embed container */
+.video-embed {
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%; /* 16:9 */
+  background: #111;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.video-embed:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+
+.video-embed iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* Video caption */
+.video-embed-caption {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: #555;
+  text-align: center;
+  font-style: italic;
+}
+
+/* Single centered video */
+.video-single {
+  margin: 2.5rem auto;
+  max-width: 720px;
+}
+
+.video-single .video-embed {
+  width: 100%;
+}
+
+/* ============================================
+   HERO FIGURE - Opening visualization
+   ============================================ */
+
+.hero-figure {
+  margin: 0 0 2rem 0;
+  padding: 1.5rem 0;
+  text-align: center;
+}
+
+.hero-svg {
+  max-width: 100%;
+  height: auto;
+  margin-bottom: 1rem;
+}
+
+.hero-figure figcaption {
+  font-size: 1rem;
+  color: #555;
+  font-style: italic;
+  margin: 0;
+  letter-spacing: 0.02em;
 }

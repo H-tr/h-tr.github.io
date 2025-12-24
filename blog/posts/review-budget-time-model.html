@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>How Much of Today Did You Spend Replaying Yesterday?</title>
+
+    <!-- Fonts -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Prism.js initialization - single script that loads everything -->
+    <script src="/js/prism-init.js"></script>
+
+    <!-- KaTeX Math Support -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Site Assets -->
+    <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg" />
+    <link href="../../css/blog.css" rel="stylesheet" />
+
+    <!-- KaTeX Scripts -->
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"
+    ></script>
+  </head>
+  <body>
+    <div class="blog-post">
+      <a href="../" class="back-button">
+        <i class="fas fa-arrow-left"></i>Back to Blog
+      </a>
+
+      <header class="blog-post-header">
+        <h1 class="blog-post-title">
+          How Much of Today Did You Spend Replaying Yesterday?
+        </h1>
+        <div class="blog-post-date">December 15, 2025</div>
+      </header>
+
+      <article class="blog-post-content">
+        <figure class="hero-figure">
+          <img src="../../media/images/blog/review-budget/life-midpoint.svg" alt="A timeline showing that subjectively, age 18 is the midpoint of life between 4 and 80" class="hero-svg" />
+          <figcaption>Subjectively, half your life is over by 18.</figcaption>
+        </figure>
+        <h2>Your Life's midpoint is 18</h2>
+        <p>
+          If you're past 18, you've already lived more than half your life—subjectively.
+          The years from 4 to 18 feel as long as the years from 18 to 80. 
+          Not because time literally changes, but because of how we experience it.
+        </p>
+        <p>
+          This is a very interesting idea from the following two videos. They're in Chinese, but the visuals are pretty self-explanatory:
+        </p>
+
+          <div class="video-section">
+            <div class="video-grid">
+              <div>
+                <div class="video-embed">
+                  <iframe 
+                    src="//player.bilibili.com/player.html?bvid=BV1VrVSz1Eme&page=1&autoplay=0"
+                    scrolling="no"
+                    allowfullscreen="true">
+                  </iframe>
+                </div>
+                <p class="video-embed-caption">
+                  "人生进度条" — why time feels faster as we age
+                </p>
+              </div>
+              <div>
+                <div class="video-embed">
+                  <iframe 
+                    src="//player.bilibili.com/player.html?bvid=BV15kj4z4Eju&page=1&autoplay=0"
+                    scrolling="no"
+                    allowfullscreen="true">
+                  </iframe>
+                </div>
+                <p class="video-embed-caption">
+                  "世界是对数的……吗？" — why log-ish effects show up everywhere
+                </p>
+              </div>
+            </div>
+          </div>
+        
+        <p>
+          Why does time seem to accelerate? The standard answer is <strong>logarithmic time perception</strong>: 
+          our subjective experience of time follows a logarithmic scale rather than a linear one. 
+          A year at age 10 feels much longer than a year at age 50, because on a log scale, the "distance" 
+          from 10 to 11 is far greater than from 50 to 51.
+        </p>
+        <p>
+          Here's a simple consequence: if subjective time is logarithmic, when do you reach the midpoint of your life? 
+          Not at 40. To find the subjective midpoint between ages \(a\) and \(b\), we solve:
+          \[
+          \log(m) - \log(a) = \log(b) - \log(m) \implies m = \sqrt{a \cdot b}
+          \]
+          If conscious memory starts around age 4 and you live to 80, then \(m = \sqrt{4 \times 80} = \sqrt{320} \approx 18\). Half your subjective life is over before you finish high school.
+        </p>
+        <p>
+          Why does this logarithmic pattern appear? Network science offers a clue. When a new node 
+          joins a network, it connects preferentially to well-connected nodes. The probability of 
+          connecting to node \(i\) is proportional to its current degree:
+          \[
+          \Pi(k_i) = \frac{k_i}{\sum_j k_j}
+          \]
+          Larger hubs attract more connections, becoming even larger. This "rich get richer" dynamic 
+          produces a <strong>power law distribution</strong>: \(P(k) \propto k^{-\gamma}\). Unlike 
+          normal distributions, power laws have long tails: a few nodes dominate with many connections, 
+          while most have few.
+        </p>
+
+        <figure class="inline-figure">
+          <img src="/media/images/blog/review-budget/long-tail-distribution.svg" alt="Log-log plot comparing power law and normal distributions" class="distribution-svg" />
+          <figcaption>In log-log scale, power law appears as a straight line while normal drops sharply. The shaded region shows the "long tail" where power law persists.</figcaption>
+        </figure>
+
+        <h3>Network Science of our Memory</h3>
+        <p>
+          Now apply this to our memory. If we consider each new event as a node, it connects to existing memories: 
+          comparing, relating, anchoring. A child with few stored experiences can encode a new event 
+          with little overhead. An adult with decades of memories must link each new moment to a 
+          vast existing network. More attention flows to integration; less remains for the experience 
+          itself. The present shrinks. Time accelerates.
+        </p>
+        <p>
+          In this blog, we define this integration process as <strong>replay</strong>.
+        <p>
+          Running conversations again. Re-living proud moments. Feeling regret. 
+          Comparing today to childhood. Rewriting decisions that can't be changed.
+          It leaks into walking, showering, commuting, staring at the ceiling, pretending to listen.
+        </p>
+        <p>
+          How much of today did you spend replaying yesterday—or five years ago?
+        </p>
+        <p>
+          I don't have a clean answer. But I want to sketch a model and see what falls out.
+        </p>
+        <ul>
+          <li><strong>Can we formulate this phenomenon into a graphical model?</strong></li>
+          <li><strong>From this formulation, can we derive how much time to spend reviewing, and what to review?</strong></li>
+          <li><strong>Can we extend this to decision-making, and how might we test it?</strong></li>
+        </ul>
+
+        <h2>Formulation and modeling</h2>
+        <p>
+          The underlying system here (brain + environment + memory) is highly complex and far from linear, but our <em>observations</em> still arrive sequentially.
+          So it makes sense to start from a sequential decision-making framework, and a POMDP is a powerful choice for writing that down.
+          I'm going to use it mainly to fix notation.
+        </p>
+        <p>
+          A POMDP is the tuple
+          \[
+          \mathcal{M} = (\mathcal{S}, \mathcal{A}, \mathcal{O}, T, Z, R, \gamma).
+          \]
+        </p>
+        <ul>
+          <li><strong>States</strong> \(\mathcal{S}\): latent states \(s_t \in \mathcal{S}\).</li>
+          <li><strong>Actions</strong> \(\mathcal{A}\): actions \(a_t \in \mathcal{A}\).</li>
+          <li><strong>Observations</strong> \(\mathcal{O}\): observations \(o_t \in \mathcal{O}\).</li>
+          <li><strong>Transition model</strong> \(T(s' \mid s,a)\): dynamics \(s_{t+1} \sim T(\cdot \mid s_t, a_t)\).</li>
+          <li><strong>Observation model</strong> \(Z(o \mid s,a)\) (often \(Z(o \mid s)\)): emissions \(o_{t} \sim Z(\cdot \mid s_t, a_{t-1})\).</li>
+          <li><strong>Reward</strong> \(R(s,a)\): scalar reward \(r_t = R(s_t, a_t)\).</li>
+          <li><strong>Discount</strong> \(\gamma \in [0,1)\): time preference over future rewards.</li>
+        </ul>
+        <p>
+          Since the state is hidden, we track a <strong>belief</strong> \(b_t(s) = \mathbb{P}(s_t=s \mid h_t)\), where the history
+          \(h_t = (o_1,a_1,\dots,o_t)\). After action \(a_t\) and a new observation \(o_{t+1}\), the belief update is:
+          \[
+          b_{t+1}(s') = \eta \, Z(o_{t+1}\mid s', a_t)\sum_{s\in\mathcal{S}} T(s'\mid s, a_t)\, b_t(s),
+          \]
+          with normalizer \(\eta\).
+        </p>
+        <p>
+          A (history- or belief-based) policy \(\pi\) selects actions, e.g. \(a_t \sim \pi(\cdot \mid b_t)\). The usual objective is:
+          \[
+          \max_{\pi}\; \mathbb{E}_{\pi}\Big[\sum_{t=1}^{\infty}\gamma^{t-1} R(s_t, a_t)\Big].
+          \]
+        </p>
+
+        <h2>Review Policy</h2>
+
+        <h2>Decision Making</h2>
+
+        <h2>Takeaways and Discussion</h2>
+        <ul>
+          <li>
+            <strong>Is “review time” growing with age, or does it only feel that way?</strong>
+          </li>
+          <li>
+            <strong>What's the right objective for replay?</strong> (fast learning? happiness? calibration?)
+          </li>
+          <li>
+            <strong>Are we overfitting to the tail?</strong> Do a few rare events dominate the policy update?
+          </li>
+          <li>
+            <strong>What's the analogue of "replay buffer size" in humans?</strong> sleep? journaling? therapy?
+          </li>
+        </ul>
+
+        <div class="citation-section">
+          <h2 class="citation-header">Citation</h2>
+          <p class="citation-text">Please cite this post as:</p>
+          <pre class="citation-pre">
+@misc{hu2025memorytax,
+  author    = {Hu Tianrun},
+  title     = {How Much of Today Did You Spend Replaying Yesterday?},
+  year      = {2025},
+  publisher = {GitHub},
+  url       = {https://tianrunhu.github.io/blog/posts/review-budget-time-model.html}
+}</pre
+          >
+        </div>
+
+        <div class="references-section">
+          <h2 class="references-header">References</h2>
+          <ol class="references-list">
+            <li>
+              Bilibili video: “【【毕导】这个定律，预言了你的人生进度条】” (accessed 2025-12-15).
+              <a
+                href="https://www.bilibili.com/video/BV1VrVSz1Eme/"
+                target="_blank"
+                rel="noreferrer"
+                >Link</a>
+            </li>
+            <li>
+              Bilibili video: “【【漫士】世界是对数的……吗？为什么？】” (accessed 2025-12-15).
+              <a
+                href="https://www.bilibili.com/video/BV15kj4z4Eju/"
+                target="_blank"
+                rel="noreferrer"
+                >Link</a>
+            </li>
+          </ol>
+        </div>
+      </article>
+    </div>
+
+    <script defer src="/js/blog.js"></script>
+    <script defer src="/js/katex-init.js"></script>
+  </body>
+</html>
+
+
