@@ -14,7 +14,12 @@ body {
 }
 
 /* Set default header weight */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-weight: 500;
 }
 
@@ -174,12 +179,14 @@ nav a:active {
 .blog-post-content {
   font-family: "Lato", -apple-system, sans-serif;
   font-size: 1.05rem;
-  line-height: 1.6;
+  line-height: 1.5;
+  /* Tighter line spacing */
   font-weight: 400;
 }
 
 .blog-post-content p {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.8rem;
+  /* Smaller gap between paragraphs */
 }
 
 /* Headings: Playfair Display for elegance */
@@ -193,6 +200,57 @@ nav a:active {
   font-weight: 600;
   margin-top: 2.2rem;
   margin-bottom: 0.5rem;
+}
+
+/* Specific sizes for clear hierarchy (body text is 1.05rem) */
+.blog-post-content h1 {
+  font-size: 2.2rem;
+  /* ~2.1x body text */
+}
+
+.blog-post-content h2 {
+  font-size: 1.8rem;
+  /* ~1.7x body text */
+}
+
+.blog-post-content h3 {
+  font-size: 1.5rem;
+  /* ~1.4x body text */
+}
+
+.blog-post-content h4 {
+  font-size: 1.3rem;
+  /* ~1.2x body text */
+}
+
+.blog-post-content h5 {
+  font-size: 1.15rem;
+  /* ~1.1x body text */
+}
+
+.blog-post-content h6 {
+  font-size: 1.1rem;
+  /* ~1.05x body text */
+}
+
+/* Inline code styling - GitHub style */
+.blog-post-content code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 0.85em;
+  background-color: rgba(175, 184, 193, 0.2);
+  color: #24292f;
+  padding: 0.2em 0.4em;
+  border-radius: 6px;
+}
+
+/* Code blocks should override inline code styling */
+.blog-post-content pre code {
+  background-color: transparent;
+  color: inherit;
+  padding: 0;
+  border: none;
+  font-size: inherit;
+  border-radius: 0;
 }
 
 .back-button {
@@ -262,7 +320,7 @@ nav a:active {
   margin: 0;
 }
 
-.toc-list > li {
+.toc-list>li {
   margin-bottom: 0.4rem;
 }
 
@@ -381,6 +439,21 @@ nav a:active {
   line-height: 1.6;
 }
 
+/* Inline link styling to match main index */
+.blog-post-content a {
+  color: #4682B4;
+  /* Steel Blue */
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.blog-post-content a:hover {
+  color: #3A6A97;
+  /* Darker Steel Blue on hover */
+  text-decoration: none;
+}
+
+
 /* Code block styling is now handled by Prism.js */
 
 /* Citation and References Sections */
@@ -411,7 +484,7 @@ nav a:active {
 }
 
 .citation-pre {
-  background-color: #1a1a1a;
+  background-color: #2a2a2a;
   color: #e0e0e0;
   padding: 1.25rem;
   border: none;
@@ -496,7 +569,7 @@ nav a:active {
 }
 
 /* Individual video item */
-.video-grid > div {
+.video-grid>div {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -507,7 +580,8 @@ nav a:active {
 .video-embed {
   position: relative;
   width: 100%;
-  padding-bottom: 56.25%; /* 16:9 */
+  padding-bottom: 56.25%;
+  /* 16:9 */
   background: #111;
   border-radius: 16px;
   overflow: hidden;

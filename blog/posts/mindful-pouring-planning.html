@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>When You're Too Lazy to Beat Level 2: Teaching AI to Play Water Sort</title>
+
+    <!-- Fonts -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+
+    <!-- Prism.js initialization - single script that loads everything -->
+    <script src="/js/prism-init.js"></script>
+
+    <!-- KaTeX Math Support -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css" rel="stylesheet" />
+
+    <!-- Site Assets -->
+    <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg" />
+    <link href="/css/blog.css" rel="stylesheet" />
+
+    <!-- KaTeX Scripts -->
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"></script>
+</head>
+
+<body>
+    <div class="blog-post">
+        <a href="../" class="back-button">
+            <i class="fas fa-arrow-left"></i>Back to Blog
+        </a>
+
+        <header class="blog-post-header">
+            <h1 class="blog-post-title">When You're Too Lazy to Beat Level 2: Teaching AI to Play Water Sort</h1>
+            <div class="blog-post-date">2025-12-24</div>
+        </header>
+
+        <article class="blog-post-content">
+            <div style="display: flex; gap: 15px; margin: 20px 0; justify-content: center; flex-wrap: wrap;">
+                <img src="/media/images/blog/mindful-pouring/cover.jpg" alt="Mindful Pouring Game Level"
+                    style="max-width: 30%; height: auto; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <img src="/media/images/blog/mindful-pouring/cover_2.jpg" alt="Mindful Pouring Game Screenshot"
+                    style="max-width: 30%; height: auto; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            </div>
+
+            <p>
+                I came across this "Mindful Pouring" (精明的开局) game on WeChat recently, and honestly? It's kind of
+                interesting. The puzzle mechanics are simple but really engaging - you pour colored liquids between
+                tubes to sort them out.
+            </p>
+
+            <p>
+                I realized this is a perfect opportunity to apply AI planning techniques to solve it automatically. This
+                turned into a fun little project where I formulated the game as a planning problem.
+            </p>
+
+            <h2>The Puzzle: Simple Rules, Tricky Solutions</h2>
+
+            <p>
+                Here's how it works: you've got a bunch of tubes filled with colored liquid blocks stacked on top
+                of each other. Some tubes are full, some are partially filled, and you usually get a couple of
+                empty ones to work with. Your job? Sort all the colors so each tube contains only one color
+                (or is completely empty).
+            </p>
+
+            <p>
+                The catch is you can only pour from the top of one tube to another, and only if:
+            </p>
+            <ol>
+                <li>The destination tube has space (isn't already full)</li>
+                <li>Either the destination is empty, OR the top color matches what you're pouring</li>
+            </ol>
+
+            <p>
+                Sounds easy, right? Try it yourself and you'll quickly realize it's a proper puzzle. You need to
+                think several moves ahead—pour the wrong color at the wrong time and you'll paint yourself into
+                a corner with no way to untangle the mess.
+            </p>
+
+            <p>
+                This is exactly the kind of problem AI planning was designed for: we have a clear initial state,
+                well-defined rules about what moves are legal, and a specific goal we want to reach. The question
+                is: can we get a computer to figure out the sequence of moves automatically?
+            </p>
+
+            <h2>Planning Problem Formulation</h2>
+
+            <p>
+                To solve this with AI planning, I used <a href="https://planning.wiki/guide/whatis/pddl"
+                    target="_blank">PDDL</a> (Planning Domain Definition Language) and the
+                <a href="https://www.fast-downward.org/" target="_blank">Fast Downward</a> planner.
+                Let me first introduce the formal framework, then walk through a concrete example.
+            </p>
+
+            <p>
+                A classical planning problem is formally defined as a tuple \(\mathcal{P} = \langle \mathcal{D},
+                \mathcal{I}, \mathcal{G} \rangle\), where:
+            </p>
+
+            <ul>
+                <li><strong>\(\mathcal{D}\) (Domain):</strong> Defines the structure of the world
+                    <ul style="margin-top: 8px;">
+                        <li>\(\mathcal{T}\): A set of <em>types</em> (e.g., tubes, colors, levels)</li>
+                        <li>\(\mathcal{O}\): A set of <em>objects</em> typed by \(\mathcal{T}\)</li>
+                        <li>\(\mathcal{P}\): A set of <em>predicates</em> that describe properties and relations</li>
+                        <li>\(\mathcal{A}\): A set of <em>actions</em>, each with parameters, preconditions, and effects
+                        </li>
+                    </ul>
+                </li>
+                <li><strong>\(\mathcal{I}\) (Initial State):</strong> A set of ground predicates that are true initially
+                </li>
+                <li><strong>\(\mathcal{G}\) (Goal):</strong> A set of ground predicates that must be satisfied</li>
+            </ul>
+
+            <p>
+                Each action \(a \in \mathcal{A}\) is defined as:
+            </p>
+            <ul>
+                <li><strong>Parameters:</strong> Typed variables that the action operates on</li>
+                <li><strong>Preconditions \(\text{pre}(a)\):</strong> Conditions that must hold for the action to be
+                    applicable</li>
+                <li><strong>Effects \(\text{eff}(a)\):</strong> Changes to the state after executing the action
+                    <ul style="margin-top: 8px;">
+                        <li>\(\text{eff}^+(a)\): Predicates that become true (add effects)</li>
+                        <li>\(\text{eff}^-(a)\): Predicates that become false (delete effects)</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <p>
+                A <strong>solution</strong> is a sequence of actions \(\pi = \langle a_1, a_2, \ldots, a_n \rangle\)
+                that transforms the initial state \(\mathcal{I}\) into a state satisfying the goal \(\mathcal{G}\).
+            </p>
+
+            <h2>Our Example Puzzle</h2>
+
+            <p>
+                Now let's see how this formal framework applies to our water sort puzzle.
+                Imagine we have 3 tubes, each can hold up to 2 blocks:
+            </p>
+
+            <div
+                style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; font-family: monospace;">
+                <strong>Initial State:</strong><br>
+                Tube 1: [🔴 🔵] (bottom to top)<br>
+                Tube 2: [🔵 🔴]<br>
+                Tube 3: [&nbsp;&nbsp;] (empty)<br><br>
+                <strong>Goal:</strong> Sort so each tube is either empty or contains only one color
+            </div>
+
+            We can now translate this into a planning problem:
+
+            <h4>a). Types and Objects (\(\mathcal{T}\), \(\mathcal{O}\))</h4>
+            <p>
+                First, we define the <strong>types</strong> \(\mathcal{T}\) and <strong>objects</strong> \(\mathcal{O}\)
+                in our domain. For our example:
+            </p>
+            <ul>
+                <li><strong>Tubes:</strong> <code>t1, t2, t3</code></li>
+                <li><strong>Colors:</strong> <code>red, blue</code></li>
+                <li><strong>Levels:</strong> <code>l0, l1, l2</code> (where <code>l0</code> is the base,
+                    and <code>l1-l2</code> are the two slots)</li>
+            </ul>
+
+            <p>
+                In PDDL, we declare these with types:
+            </p>
+            <pre><code class="language-lisp">(:objects 
+  t1 t2 t3 - tube
+  red blue - color
+  l0 l1 l2 - level
+)</code></pre>
+
+            <h4>b). Predicates (\(\mathcal{P}\)) and Initial State (\(\mathcal{I}\))</h4>
+            <p>
+                We need predicates (true/false statements) to describe what's happening in each tube.
+                For our example puzzle, here's how we represent Tube 1 with [🔴 🔵]:
+            </p>
+            <pre><code class="language-lisp">;; Tube 1 contents
+(has-color t1 l1 red)   ;; Bottom slot has red
+(has-color t1 l2 blue)  ;; Top slot has blue
+(top t1 l2)             ;; The topmost filled level is l2</code></pre>
+
+            <p>
+                For the empty Tube 3, we just mark it as empty:
+            </p>
+            <pre><code class="language-lisp">;; Tube 3 is empty
+(top t3 l0)  ;; Top pointer at base means empty</code></pre>
+
+            <p>
+                We also need some static facts about the structure (which levels are above others):
+            </p>
+            <pre><code class="language-lisp">;; Level structure (gravity!)
+(above l1 l0) (above l2 l1)
+(is-base l0)</code></pre>
+
+            <h4>c). Actions (\(\mathcal{A}\))</h4>
+            <p>
+                Our action set \(\mathcal{A}\) contains a single action: \(\texttt{pour}\). This action moves one block
+                from the top of one tube to another.
+                The key is defining the <strong>preconditions</strong> \(\text{pre}(\texttt{pour})\) and
+                <strong>effects</strong> \(\text{eff}(\texttt{pour})\) correctly. We can only pour if:
+            </p>
+            <ul>
+                <li>The source tube has a block at its top</li>
+                <li>The destination tube has space</li>
+                <li>The destination is either empty OR its top color matches what we're pouring</li>
+            </ul>
+
+            <p>
+                For example, in our initial state, we could pour the blue block from Tube 1 (top) to Tube 2 (top)
+                because Tube 2's top is also red. Or we could pour it to the empty Tube 3.
+            </p>
+
+            <p>
+                <strong>Design choice:</strong> I chose to pour <em>one block at a time</em> rather than all
+                contiguous blocks of the same color. This makes the PDDL simpler, though the planner might need
+                more steps.
+            </p>
+
+            <h4>d). Goal State (\(\mathcal{G}\))</h4>
+            <p>
+                Each tube should be either completely empty or completely filled with a single color.
+                For our example with 2 colors and 3 tubes, one valid goal state would be:
+            </p>
+
+            <div
+                style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; font-family: monospace;">
+                Tube 1: [🔴 🔴]<br>
+                Tube 2: [🔵 🔵]<br>
+                Tube 3: [&nbsp;&nbsp;] (empty)
+            </div>
+
+            <p>
+                In PDDL, we express this as:
+            </p>
+            <pre><code class="language-lisp">(:goal (and
+  ;; Tube 1 is all red
+  (has-color t1 l1 red) (has-color t1 l2 red)
+  
+  ;; Tube 2 is all blue
+  (has-color t2 l1 blue) (has-color t2 l2 blue)
+))</code></pre>
+
+            <h3>Putting It All Together</h3>
+            <p>
+                With these components defined, we have our complete planning problem
+                \(\mathcal{P} = \langle \mathcal{D}, \mathcal{I}, \mathcal{G} \rangle\).
+                Fast Downward can now search for a <strong>solution</strong> \(\pi = \langle a_1, a_2, \ldots, a_n
+                \rangle\) —
+                a sequence of \(\texttt{pour}\) actions that transforms our initial state into a goal state.
+            </p>
+
+            <p>
+                The planner uses heuristics (like the \(h^{\text{add}}\) or \(h^{\text{FF}}\) heuristics) to guide the
+                search
+                efficiently, avoiding the need to explore every possible state. For our simple example, the solution is
+                quite short,
+                but the same approach scales to much more complex puzzles!
+            </p>
+
+            <h2>So... Does It Actually Work?</h2>
+
+            <div style="text-align: center; margin: 30px 0;">
+                <img src="/media/images/blog/mindful-pouring/solution_demo.webp"
+                    alt="Water Sort Solver Demo - Animated Solution"
+                    style="max-width: 80%; height: auto; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <p style="font-style: italic; color: #666; margin-top: 10px; font-size: 0.9em;">
+                    The solver in action - watch it automatically solve the puzzle step by step
+                </p>
+            </div>
+
+            <p>
+                Yes! With Fast Downward, we can solve these puzzles optimally. The planner explores the state space
+                systematically, using heuristics to guide the search. What takes humans 20 minutes of frustrated
+                tapping can be solved in seconds.
+            </p>
+
+            <p>
+                The beauty of this approach is its generality. Once you've defined the domain, you can throw any
+                puzzle configuration at it and the planner figures it out. Check out the
+                <a href="/playground/water-sort/" target="_blank">interactive demo</a> if you want to try it yourself!
+            </p>
+
+            <p>
+                Now, is this overkill for a mobile game? Absolutely. But research is supposed to be fun, right?
+                Don't take it too seriously—let's just have fun! 🎮
+            </p>
+
+            <p>
+                But seriously... is this <em>useful</em>? Maybe. Think about it: humans learn strategies by playing
+                these games. We practice our minds, think deeper each time, develop intuitions about valid moves
+                without exhaustively searching to the end. We build mental models of how liquids pour, how colors
+                stack, what moves lead to dead ends.
+            </p>
+
+            <p>
+                Large language models struggle with this kind of reasoning. They can't easily "see" the causal
+                structure of pouring, can't mentally simulate the physics, can't plan multiple steps ahead in
+                visual-spatial tasks. Could puzzles like this be a key to enhancing visual reasoning in VLMs?
+                Could training on such tasks improve their understanding of real-world physical interactions?
+            </p>
+
+            <p>
+                It's worth thinking about. Sometimes the best research questions come from the most playful
+                explorations. Maybe there's something here about grounding abstract reasoning in concrete,
+                interactive tasks. Or maybe I just wanted an excuse to avoid playing level 3. Either way,
+                it was fun to explore! 🤔
+            </p>
+        </article>
+    </div>
+
+    <!-- Blog styling and spacing script -->
+    <script defer src="/js/blog.js"></script>
+    <script defer src="/js/katex-init.js"></script>
+</body>
+
+</html>

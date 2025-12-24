@@ -1,114 +1,94 @@
-/* Prism.js custom styling */
+/* Prism.js custom styling - Elegant Grey Theme */
 :root {
   --prism-font-size: 0.9em;
+  --code-bg: #2a2a2a;
+  --code-border: #404040;
+  --code-text: #e8e8e8;
+  --code-comment: #888888;
+  --code-keyword: #c8c8c8;
+  --code-string: #b0b0b0;
+  --code-function: #d8d8d8;
+  --code-number: #a0a0a0;
+  --code-operator: #989898;
+  --code-punctuation: #d0d0d0;
+  --code-property: #c0c0c0;
 }
 
 /* Set Prism font size to match regular text */
 code[class*="language-"],
 pre[class*="language-"] {
   font-size: var(--prism-font-size);
-  line-height: 1.7;
-  font-family: "Fira Code", monospace;
+  line-height: 1.6;
+  font-family: "Fira Code", "JetBrains Mono", "Consolas", monospace;
+  text-shadow: none;
 }
 
 /* Make sure inline code matches */
-:not(pre) > code[class*="language-"] {
+:not(pre)>code[class*="language-"] {
   font-size: calc(var(--prism-font-size) * 0.9);
   padding: 0.2em 0.4em;
 }
 
-/* Add a little space around code blocks */
+/* Code block wrapper styling - Plain embedded style */
 div.code-toolbar {
+  position: relative;
   margin: 1.5em 0;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--code-border);
 }
 
-/* Style the copy button - GitHub style */
-div.code-toolbar > .toolbar {
-  position: absolute;
-  top: 0.3em;
-  right: 0.2em;
-  opacity: 0;
-  transition: opacity 0.3s ease-in-out;
+div.code-toolbar>pre {
+  margin: 0;
+  padding: 1.2rem 1.5rem;
+  overflow-x: auto;
 }
 
-/* Show the toolbar when hovering over the code block */
-div.code-toolbar:hover > .toolbar {
-  opacity: 1;
-}
-
-div.code-toolbar > .toolbar button {
-  font-size: 0.8em;
-  padding: 0.3em;
-  background: transparent;
-  color: #6e7781;
-  border: 0;
-  box-shadow: none;
-  cursor: pointer;
-  border-radius: 3px;
-}
-
-/* Replace "Copy" text with icon */
-div.code-toolbar > .toolbar button span {
-  display: none;
-}
-
-div.code-toolbar > .toolbar button:before {
-  content: "\f0c5"; /* Font Awesome copy icon */
-  font-family: "Font Awesome 6 Free";
-  font-weight: 400;
-}
-
-div.code-toolbar > .toolbar button:hover,
-div.code-toolbar > .toolbar button:focus {
-  color: #0969da;
-  background-color: rgba(235, 245, 255, 0.6);
-  transform: translateY(-1px);
-}
-
-/* When copy is successful */
-div.code-toolbar > .toolbar button.copy-success:before {
-  content: "\f00c"; /* Font Awesome check icon */
-  color: #1a7f37;
-}
-
-/* Additional GitHub-like styling */
+/* Main code block styling - Dark vim-inspired theme */
 pre[class*="language-"] {
-  background: #f6f8fa;
-  border: 1px solid #e1e4e8;
-  border-radius: 6px;
+  background: var(--code-bg);
+  border: none;
+  border-radius: 0;
   position: relative;
 }
 
 code[class*="language-"] {
-  color: #24292e;
+  color: var(--code-text);
 }
 
+/* Syntax highlighting - Vim-inspired colors */
 .token.comment,
 .token.prolog,
 .token.doctype,
 .token.cdata {
-  color: #6a737d;
+  color: var(--code-comment);
+  font-style: italic;
 }
 
 .token.punctuation {
-  color: #24292e;
+  color: var(--code-punctuation);
 }
 
 .token.property,
 .token.tag,
 .token.boolean,
-.token.number,
 .token.constant,
-.token.symbol {
-  color: #005cc5;
+.token.symbol,
+.token.deleted {
+  color: var(--code-property);
+}
+
+.token.number {
+  color: var(--code-number);
 }
 
 .token.selector,
 .token.attr-name,
 .token.string,
 .token.char,
-.token.builtin {
-  color: #032f62;
+.token.builtin,
+.token.inserted {
+  color: var(--code-string);
 }
 
 .token.operator,
@@ -116,17 +96,103 @@ code[class*="language-"] {
 .token.url,
 .language-css .token.string,
 .style .token.string {
-  color: #d73a49;
+  color: var(--code-operator);
   background: transparent;
 }
 
 .token.atrule,
 .token.attr-value,
 .token.keyword {
-  color: #d73a49;
+  color: var(--code-keyword);
 }
 
 .token.function,
 .token.class-name {
-  color: #6f42c1;
-} 
+  color: var(--code-function);
+}
+
+.token.regex,
+.token.important,
+.token.variable {
+  color: var(--code-operator);
+}
+
+/* Copy button toolbar styling */
+div.code-toolbar>.toolbar {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 10;
+}
+
+/* Show the toolbar when hovering over the code block */
+div.code-toolbar:hover>.toolbar {
+  opacity: 1;
+}
+
+div.code-toolbar>.toolbar button {
+  font-size: 0.85em;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--code-text);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  border-radius: 6px;
+  backdrop-filter: blur(10px);
+  transition: all 0.2s ease;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* Replace "Copy" text with icon */
+div.code-toolbar>.toolbar button span {
+  display: none;
+}
+
+div.code-toolbar>.toolbar button:before {
+  content: "\f0c5";
+  /* Font Awesome copy icon */
+  font-family: "Font Awesome 6 Free";
+  font-weight: 400;
+}
+
+div.code-toolbar>.toolbar button:hover,
+div.code-toolbar>.toolbar button:focus {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* When copy is successful */
+div.code-toolbar>.toolbar button.copy-success {
+  background: rgba(166, 227, 161, 0.2);
+  border-color: var(--code-string);
+}
+
+div.code-toolbar>.toolbar button.copy-success:before {
+  content: "\f00c";
+  /* Font Awesome check icon */
+  color: var(--code-string);
+}
+
+/* Scrollbar styling for code blocks */
+pre[class*="language-"]::-webkit-scrollbar {
+  height: 8px;
+}
+
+pre[class*="language-"]::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+pre[class*="language-"]::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+pre[class*="language-"]::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
