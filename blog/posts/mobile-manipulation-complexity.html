@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Why is Mobile Manipulation So Hard?</title>
+
+    <!-- Fonts -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+
+    <!-- KaTeX Math Support -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css" rel="stylesheet" />
+
+    <!-- Site Assets -->
+    <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg" />
+    <link href="../../css/blog.css" rel="stylesheet" />
+
+    <!-- KaTeX Scripts -->
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"></script>
+
+    <!-- Custom Scripts -->
+    <script defer src="/js/copy-button.js"></script>
+</head>
+
+<body>
+    <div class="blog-post">
+        <a href="../" class="back-button">
+            <i class="fas fa-arrow-left"></i>Back to Blog
+        </a>
+
+        <header class="blog-post-header">
+            <h1 class="blog-post-title">
+                Why is Mobile Manipulation So Hard?
+            </h1>
+            <div class="blog-post-date">December 26, 2025</div>
+        </header>
+
+        <article class="blog-post-content">
+            <!-- Section 1: Introduction -->
+            <section class="blog-section">
+                <p>
+                    Mobile manipulation is notoriously difficult. Large-scale environments, long-horizon tasks, complex
+                    kinematic constraints, partial observability, dynamic objects, uncertainty everywhere. But here's
+                    the question: <strong>Are these just engineering problems?</strong> Despite tremendous progress in
+                    individual components (excellent SLAM systems, sophisticated motion planners, powerful vision
+                    models), we haven't yet seen anyone successfully deploy a general-purpose mobile manipulation
+                    system. <strong>The
+                        core difficulty, I believe, comes from forced decomposition.</strong>
+                </p>
+                <p>
+                    These challenges are deeply interdependent. Navigation and manipulation depend on each other, while
+                    perception depends on both. Yet the combinatorial complexity forces us to decompose,
+                    creating artificial boundaries that the problem itself resists. <strong>This is why progress has
+                        been slow.</strong> It's not that individual modules aren't good enough. It's that decomposition
+                    creates interdependencies that are extraordinarily difficult to manage. This blog explores this
+                    paradox and what we can do about it.
+                </p>
+            </section>
+
+            <!-- Section 2: The Nature of the Beast -->
+            <section class="blog-section">
+                <h2>The Nature of Mobile Manipulation: An Inherently Coupled System</h2>
+
+                <p>
+                    To understand why decomposition is so problematic, we need to examine the couplings themselves.
+                    Mobile manipulation exhibits three fundamental types of interdependence: <strong>spatial
+                        coupling</strong> (how different components of the robot affect each other), <strong>temporal
+                        coupling</strong> (how decisions now depend on future states and vice versa), and
+                    <strong>knowledge-grounding coupling</strong> (how high-level reasoning and low-level execution
+                    depend on each other). Let's explore each in turn.
+                </p>
+
+                <h3>1. Spatial Coupling</h3>
+
+                <p>
+                    Consider a seemingly simple task: a mobile manipulator needs to pick up a cup from a table and place
+                    it in a dishwasher across the room. The robot's base position is critical: it determines which
+                    grasps
+                    are reachable, not just navigation feasibility.
+                </p>
+                <p>
+                    Move 10cm to the left,
+                    and a side grasp becomes feasible. Move 10cm forward, and the robot might collide with the table.
+                    Now if
+                    we suppose the cup is full of water, the grasp choice completely changes the navigation problem.
+                    We need smooth motion, minimal acceleration, and the cup
+                    must stay upright.
+                </p>
+                <p>
+                    The manipulation decision has transformed the navigation constraints. As the
+                    robot extends its arm to grasp, the center of mass shifts. On uneven terrain or during acceleration,
+                    this affects stability. The arm configuration isn't just about reaching the cup but also coupled to
+                    the navigation dynamics. The arm configuration also affects what the robot can perceive. It
+                    determines sensor viewpoints and can cause self-occlusion, making perception dependent on
+                    manipulation choices.
+                </p>
+
+                <ul>
+                    <li><strong>Base-Arm:</strong> Base position determines arm workspace and collision geometry</li>
+                    <li><strong>Grasp-Navigation:</strong> Grasp choice constrains navigation dynamics and trajectory
+                    </li>
+                    <li><strong>Configuration-Stability:</strong> Arm extension affects center of mass and stability
+                    </li>
+                    <li><strong>Perception-Action:</strong> Robot position determines what can be perceived</li>
+                </ul>
+
+                <p>
+                    These aren't edge cases. This is the fundamental nature of mobile manipulation: everything
+                    affects everything else.
+                </p>
+
+                <h3>2. Temporal Coupling</h3>
+
+                <p>
+                    The temporal dimension creates circular causal dependencies. Mobile manipulation requires reasoning
+                    about the future to make decisions now, yet the future depends on the decisions we make now.
+                </p>
+                <p>
+                    Consider planning an approach to grasp an object. We need to know the target configuration, yet we
+                    can't observe it until we get closer. We must guess a subgoal based on incomplete information. Each
+                    guess commits us to a trajectory that limits future options.
+                </p>
+                <p>
+                    Where we navigate now determines what we can see later. What we need to see depends on what
+                    manipulation we'll perform. What manipulation we perform depends on what we observe. The circle
+                    closes.
+                </p>
+
+                <ul>
+                    <li><strong>Future-to-Present:</strong> Current decisions require future observations we don't have
+                        yet</li>
+                    <li><strong>Present-to-Future:</strong> Current actions determine what we can observe later</li>
+                    <li><strong>Sequential Dependencies:</strong> Each action depends on outcomes of actions not yet
+                        executed</li>
+                </ul>
+
+                <p>
+                    This creates a chicken-and-egg problem: planning navigation requires knowing manipulation
+                    requirements, which requires knowing our position, which requires knowing what we'll observe, which
+                    depends on where we position ourselves.
+                </p>
+
+                <h3>3. Knowledge and Grounding Coupling</h3>
+
+                <p>
+                    There's a third dimension often overlooked: the coupling between high-level knowledge and low-level
+                    grounding. Modern systems use VLMs, LLMs, or symbolic planners that bring general knowledge but
+                    aren't prepared for specific scenarios.
+                </p>
+                <p>
+                    The system lacks meta-knowledge about its own knowledge boundaries. An LLM might suggest "open the
+                    drawer to get the cup," unaware this drawer is stuck or the cup is elsewhere. Determining when
+                    enough information has been gathered is itself circular: the criteria depends on the task, which
+                    depends on what the system knows, which depends on gathered information.
+                </p>
+                <p>
+                    High-level reasoning needs low-level grounding to know what's true. Low-level execution needs
+                    high-level guidance about what information matters. Neither can function without the other, yet they
+                    operate in different representational spaces.
+                </p>
+
+                <ul>
+                    <li><strong>Uncertainty About Uncertainty:</strong> Systems lack meta-knowledge about their
+                        knowledge boundaries</li>
+                    <li><strong>Circular Grounding:</strong> Knowing when we know enough depends on what we're trying to
+                        know</li>
+                    <li><strong>Bidirectional Dependency:</strong> High-level and low-level reasoning depend on each
+                        other across abstraction boundaries</li>
+                </ul>
+
+            </section>
+
+            <!-- Section 3: Common Approaches -->
+            <section class="blog-section">
+                <h2>The Common Approaches</h2>
+
+                <p>
+                    Faced with this complexity, we have no choice but to make assumptions and decouple the system. We do
+                    this in three main ways: <strong>spatial decoupling</strong> through modularity (separating
+                    perception, navigation, and manipulation), <strong>temporal decoupling</strong> through hierarchy
+                    (separating high-level planning from low-level execution), or making strong assumptions to learn
+                    everything <strong>end-to-end</strong>. Each approach makes critical assumptions to manage
+                    complexity. These assumptions are precisely why they don't scale.
+                </p>
+
+                <h3>1. Spatial Decoupling: Assuming Independence</h3>
+
+                <p>
+                    Faced with intractability, we decompose the system into modules: perception processes sensor data,
+                    navigation plans base motion, manipulation handles arm control, task planning sequences actions.
+                    Each module has well-defined inputs and outputs, can be developed independently, and has manageable
+                    computational complexity. This decomposition is engineering necessity.
+                </p>
+                <p>
+                    The assumption is that these modules can operate independently. The navigation module positions the
+                    base assuming the arm configuration is fixed. The manipulation module plans grasps assuming the base
+                    won't move. Perception provides object poses without understanding how they'll be used. Each module
+                    optimizes its own objective in isolation.
+                </p>
+                <p>
+                    This assumption breaks down immediately. When navigation and manipulation plan independently, we get
+                    locally optimal solutions that are globally suboptimal. The navigation module might position the
+                    base in a location that technically allows manipulation, yet makes the grasp unnecessarily
+                    difficult. Modules communicate through narrow interfaces—goal positions, object poses—losing rich
+                    information about constraints, preferences, and uncertainty at module boundaries. When modules make
+                    incompatible assumptions, the system fails in ways that are hard to diagnose.
+                </p>
+
+                <ul>
+                    <li><strong>Lost Optimality:</strong> Independent planning yields locally optimal but globally
+                        suboptimal solutions</li>
+                    <li><strong>Interface Brittleness:</strong> Narrow interfaces lose critical information at module
+                        boundaries</li>
+                    <li><strong>Implicit Assumptions:</strong> Modules make incompatible assumptions that cause
+                        hard-to-diagnose failures</li>
+                    <li><strong>Coordination Overhead:</strong> Significant engineering effort needed to manage module
+                        interactions</li>
+                </ul>
+
+                <h3>2. Temporal Decoupling: Assuming Lossless Abstraction</h3>
+
+                <p>
+                    To handle long horizons, we introduce hierarchy. This appears in three main forms: <strong>Task and
+                        Motion Planning (TAMP)</strong>, <strong>Hierarchical Reinforcement Learning (HRL)</strong>, and
+                    <strong>LLM-as-planner with learned policies</strong>. The assumption is that we can compress
+                    low-level state into high-level abstractions without losing critical information. High-level
+                    planning reasons about abstract actions, low-level planning handles detailed execution.
+                </p>
+                <p>
+                    In TAMP, symbolic planning reasons about abstract actions like "grasp cup" or "navigate to table." A
+                    symbolic predicate like <code>At(robot, table)</code> doesn't capture whether the base position
+                    actually enables a feasible grasp. Bilevel planning attempts to address this by planning all the way
+                    to low-level details before committing to high-level decisions. This is both inefficient (must
+                    explore complete low-level plans for every high-level option) and often impossible (can't plan
+                    low-level details for states we haven't observed yet under partial observability).
+                </p>
+                <p>
+                    In Hierarchical RL, a high-level policy sets subgoals and a low-level policy achieves them. The
+                    high-level policy is trained on abstract representations of success. These abstractions create a
+                    gap: the high-level model learns to exploit the representation rather than solve the actual task.
+                    This is reward hacking at the architectural level. The high-level policy optimizes for abstract
+                    subgoals that appear successful in the learned representation yet don't correspond to real low-level
+                    success.
+                </p>
+                <p>
+                    A recent variant uses LLMs as high-level planners with BC or RL policies as executors. The LLM
+                    generates task plans in natural language or code, while learned policies execute primitive skills.
+                    This "large-small brain" architecture faces the same issue: the LLM reasons about abstract task
+                    descriptions without understanding whether the low-level policies can actually execute them. The gap
+                    between language-level planning and action-level execution creates the same lossy abstraction
+                    problem.
+                </p>
+                <p>
+                    All three approaches struggle with the same problem: hierarchical decomposition requires lossy
+                    compression of low-level state into high-level abstractions. This loss is not incidental—it's
+                    necessary to make high-level reasoning tractable. Yet it means the high level cannot fully
+                    understand what the low level can actually achieve.
+                </p>
+
+                <ul>
+                    <li><strong>Lossy Abstractions:</strong> High-level representations cannot faithfully express
+                        low-level success conditions</li>
+                    <li><strong>Bilevel Planning Intractability:</strong> Planning to full detail is inefficient and
+                        impossible under partial observability</li>
+                    <li><strong>Reward Hacking:</strong> High-level policies exploit abstract representations rather
+                        than solving the actual task</li>
+                    <li><strong>Necessary Compression:</strong> Abstraction is required for tractability but prevents
+                        full understanding</li>
+                </ul>
+
+
+                <h3>3. End-to-End Learning: Assuming Reactivity is Sufficient</h3>
+
+                <p>
+                    Given all these problems with decomposition, a natural alternative is to avoid decomposition
+                    entirely and learn everything end-to-end with a single model. This is the promise of
+                    Vision-Language-Action (VLA) models: feed in images and language instructions, output robot actions.
+                    No modules, no hierarchies, no coordination problems.
+                </p>
+                <p>
+                    The assumption is that a pure reactive system can solve mobile manipulation. Given current
+                    observations and task description, directly output actions. No explicit planning, no reasoning about
+                    future states, no beliefs about hidden information. The model learns to map observations to actions
+                    through pattern matching on large datasets.
+                </p>
+                <p>
+                    This assumption breaks down for mobile manipulation. The problem inherently requires reasoning about
+                    invisible aspects: whether a base position enables a feasible grasp, whether a path keeps the object
+                    stable, whether the target is reachable. These considerations demand causal reasoning about
+                    counterfactuals and future states, not just reactive pattern matching. Building an entire system on
+                    the assumption that reactivity is sufficient ignores the circular dependencies, partial
+                    observability, and long-horizon planning that define the problem. VLAs don't solve the decomposition
+                    problem—they assume it away.
+                </p>
+
+                <ul>
+                    <li><strong>Reactive Assumption:</strong> Assumes current observations are sufficient to determine
+                        actions</li>
+                    <li><strong>No Explicit Planning:</strong> Cannot reason about future states or hidden information
+                    </li>
+                    <li><strong>Pattern Matching Limitation:</strong> Relies on learned correlations rather than causal
+                        reasoning</li>
+                    <li><strong>Ignoring Problem Structure:</strong> Assumes away the fundamental challenges instead of
+                        addressing them</li>
+                </ul>
+
+            </section>
+
+            <!-- Section 4: A Path Forward -->
+            <section class="blog-section">
+                <h2>Learning Within Structure</h2>
+
+                <p>
+                    In my view, <strong>neither pure modular planning nor pure end-to-end learning solves the
+                        problem.</strong> A better approach lies in combining their strengths thoughtfully.
+                </p>
+
+                <p>
+                    We start with modular assumptions—decomposing the system into components like perception,
+                    navigation, and manipulation. But instead of hand-coding rigid interfaces, we model each module as a
+                    probabilistic function mapping. Each module learns a distribution: perception learns
+                    \(P(\text{object\_pose} \mid \text{observations})\), navigation learns \(P(\text{trajectory} \mid
+                    \text{goal}, \text{constraints})\), manipulation learns \(P(\text{grasp} \mid \text{object\_state},
+                    \text{base\_position})\).
+                </p>
+                <p>
+                    The key insight is this: <strong>when we discover dependencies between modules, we don't redesign
+                        the module interfaces. Instead, we update the data pipeline.</strong> If navigation depends on
+                    arm configuration, we include arm state in the navigation module's input distribution. If grasp
+                    success depends on approach trajectory, we expand the manipulation module's conditioning variables.
+                    When dependencies are strong enough, we can combine modules into a bigger, more unified module that
+                    learns the joint distribution directly.
+                </p>
+                <p>
+                    This approach is fundamentally different from traditional modular systems. We're not trying to
+                    eliminate dependencies through clever interface design. We're acknowledging dependencies and
+                    modeling them explicitly through the data and learning process. The structure guides what we learn,
+                    but learning reveals what structure we actually need.
+                </p>
+
+                <p>
+                    <strong>The critical questions become:</strong> What are the right modules to start with? What
+                    distributions should they model? When do we expand a module's inputs versus combining modules
+                    entirely? These aren't just engineering decisions—they're fundamental design choices that determine
+                    what the system can learn and how modules can be composed.
+                </p>
+
+
+                <p>
+                    As a <a href="https://anxingxiao.com/" target="_blank">colleague</a> once said: planning people are
+                    overconfident about planning, and learning people are overconfident about learning. <strong>The real
+                        situation is that it's impossible to formulate everything clearly, and equally impossible to
+                        learn everything without carefully thinking about what exactly we're learning.</strong>
+                </p>
+
+                <p>
+                    Pure planning assumes we can specify all the constraints, dynamics, and objectives precisely. But
+                    mobile manipulation involves too much uncertainty, too many edge cases, too much variation. Pure
+                    learning assumes we can collect enough data to cover the space and that the network will discover
+                    the right structure. But the combinatorial explosion makes comprehensive coverage impossible, and
+                    learned structure is often brittle.
+                </p>
+
+                <p>
+                    The path forward requires humility from both camps. We need the structure and interpretability of
+                    planning with the flexibility and adaptability of learning. We need to carefully design what we
+                    formalize and what we learn, understanding that both are necessary and neither is sufficient.
+                </p>
+            </section>
+
+            <!-- Section 5: Conclusion -->
+            <section class="blog-section">
+                <h2>Conclusion</h2>
+
+                <p>
+                    Mobile manipulation is hard because the problem is fundamentally coupled. Navigation and
+                    manipulation depend on each other, perception depends on both, and high-level planning cannot be
+                    cleanly separated from low-level execution. Faced with this complexity, we have no choice but to
+                    make assumptions and decompose. Spatial decoupling assumes independence, temporal decoupling assumes
+                    lossless abstraction, end-to-end learning assumes reactivity is sufficient. <strong>Each approach
+                        makes critical assumptions to manage complexity. These assumptions are precisely why they don't
+                        scale.</strong>
+                </p>
+
+                <p>
+                    The path forward isn't to eliminate decomposition or to learn everything end-to-end. It's to start
+                    with modular assumptions but model them as probabilistic functions. When we discover dependencies,
+                    we don't redesign interfaces—we update the data pipeline. We expand input distributions, combine
+                    modules when couplings are strong, and let learning reveal the structure we actually need.
+                    <strong>Mobile manipulation will remain hard. But by acknowledging the fundamental couplings rather
+                        than assuming them away, we can build systems that are more robust, more capable, and more
+                        honest about their limitations.</strong>
+                </p>
+            </section>
+
+            <div class="citation-section">
+                <h2 class="citation-header">
+                    Citation
+                </h2>
+                <p class="citation-text">
+                    If you found this perspective useful, please cite:
+                </p>
+                <pre class="citation-pre">
+@misc{mobile-manipulation-paradox,
+  author    = {Hu Tianrun},
+  title     = {The Fundamental Paradox of Mobile Manipulation: Why We Can't Escape the Modularity Trap},
+  year      = {2025},
+  publisher = {GitHub},
+  url       = {https://tianrunhu.github.io/blog/posts/mobile-manipulation-complexity.html}
+}</pre>
+            </div>
+
+            <div class="references-section">
+                <h2 class="references-header">
+                    Further Reading
+                </h2>
+                <ol class="references-list">
+                    <li>
+                        Kaelbling, L. P., & Lozano-Pérez, T. (2013). Integrated task and motion planning in belief
+                        space. The International Journal of Robotics Research, 32(9-10), 1194-1227.
+                    </li>
+                    <li>
+                        Garrett, C. R., Lozano-Pérez, T., & Kaelbling, L. P. (2018). FFRob: Leveraging symbolic planning
+                        for efficient task and motion planning. The International Journal of Robotics Research, 37(1),
+                        104-136.
+                    </li>
+                    <li>
+                        Toussaint, M., Allen, K. R., Smith, K. A., & Tenenbaum, J. B. (2018). Differentiable physics and
+                        stable modes for tool-use and manipulation planning. In Robotics: Science and Systems.
+                    </li>
+                    <li>
+                        Driess, D., Xia, F., Sajjadi, M. S., Lynch, C., Chowdhery, A., Ichter, B., ... & Toussaint, M.
+                        (2023). PaLM-E: An embodied multimodal language model. arXiv preprint arXiv:2303.03378.
+                    </li>
+                    <li>
+                        Vahrenkamp, N., Asfour, T., Metta, G., Sandini, G., & Dillmann, R. (2012). Manipulability
+                        analysis. In 2012 12th IEEE-RAS International Conference on Humanoid Robots (pp. 568-573). IEEE.
+                    </li>
+                </ol>
+            </div>
+        </article>
+    </div>
+
+    <script defer src="/js/blog.js"></script>
+    <script defer src="/js/katex-init.js"></script>
+</body>
+
+</html>
