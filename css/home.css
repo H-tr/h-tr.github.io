@@ -8,7 +8,7 @@ body {
   line-height: 1.7;
   max-width: var(--content-width);
   margin: 0 auto;
-  padding: 2rem;
+  padding: 2rem 2rem 10vh;
   color: var(--text-color);
   background: #fff;
   font-weight: 400;
@@ -262,6 +262,13 @@ a:hover {
   font-style: normal;
   font-size: 0.9em;
 }
+
+/* Get in Touch */
+.connect {
+  margin-top: 3.5rem;
+  padding-bottom: 2rem;
+}
+
 
 /* Responsive Design */
 @media (max-width: 700px) {
