@@ -165,6 +165,104 @@ a:hover {
   margin: 1rem 0;
 }
 
+/* Research Panels */
+.research-panel {
+  margin: 1rem 0;
+  padding-left: 1rem;
+  border-left: 3px solid #e0e4e8;
+  transition: border-color 0.25s ease;
+}
+
+.research-panel[open] {
+  border-left-color: #4682B4;
+}
+
+.research-panel summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 0.15em 0;
+}
+
+.research-panel summary::-webkit-details-marker { display: none; }
+
+.panel-title {
+  display: block;
+  font-weight: 600;
+  font-size: 0.95em;
+  color: #2c3e50;
+  transition: color 0.2s ease;
+}
+
+.panel-chevron {
+  font-style: normal;
+  color: #aaa;
+  font-size: 1.1em;
+  display: inline-block;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.research-panel[open] .panel-chevron {
+  transform: rotate(90deg);
+  color: #4682B4;
+}
+
+.research-panel summary:hover .panel-title {
+  color: #4682B4;
+}
+
+.research-panel summary:hover .panel-chevron {
+  color: #4682B4;
+}
+
+.panel-desc {
+  display: block;
+  font-size: 0.83em;
+  color: #999;
+  font-style: italic;
+  margin-top: 0.1em;
+}
+
+/* Body */
+.panel-body {
+  margin-top: 0.8em;
+}
+
+.panel-group {
+  margin-bottom: 0.9em;
+}
+
+.panel-group-title {
+  font-size: 0.78em;
+  font-weight: 700;
+  color: #2c3e50;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.3em;
+}
+
+.panel-item {
+  font-size: 0.85em;
+  color: #555;
+  padding: 0.25em 0 0.25em 0.8em;
+  border-left: 1px solid #eee;
+  margin-bottom: 0.2em;
+  line-height: 1.6;
+}
+
+.panel-item a {
+  color: #4682B4;
+}
+
+.panel-item a:hover {
+  color: #3A6A97;
+}
+
+.panel-item em {
+  color: #bbb;
+  font-style: normal;
+  font-size: 0.9em;
+}
+
 /* Responsive Design */
 @media (max-width: 700px) {
   body {

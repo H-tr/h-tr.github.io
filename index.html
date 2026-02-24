@@ -107,8 +107,8 @@
           target="_blank"
           rel="noopener noreferrer"
           >Dr. Hanbo Zhang</a
-        > while at NUS. My research interests include robotics learning, manipulation,
-        perception, planning, and Human Robot Interaction (HRI). Previously, I
+        > while at NUS. My research focuses on mobile manipulation, object-centric skill
+        learning, and generalizable robot systems. Previously, I
         was an undergraduate in Computer Engineering at the
         <a
           href="https://www.ntu.edu.sg/computing"
@@ -144,44 +144,83 @@
 
       <h2>Research Interests</h2>
       <p>
-        I study how to extract transferable <strong>skills from human demonstrations</strong>.
-        My current focus is organized around three questions: what
-        <strong>representation</strong> captures a skill, how to <strong>extract</strong> it
-        reliably from noisy human data, and how to <strong>apply</strong> it to solve new
-        tasks under uncertainty. While these questions cut across areas like
-        <strong>HRI</strong>, <strong>TAMP</strong>, and <strong>POMDP</strong>-based decision-making,
-        they serve as supporting tools rather than ends in themselves.
+        My long-term research goal is to build <strong>generalizable robot
+        skills efficiently with minimal human prior</strong>. Generalizing across
+        objects, embodiments, viewpoints, and tasks remains hard because most
+        learning approaches couple factors that are structurally independent.
+        I am interested in representations and algorithms that make this
+        structure explicit, so that compositional generalization and data
+        efficiency arise from the representation rather than from scale.
       </p>
-      <ul>
-        <li>
-          <strong>Representation</strong> of skills and task-relevant state
-          <ul>
-            <li><strong>Learning state representation</strong> from noisy observations and demonstrations</li>
-            <li><strong>Object-centric</strong> skill representations capturing entities</li>
-            <li><strong>Constraints extraction</strong> from demonstrations to recover task, safety, and kinematic constraints</li>
-          </ul>
-        </li>
-        <li>
-          <strong>Extraction</strong> of skill representations from human data
-          <ul>
-            <li>Concept learning of task-relevant entities, relations, affordances, and constraints</li>
-            <li>Correspondence matching from demonstrations to novel scenes to ground the representation</li>
-          </ul>
-        </li>
-        <li>
-          <strong>Application</strong> of learned skills to new tasks
-          <ul>
-            <li>Using <strong>Learned policy</strong> to apply skill representations across tasks and environments</li>
-            <li>Using <strong>TAMP</strong> to sequence skills and motion primitives</li>
-            <li><strong>POMDP</strong>-style reasoning for decision-making under uncertainty</li>
-          </ul>
-        </li>
-      </ul>
-      <p>
-        My long-term goal is to build <strong>skill-centric, demonstration-aware planning systems</strong>
-        that are robust to real-world uncertainty—robots that learn from people, represent
-        what they learn compactly, and reuse those skills reliably in dynamic environments.
-      </p>
+
+      <details class="research-panel">
+        <summary>
+          <span class="panel-title">Compositional Generalization in Manipulation <span class="panel-chevron">›</span></span>
+          <span class="panel-desc">How can skill representations and scene models support transfer across objects, embodiments, viewpoints, and tasks?</span>
+        </summary>
+        <div class="panel-body">
+          <div class="panel-group">
+            <div class="panel-group-title">Object-Centric Skill Representations</div>
+            <div class="panel-item">
+              [<a href="https://chain-of-action.github.io/" target="_blank" rel="noopener noreferrer">Chain-of-Action</a>] <em>NeurIPS 2025</em>
+              — Trajectory autoregressive modeling around key object states; better generalization than predicting raw actions
+            </div>
+            <div class="panel-item">
+              [<a href="https://sites.google.com/view/functo" target="_blank" rel="noopener noreferrer">MimicFunc</a>] <em>CoRL 2025</em>
+              — Tool-use transfer from a single video via functional correspondence; separates affordance prediction from motion generation
+            </div>
+            <div class="panel-item">
+              [<a href="publication/">Object-Centric Policy</a>] <em>ongoing</em>
+              — Contact points and spatial vectors in object coordinates, transferring across embodiments and viewpoints
+            </div>
+          </div>
+          <div class="panel-group">
+            <div class="panel-group-title">Contact Synthesis and Foundation Models</div>
+            <div class="panel-item">
+              [<a href="https://manifoundationmodel.github.io/" target="_blank" rel="noopener noreferrer">ManiFoundation</a>] <em>IROS 2024</em>
+              — Foundation model for contact synthesis generalizing across arbitrary objects and robot embodiments
+            </div>
+          </div>
+          <div class="panel-group">
+            <div class="panel-group-title">Compositional Scene Representations</div>
+            <div class="panel-item">
+              [Dynamic Scene Graph] <em>ongoing</em>
+              — Object state tracking via relational structure for long-horizon planning under partial observation
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="research-panel">
+        <summary>
+          <span class="panel-title">Household Robot Assistants <span class="panel-chevron">›</span></span>
+          <span class="panel-desc">How do these representations come together in real-world mobile manipulation and human-robot interaction?</span>
+        </summary>
+        <div class="panel-body">
+          <div class="panel-group">
+            <div class="panel-group-title">Mobile Manipulation</div>
+            <div class="panel-item">
+              [<a href="publication/">Visibility-Aware Mobile Grasping</a>] <em>RSS 2026, in submission</em>
+              — Jointly optimizes gaze and base motion under limited directional sensing to grasp objects outside the arm workspace
+            </div>
+          </div>
+          <div class="panel-group">
+            <div class="panel-group-title">Human-Robot Interaction</div>
+            <div class="panel-item">
+              [<a href="https://robibutler.github.io/" target="_blank" rel="noopener noreferrer">Robi Butler</a>] <em>ICRA 2025</em>
+              — Remote multimodal interaction with a household robot assistant via language, gesture, and demonstration
+            </div>
+          </div>
+          <div class="panel-group">
+            <div class="panel-group-title">Imitation Learning Infrastructure</div>
+            <div class="panel-item">
+              [<a href="https://github.com/AdaCompNUS/RobotIL" target="_blank" rel="noopener noreferrer">RobotIL</a>]
+              Multi-platform system supporting GELLO, VR controllers, joysticks, and hand tracking across Fetch, Kinova, and Franka; underpins several works above
+            </div>
+          </div>
+        </div>
+      </details>
+
       <div class="research-diagram">
         <object data="media/research_interests.svg" type="image/svg+xml" alt="Research Interests Diagram" style="max-width: 1600px; width: 100%; display: block; margin: 20px auto; position: relative; left: 50%; transform: translateX(-50%);">
           <!-- Fallback content -->
@@ -189,5 +228,6 @@
         </object>
       </div>
     </section>
+
   </body>
 </html>
