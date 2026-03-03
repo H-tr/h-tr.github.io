@@ -4,13 +4,14 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  font-family: et-book, Palatino, "Palatino Linotype", "Palatino LT STD", "Book Antiqua", Georgia, serif;
+  font-size: 1.3rem;
   line-height: 1.7;
   max-width: var(--content-width);
   margin: 0 auto;
   padding: 2rem;
   color: var(--text-color);
-  background: #fff;
+  background: #fffff8;
 }
 
 /* Set default header weight */
@@ -49,7 +50,6 @@ nav a {
 
 nav a:hover {
   color: #000;
-  font-weight: 500;
   text-decoration: none;
 }
 
@@ -158,6 +158,7 @@ nav a:active {
 
 .project-description {
   font-style: italic;
+  font-size: 1rem;
   margin-bottom: 0.8rem;
   line-height: 1.5;
   font-weight: 300;

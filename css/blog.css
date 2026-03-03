@@ -4,13 +4,14 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  font-family: et-book, Palatino, "Palatino Linotype", "Palatino LT STD", "Book Antiqua", Georgia, serif;
+  font-size: 1.3rem;
   line-height: 1.7;
   max-width: var(--content-width);
   margin: 0 auto;
   padding: 2rem;
   color: var(--text-color);
-  background: #fff;
+  background: #fffff8;
 }
 
 /* Set default header weight */
@@ -54,7 +55,6 @@ nav a {
 
 nav a:hover {
   color: #000;
-  font-weight: 500;
   text-decoration: none;
 }
 
@@ -117,6 +117,7 @@ nav a:active {
 }
 
 .blog-summary {
+  font-size: 1rem;
   margin-bottom: 0.8rem;
   line-height: 1.7;
   font-weight: 300;
@@ -139,7 +140,7 @@ nav a:active {
   border: 1px solid #ddd;
   border-radius: 4px;
   transition: all 0.2s ease;
-  background-color: #fff;
+  background-color: #fffff8;
 }
 
 .blog-link:hover {
@@ -165,10 +166,9 @@ nav a:active {
 }
 
 .blog-post-title {
-  font-family: "Playfair Display", Georgia, serif;
-  font-size: 2.2rem;
+  font-size: 2.5rem;
   margin-bottom: 1rem;
-  font-weight: 600;
+  font-weight: 400;
 }
 
 .blog-post-date {
@@ -177,8 +177,7 @@ nav a:active {
 }
 
 .blog-post-content {
-  font-family: "Lato", -apple-system, sans-serif;
-  font-size: 1.05rem;
+  font-family: et-book, Palatino, "Palatino Linotype", "Palatino LT STD", "Book Antiqua", Georgia, serif;
   line-height: 1.5;
   /* Tighter line spacing */
   font-weight: 400;
@@ -189,15 +188,15 @@ nav a:active {
   /* Smaller gap between paragraphs */
 }
 
-/* Headings: Playfair Display for elegance */
+/* Headings - italic light style matching tufte.css */
 .blog-post-content h1,
 .blog-post-content h2,
 .blog-post-content h3,
 .blog-post-content h4,
 .blog-post-content h5,
 .blog-post-content h6 {
-  font-family: "Playfair Display", Georgia, serif;
-  font-weight: 600;
+  font-style: italic;
+  font-weight: 400;
   margin-top: 2.2rem;
   margin-bottom: 0.5rem;
 }
@@ -428,9 +427,9 @@ nav a:active {
   }
 }
 
-/* Simple fix for math equations sizing */
+/* Math equations sizing - closer to tufte.css reference */
 .katex {
-  font-size: 1em;
+  font-size: 1.1em;
 }
 
 /* Fix line spacing in blog posts */
@@ -467,7 +466,6 @@ nav a:active {
 
 .citation-header,
 .references-header {
-  font-family: "Playfair Display", Georgia, serif;
   font-size: 1.4rem;
   margin-bottom: 1.5rem;
   color: #1a1a1a;
@@ -548,7 +546,7 @@ nav a:active {
 
 /* Additional Katex styling */
 .katex {
-  font-size: 1em;
+  font-size: 1.1em;
 }
 
 /* ============================================
