@@ -6,7 +6,7 @@ Personal academic website of **Hu Tianrun** — Research Engineer at the Smart S
 
 ## Structure
 
-```
+```bash
 ├── index.html          # Home & research interests
 ├── publication/        # Publications
 ├── project/            # Projects
