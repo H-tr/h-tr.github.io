@@ -427,9 +427,9 @@ nav a:active {
   }
 }
 
-/* Math equations sizing - closer to tufte.css reference */
+/* Math equations sizing - KaTeX default (1.21em) matches LaTeX convention */
 .katex {
-  font-size: 1.1em;
+  font-size: 1.21em;
 }
 
 /* Fix line spacing in blog posts */
@@ -544,10 +544,7 @@ nav a:active {
   border-color: #333;
 }
 
-/* Additional Katex styling */
-.katex {
-  font-size: 1.1em;
-}
+/* Additional Katex styling - size set above */
 
 /* ============================================
    VIDEO EMBEDDING - Clean Black & White Style

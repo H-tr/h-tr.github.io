@@ -11,14 +11,7 @@ document.addEventListener('DOMContentLoaded', function () {
       throwOnError: false, // Don't stop rendering on errors
     });
 
-    // Simple fix to make KaTeX math size match surrounding text size
-    // Check if the style already exists to avoid duplicates
-    if (!document.getElementById('katex-font-size-fix')) {
-        const style = document.createElement('style');
-        style.id = 'katex-font-size-fix';
-        style.textContent = '.katex { font-size: 1em; }';
-        document.head.appendChild(style);
-    }
+    // KaTeX font-size is controlled in blog.css (1.21em, matching LaTeX default)
 
   } else {
     console.warn("KaTeX auto-render function (renderMathInElement) not found. Skipping math rendering.");
