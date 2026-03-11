@@ -44,6 +44,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .header-content p {
   margin: 0.25rem 0;
+  font-size: 0.85em;
 }
 
 /* Navigation */
@@ -95,6 +96,7 @@ nav a:active {
 
 .contact-info p {
   margin: 0.5rem 0;
+  font-size: 0.85em;
 }
 
 .contact-info a {
@@ -163,6 +165,7 @@ a:hover {
 
 .about p {
   margin: 1rem 0;
+  font-size: 0.9em;
 }
 
 /* Research Panels */
