@@ -222,15 +222,17 @@ h2.resume-name {
 
 .skill-tag {
   padding: 0.4rem 0.8rem;
-  background-color: #f8f9fa;
+  background: transparent;
+  border: 1px solid #e0dcd0;
   border-radius: 4px;
   font-size: 0.95rem;
   color: var(--text-color);
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
 }
 
 .skill-tag:hover {
-  background-color: #e9ecef;
+  background: rgba(44, 62, 80, 0.04);
+  border-color: #c0bbb0;
 }
 
 @media (max-width: 700px) {
