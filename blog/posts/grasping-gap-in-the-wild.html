@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Grasping Gap in the Wild</title>
+
+    <!-- Fonts -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+
+    <!-- Prism.js initialization -->
+    <script src="/js/prism-init.js"></script>
+
+    <!-- KaTeX Math Support -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css" rel="stylesheet" />
+
+    <!-- Site Assets -->
+    <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg" />
+    <link href="/css/blog.css" rel="stylesheet" />
+
+    <!-- KaTeX Scripts -->
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"></script>
+</head>
+
+<body>
+    <div class="blog-post">
+        <a href="../" class="back-button">
+            <i class="fas fa-arrow-left"></i>Back to Blog
+        </a>
+
+        <header class="blog-post-header">
+            <h1 class="blog-post-title">
+                The Grasping Gap in the Wild
+            </h1>
+            <div class="blog-post-date">March 28, 2026</div>
+        </header>
+
+        <article class="blog-post-content">
+            <!-- Section 1: Introduction -->
+            <section class="blog-section">
+                <p>
+                    Pick and place has an odd status in robotics. It is often treated as the "hello world" of
+                    manipulation. It is useful and familiar, but no longer exciting. Reviewers often see it as largely solved.
+                    Research attention has shifted toward richer long-horizon tasks, language-conditioned behavior,
+                    and generalist robot policies.
+                </p>
+                <p>
+                    And yet, <strong>pick and place is far from solved.</strong>
+                </p>
+                <figure class="blog-figure">
+                    <img src="/media/images/visibility-mobile-grasping/trajectory_figure.png"
+                         alt="Visibility-aware mobile grasping: the robot plans a trajectory toward a target while a chair appears in its path, triggering replanning">
+                    <figcaption>
+                        Our mobile grasping system in action. The robot approaches a target object while a chair
+                        suddenly appears in its path. Through continuous active perception and whole-body replanning,
+                        it detects the obstacle and replans a collision-free trajectory to complete the grasp.
+                    </figcaption>
+                </figure>
+                <p>
+                    In our recent work,
+                    <a href="https://visibility-aware-mobile-grasping.github.io/" target="_blank">Visibility-Aware Mobile Grasping</a>,
+                    we built a mobile grasping system that can grasp objects from arbitrary positions in real, dynamic
+                    environments. The system integrates active perception, whole-body motion planning, and adaptive
+                    subgoal generation to handle the full perceive-plan-grasp pipeline. We evaluated it across 400
+                    simulation scenarios in 20 diverse indoor scenes and on a real Fetch robot at 5 indoor locations.
+                </p>
+
+                <p>
+                    <strong>The bottleneck is
+                    grasping.</strong> Despite using a state-of-the-art grasp detection network, grasping failure is
+                    the single largest failure category in our system, in both static and dynamic environments.
+                </p>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0;">
+                    <figure class="blog-figure" style="margin: 0;">
+                        <img src="/media/images/blog/grasping-gap/failure_flow_static.png"
+                             alt="Failure flow in static simulation: 400 trials, 275 successes, 53 grasping failures">
+                        <figcaption>Simulation, Static (400 trials)</figcaption>
+                    </figure>
+                    <figure class="blog-figure" style="margin: 0;">
+                        <img src="/media/images/blog/grasping-gap/failure_flow_dynamic.png"
+                             alt="Failure flow in dynamic simulation: 400 trials, 232 successes, 64 grasping failures">
+                        <figcaption>Simulation, Dynamic (400 trials)</figcaption>
+                    </figure>
+                </div>
+
+                <p>
+                    The flow diagrams make one thing clear. Grasping accounts for more failures than any other category.
+                    Out of 125 total failures across 400 static trials, 53 (42.4%) are grasping failures. When we dug
+                    into why, we found a consistent mismatch between standard off-the-shelf grasp detection and the
+                    demands of mobile grasping outside the tabletop setting.
+                </p>
+                <p>
+                    This blog presents our failure analysis and what it reveals about the current state of grasping
+                    research.
+                </p>
+            </section>
+
+            <!-- Section 2: The Grasping Gaps -->
+            <section class="blog-section">
+                <h2>The Grasping Gaps</h2>
+
+                <p>
+                    We analyzed 46 grasp failures from our static benchmark in detail, manually labeling each into one
+                    of four categories. The breakdown suggests that some core assumptions behind tabletop grasping do
+                    not transfer cleanly to mobile grasping in cluttered environments.
+                </p>
+
+                <!-- Grasp failure breakdown table -->
+                <div class="blog-table-wrapper">
+                    <table class="blog-table">
+                        <thead>
+                            <tr>
+                                <th>Failure Mode</th>
+                                <th>Description</th>
+                                <th class="num">Count</th>
+                                <th class="num">%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="highlight-row">
+                                <td>Infeasible</td>
+                                <td>All planning attempts fail or IK solution is in collision</td>
+                                <td class="num">20</td>
+                                <td class="num">43.5%</td>
+                            </tr>
+                            <tr>
+                                <td>Inaccurate</td>
+                                <td>False positive grasp pose from the detection network</td>
+                                <td class="num">14</td>
+                                <td class="num">30.4%</td>
+                            </tr>
+                            <tr>
+                                <td>Instability</td>
+                                <td>Object slips or drops after the gripper closes</td>
+                                <td class="num">11</td>
+                                <td class="num">23.9%</td>
+                            </tr>
+                            <tr>
+                                <td>Out-of-Distribution</td>
+                                <td>Grasp network produces no valid candidates at all</td>
+                                <td class="num">1</td>
+                                <td class="num">2.2%</td>
+                            </tr>
+                        </tbody>
+                        <caption>
+                            Grasp failure breakdown across 46 grasping failures in the static unknown benchmark.
+                        </caption>
+                    </table>
+                </div>
+
+                <p>
+                    Each failure mode points to a place where standard grasping assumptions become fragile in our
+                    mobile setting.
+                </p>
+
+                <h3>1. Kinematic Feasibility</h3>
+
+                <div class="blog-callout">
+                    <p>
+                        <strong>43.5% of grasp failures are not about detecting bad grasps.</strong>
+                        They are about detecting geometrically good grasps that the robot physically cannot execute.
+                    </p>
+                </div>
+
+                <p>
+                    The grasp detector scores candidates on geometric quality alone. In a tabletop setting, the robot
+                    is often pre-positioned at an ideal distance with a known workspace, so many detected grasps are
+                    reachable. When the robot arrives from an arbitrary starting configuration, the situation is
+                    different because it approaches from varied angles, often in tight spaces. A grasp that looks perfect in
+                    the point cloud may require an arm configuration that collides with a shelf, a wall, or the
+                    robot's own body. Of the 20 infeasible cases, 13 involved the gripper physically contacting the
+                    object but in a configuration where the full arm was in collision. The detector found a
+                    contact-viable grasp. The arm could not get there safely.
+                </p>
+                <p>
+                    This gap has two facets. First, <strong>approach direction</strong>. Many grasp detection methods
+                    generate grasps without considering how the gripper arrives. Objects near walls fail because the
+                    approach angles are blocked. In those cases, a grasp on the object is not necessarily a "good grasp
+                    with a hard motion plan"; it may simply be invalid for the robot in that scene. Second,
+                    <strong>base-grasp coupling</strong>. Grasp detectors output 6-DoF end-effector poses without any
+                    notion of where the robot's base is or what whole-body configuration is needed to reach them. When
+                    the robot arrives from arbitrary positions, the workspace depends on the base position, and the
+                    base position depends on which grasps are available. In our setting, that coupling is hard to
+                    ignore.
+                </p>
+
+                <h3>2. Gripper-Object Mismatch</h3>
+
+                <p>
+                    30.4% of grasp failures come from inaccurate detection. The network proposes a grasp that looks
+                    good but does not lead to a workable grasp on the real robot. The per-object breakdown reveals why.
+                </p>
+
+                <div class="blog-table-wrapper">
+                    <table class="blog-table">
+                        <thead>
+                            <tr>
+                                <th>Object</th>
+                                <th class="num">Total</th>
+                                <th class="num">Infeasible</th>
+                                <th class="num">Inaccurate</th>
+                                <th class="num">Instability</th>
+                                <th class="num">OOD</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="highlight-row">
+                                <td>Cups (various)</td>
+                                <td class="num">14</td>
+                                <td class="num">2</td>
+                                <td class="num">8</td>
+                                <td class="num">3</td>
+                                <td class="num">1</td>
+                            </tr>
+                            <tr>
+                                <td>Lego Duplo</td>
+                                <td class="num">8</td>
+                                <td class="num">4</td>
+                                <td class="num">3</td>
+                                <td class="num">1</td>
+                                <td class="num">0</td>
+                            </tr>
+                            <tr>
+                                <td>Toy Airplane</td>
+                                <td class="num">3</td>
+                                <td class="num">2</td>
+                                <td class="num">0</td>
+                                <td class="num">1</td>
+                                <td class="num">0</td>
+                            </tr>
+                            <tr>
+                                <td>Mug</td>
+                                <td class="num">3</td>
+                                <td class="num">1</td>
+                                <td class="num">1</td>
+                                <td class="num">1</td>
+                                <td class="num">0</td>
+                            </tr>
+                            <tr>
+                                <td>Clamps</td>
+                                <td class="num">3</td>
+                                <td class="num">3</td>
+                                <td class="num">0</td>
+                                <td class="num">0</td>
+                                <td class="num">0</td>
+                            </tr>
+                            <tr>
+                                <td>Others (8 types)</td>
+                                <td class="num">15</td>
+                                <td class="num">8</td>
+                                <td class="num">2</td>
+                                <td class="num">5</td>
+                                <td class="num">0</td>
+                            </tr>
+                        </tbody>
+                        <caption>
+                            Per-object grasp failure analysis from 46 failures across 20 ReplicaCAD scenes.
+                            Cups alone account for 30% of all grasp failures.
+                        </caption>
+                    </table>
+                </div>
+
+                <p>
+                    <strong>Cups dominate the failures</strong>, and their primary mode is <em>inaccurate</em>
+                    detection (8 out of 14). The issue is not just pose error. It is a mismatch between the detected
+                    grasp and the actual gripper kinematics. In the cup cases, the gripper is relatively large while
+                    the rounded cup edge is small. The detector proposes a grasp that looks reasonable geometrically,
+                    but during execution the second finger hits the opposite rim too early, so the grasp never closes
+                    around the cup body in a stable way. <strong>Lego Duplo blocks</strong> show a related issue.
+                    Small objects leave very little room for the gripper geometry and finger motion.
+                </p>
+                <p>
+                    More broadly, this points to a limitation of current grasp detection itself. A grasp representation
+                    that transfers well across one gripper design does not automatically transfer to another. The
+                    detector may identify contact geometry that looks valid in the point cloud, while missing whether
+                    the finger width, closing path, and gripper shape are actually compatible with the object. In our
+                    setting, that gap shows up clearly on cups and other small household objects.
+                </p>
+
+                <h3>3. Grasp Stability</h3>
+
+                <p>
+                    The remaining 23.9% of failures are instability. In these cases, the gripper closes on the object
+                    but cannot hold it securely. This category is smaller than infeasibility or inaccurate detection,
+                    but it still matters because it captures a different failure mode. The system reaches the object
+                    and makes contact, yet the grasp is not robust enough to survive lifting and transport.
+                </p>
+                <p>
+                    Compared with infeasibility, instability is less tied to a single structural cause in our data.
+                    It appears across several object types, including mugs and small household items, suggesting that
+                    contact robustness, object geometry, and small execution errors all contribute. That makes it a
+                    natural target for better grasp ranking, tactile feedback, and post-contact adjustment, rather
+                    than geometry-only grasp detection alone.
+                </p>
+            </section>
+
+            <!-- Section 6: A Path Forward -->
+            <section class="blog-section">
+                <h2>Toward Grasping from Anywhere</h2>
+
+                <p>
+                    Based on what we learned from building and deploying our system, here are a few directions that
+                    seem especially important for grasping beyond the tabletop.
+                </p>
+
+                <h3>Kinematically-Informed Grasp Scoring</h3>
+                <p>
+                    The single highest-impact improvement would be grasp scoring that accounts for kinematic
+                    feasibility. Our data shows 43.5% of grasp failures come from infeasible grasps that score
+                    high on geometric quality. A clean way to formulate this is to score a grasp candidate \(g\) by
+                    feasibility, not geometry alone:
+                </p>
+                <p>
+                    \[
+                    y(g)=\mathbf{1}\left[\exists \pi \text{ such that } \pi \text{ reaches } g \text{ collision-free and executes the grasp}\right].
+                    \]
+                </p>
+                <p>
+                    Here \(\pi\) is a whole-body motion. With full scene information, a bi-level planner can label
+                    \(y(g)\) offline using motion planning, IK, and environment checks, then train a network to
+                    predict \(p(y=1 \mid o, g)\) from observation \(o\). That would let the grasp score absorb
+                    reachability, approach constraints, and scene geometry.
+                </p>
+
+                <h3>Model Gripper-Object Compatibility</h3>
+                <p>
+                    A second direction is to make the model explicitly depend on the gripper embodiment \(r\):
+                </p>
+                <p>
+                    \[
+                    s = f(o, g, r),
+                    \]
+                </p>
+                <p>
+                    where \(r\) includes finger width, jaw depth, closing path, and gripper shape. Our cup failures
+                    are exactly this problem. The pose looks plausible, but the second finger hits the opposite rim too
+                    early because the gripper is too large relative to the cup edge geometry. A grasp detector that is
+                    truly embodiment-aware should learn this mismatch directly.
+                </p>
+
+                <h3>Grasp Planning and Failure Recovery</h3>
+                <p>
+                    Grasp detection alone likely has a ceiling. Some failures cannot be fixed
+                    by improving grasp pose prediction alone. Reliable grasping will require methods beyond grasp
+                    detection itself, including both grasp planning and failure recovery.
+                </p>
+                <p>
+                    By <strong>grasp planning</strong> we mean deciding how to make the grasp
+                    possible in the first place. Sometimes the right action is not to grasp immediately, but to first
+                    change the situation: push the object to a more accessible pose, move it away from a wall, or
+                    relocate the robot so a safer approach becomes available. This is different from grasp detection.
+                    It is about planning a sequence of actions that creates a graspable state.
+                </p>
+                <p>
+                    The second is <strong>failure recovery</strong>. Even with a good plan, execution can still fail,
+                    and the robot must decide what to do next. That decision can be written as a small action-selection
+                    problem:
+                </p>
+                <p>
+                    \[
+                    a^* = \arg\max_{a \in \mathcal{A}} \Pr(\text{success} \mid o, g, a),
+                    \]
+                </p>
+                <p>
+                    where \(\mathcal{A}\) might include re-observe, shift base, change approach direction, switch
+                    grasp family, or retry under a different setup. Those labels can be generated from rollout or
+                    simulation instead of relying on ad hoc retries.
+                </p>
+
+                <h3>Evaluate Under Realistic Conditions</h3>
+                <p>
+                    We need benchmarks that go beyond the tabletop. This means evaluating under varied viewpoints,
+                    with approach constraints, in cluttered environments, and with dynamic obstacles. It means
+                    measuring not just grasp success rate but the full pipeline, including perception quality, feasibility
+                    rate, recovery capability, and end-to-end time. A useful benchmark should expose both the partial
+                    observation used by the policy and the full state used for offline labeling. That would let us
+                    measure not only whether a grasp succeeded, but also why it failed: infeasible grasp, embodiment
+                    mismatch, poor recovery, or execution noise. That would make benchmarks much more diagnostic.
+                </p>
+            </section>
+
+            <div class="citation-section">
+                <h2 class="citation-header">
+                    Citation
+                </h2>
+                <p class="citation-text">
+                    If you found this perspective useful, please cite:
+                </p>
+                <pre class="citation-pre">
+@misc{grasping-gap-wild-blog,
+  author    = {Hu Tianrun},
+  title     = {The Grasping Gap in the Wild},
+  year      = {2026},
+  publisher = {GitHub},
+  url       = {https://h-tr.github.io/blog/posts/grasping-gap-in-the-wild.html}
+}
+
+@inproceedings{hu2025visibility,
+  title     = {Visibility-Aware Mobile Grasping in Dynamic Environments},
+  author    = {Hu, Tianrun and Xiao, Anxing and Hsu, David and Zhang, Hanbo},
+  booktitle = {arXiv preprint},
+  year      = {2025}
+}</pre>
+            </div>
+
+            <div class="references-section">
+                <h2 class="references-header">
+                    Further Reading
+                </h2>
+                <ol class="references-list">
+                    <li>
+                        Hu, T., Xiao, A., Hsu, D., & Zhang, H. (2025). Visibility-Aware Mobile Grasping in Dynamic
+                        Environments. arXiv preprint.
+                        <a href="https://visibility-aware-mobile-grasping.github.io/" target="_blank">[Website]</a>
+                    </li>
+                    <li>
+                        Fang, H. S., Wang, C., Fang, H., Gou, M., Liu, J., Yan, H., ... & Lu, C. (2023). AnyGrasp:
+                        Robust and Efficient Grasp Perception in Spatial and Temporal Domains. IEEE Transactions on
+                        Robotics.
+                    </li>
+                    <li>
+                        Sundermeyer, M., Mousavian, A., Triebel, R., & Fox, D. (2021). Contact-GraspNet: Efficient
+                        6-DoF Grasp Generation in Cluttered Scenes. In IEEE International Conference on Robotics and
+                        Automation (ICRA).
+                    </li>
+                    <li>
+                        Fang, H. S., Wang, C., Gou, M., & Lu, C. (2020). GraspNet-1Billion: A Large-Scale Benchmark
+                        for General Object Grasping. In IEEE/CVF Conference on Computer Vision and Pattern
+                        Recognition (CVPR).
+                    </li>
+                    <li>
+                        Newbury, R., Gu, M., Chumbley, L., Mousavian, A., Eppner, C., Leitner, J., ... & Asfour, T.
+                        (2023). Deep Learning Approaches to Grasp Synthesis: A Review. IEEE Transactions on Robotics.
+                    </li>
+                    <li>
+                        Morrison, D., Corke, P., & Leitner, J. (2020). Learning robust, real-time, reactive robotic
+                        grasping. The International Journal of Robotics Research, 39(2-3), 183-201.
+                    </li>
+                </ol>
+            </div>
+        </article>
+    </div>
+
+    <script defer src="/js/blog.js"></script>
+    <script defer src="/js/katex-init.js"></script>
+</body>
+
+</html>

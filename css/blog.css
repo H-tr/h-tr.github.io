@@ -656,3 +656,235 @@ nav a:active {
   margin: 0;
   letter-spacing: 0.02em;
 }
+
+/* ============================================
+   DATA TABLES
+   ============================================ */
+
+.blog-table-wrapper {
+  margin: 1.5rem 0;
+  overflow-x: auto;
+}
+
+.blog-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.blog-table thead th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.6rem 1rem;
+  border-bottom: 2px solid #2c3e50;
+}
+
+.blog-table tbody td {
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid #eee;
+  color: #333;
+}
+
+.blog-table tbody tr:last-child td {
+  border-bottom: 2px solid #2c3e50;
+}
+
+.blog-table tbody tr:hover {
+  background: rgba(44, 62, 80, 0.03);
+}
+
+.blog-table .num {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 0.9rem;
+  text-align: right;
+}
+
+.blog-table .highlight-row td {
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.blog-table caption {
+  caption-side: bottom;
+  text-align: left;
+  font-size: 0.85rem;
+  color: #666;
+  font-style: italic;
+  padding-top: 0.6rem;
+}
+
+/* ============================================
+   HORIZONTAL BAR CHART
+   ============================================ */
+
+.bar-chart {
+  margin: 1.5rem 0;
+}
+
+.bar-chart-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 1rem;
+}
+
+.bar-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.6rem;
+}
+
+.bar-label {
+  width: 140px;
+  flex-shrink: 0;
+  font-size: 0.9rem;
+  color: #333;
+  text-align: right;
+  padding-right: 1rem;
+}
+
+.bar-track {
+  flex: 1;
+  height: 24px;
+  background: #f0efea;
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+
+.bar-fill-primary {
+  background: #2c3e50;
+}
+
+.bar-fill-secondary {
+  background: #7f8c8d;
+}
+
+.bar-fill-accent {
+  background: #c0392b;
+}
+
+.bar-fill-muted {
+  background: #bdc3c7;
+}
+
+.bar-value {
+  width: 65px;
+  flex-shrink: 0;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 0.85rem;
+  color: #555;
+  text-align: right;
+  padding-left: 0.6rem;
+}
+
+/* Stacked bar variant */
+.bar-track-stacked {
+  display: flex;
+  flex: 1;
+  height: 24px;
+  background: #f0efea;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.bar-track-stacked .bar-segment {
+  height: 100%;
+  transition: width 0.6s ease;
+}
+
+/* Bar chart legend */
+.bar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 0.8rem;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.bar-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.bar-legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+/* ============================================
+   FIGURE CAPTIONS
+   ============================================ */
+
+.blog-figure {
+  margin: 2rem 0;
+  text-align: center;
+}
+
+.blog-figure img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.blog-figure figcaption {
+  font-size: 0.85rem;
+  color: #666;
+  font-style: italic;
+  margin-top: 0.6rem;
+  line-height: 1.5;
+}
+
+/* ============================================
+   CALLOUT / KEY INSIGHT BOX
+   ============================================ */
+
+.blog-callout {
+  margin: 1.5rem 0;
+  padding: 1rem 1.25rem;
+  border-left: 3px solid #2c3e50;
+  background: rgba(44, 62, 80, 0.03);
+  font-size: 0.95rem;
+}
+
+.blog-callout p {
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .bar-label {
+    width: 100px;
+    font-size: 0.8rem;
+  }
+
+  .bar-value {
+    width: 55px;
+    font-size: 0.8rem;
+  }
+
+  .blog-table {
+    font-size: 0.85rem;
+  }
+
+  .blog-table thead th,
+  .blog-table tbody td {
+    padding: 0.5rem 0.6rem;
+  }
+}
