@@ -11,6 +11,7 @@
   <link href="../css/blog.css" rel="stylesheet" />
   <script src="/js/copy-button.js"></script>
   <script src="../js/page-transition.js" defer></script>
+  <script src="../js/blog-tabs.js" defer></script>
 </head>
 
 <body>
@@ -27,8 +28,18 @@
     <a href="../resume/">Resume</a>
   </nav>
 
-  <section class="blog-list">
-    <!-- Add new blog item here -->
+  <div class="blog-subnav">
+    <button class="subnav-tab active" data-tab-index="0">Post</button>
+    <span class="subnav-divider">&middot;</span>
+    <button class="subnav-tab" data-tab-index="1">Survey</button>
+  </div>
+
+  <div class="blog-tabs-viewport">
+    <div class="blog-tabs-track" id="blogTabsTrack">
+
+      <div class="blog-tab-panel">
+        <section class="blog-list">
+          <!-- Add new post here -->
 
     <div class="blog-item">
       <div class="blog-content">
@@ -243,6 +254,17 @@
       </div>
     </div>
   </section>
+      </div>
+
+      <div class="blog-tab-panel">
+        <section class="blog-list">
+          <!-- Add new survey here -->
+          <div class="blog-empty-state">No surveys yet.</div>
+        </section>
+      </div>
+
+    </div>
+  </div>
 </body>
 
 </html>

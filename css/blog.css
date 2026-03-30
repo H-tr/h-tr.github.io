@@ -431,6 +431,71 @@ nav a:active {
   }
 }
 
+/* ============================================
+   BLOG SUB-NAVIGATION (Post / Survey tabs)
+   ============================================ */
+
+.blog-subnav {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: -0.5rem 0 2rem 0;
+}
+
+.subnav-tab {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: et-book, Palatino, "Palatino Linotype", "Palatino LT STD",
+    "Book Antiqua", Georgia, serif;
+  font-size: 0.8rem;
+  color: #ccc;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.subnav-tab.active {
+  color: #2c3e50;
+}
+
+.subnav-tab:hover:not(.active) {
+  color: #888;
+}
+
+.subnav-divider {
+  color: #ddd;
+  font-size: 0.7rem;
+  user-select: none;
+}
+
+/* Tab slide viewport */
+.blog-tabs-viewport {
+  overflow: hidden;
+}
+
+.blog-tabs-track {
+  display: flex;
+  width: 200%;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+.blog-tab-panel {
+  width: 50%;
+  flex-shrink: 0;
+}
+
+/* Empty state */
+.blog-empty-state {
+  padding: 5rem 0 4rem;
+  text-align: center;
+  color: #bbb;
+  font-style: italic;
+  font-size: 0.95rem;
+}
+
 /* Math equations sizing - KaTeX default (1.21em) matches LaTeX convention */
 .katex {
   font-size: 1.21em;
