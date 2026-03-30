@@ -1,0 +1,853 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Survey: Structured Representation for Generalizable Manipulation Skill Modeling</title>
+
+    <!-- Fonts -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Prism.js initialization -->
+    <script src="/js/prism-init.js"></script>
+
+    <!-- KaTeX Math Support -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Site Assets -->
+    <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg" />
+    <link href="/css/blog.css" rel="stylesheet" />
+
+    <!-- KaTeX Scripts -->
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"
+    ></script>
+  </head>
+  <body>
+    <div class="blog-post">
+      <a href="../?tab=survey" class="back-button">
+        <i class="fas fa-arrow-left"></i>Back
+      </a>
+
+      <header class="blog-post-header">
+        <h1 class="blog-post-title">Survey: Structured Representation for Generalizable Manipulation Skill Modeling</h1>
+        <div class="blog-post-date">March 30, 2026</div>
+      </header>
+
+      <article class="blog-post-content">
+
+        <h2>1. Introduction & Problem Definition</h2>
+
+        <p>
+          Robotic manipulation remains one of the central unsolved problems in embodied AI. A robot that can pick up a
+          mug in a lab demo is, in the most optimistic framing, a robot that can pick up <em>that</em> mug, from
+          <em>that</em> pose, under <em>that</em> lighting. The field's core aspiration &mdash; manipulation skills that
+          generalize across objects, configurations, tasks, and environments &mdash; has proven stubbornly difficult. This
+          survey argues that the choice of <strong>structured representation</strong> is the decisive factor determining
+          whether a manipulation system generalizes or merely memorizes, and that the field is converging on this insight
+          from multiple independent directions.
+        </p>
+
+        <h3>Why Generalization is Hard</h3>
+
+        <p>
+          The difficulty of generalizable manipulation stems from a combinatorial explosion along multiple axes
+          simultaneously. Objects vary in shape, size, material, and articulation. Scenes vary in clutter, occlusion, and
+          spatial arrangement. Tasks vary in goal specification, horizon length, and required contact dynamics. A policy
+          that encodes all of this into a monolithic neural representation &mdash; whether an image embedding, a point
+          cloud feature, or a language-conditioned latent &mdash; must learn invariances that are extraordinarily
+          difficult to extract from finite data.
+        </p>
+
+        <p>
+          End-to-end approaches (RT-1/2, OpenVLA, \(\pi_0\)) have attempted to brute-force this problem with scale: more
+          data, bigger models, broader task distributions. The results are impressive but fragile. As [Qi et al., 2025]
+          demonstrate, policies achieving near-perfect single-skill performance collapse to 0&ndash;50% success when
+          those same skills are composed in cluttered scenes. [Hu et al., 2026] show that a fine-tuned 8B-parameter model
+          with explicit scene graph reasoning outperforms GPT-5 on complex manipulation tasks &mdash; a striking result
+          suggesting that <strong>representation structure matters more than model scale</strong>.
+        </p>
+
+        <h3>The Structured Representation Thesis</h3>
+
+        <p>
+          This survey covers work that addresses generalization through <strong>structured intermediate
+          representations</strong> &mdash; scene graphs, affordance maps, keypoints, relational predicates,
+          object-centric decompositions, and compositional world models &mdash; that impose inductive biases reflecting
+          the physical and semantic structure of manipulation. The thesis is that these representations succeed precisely
+          because they decompose the monolithic perception-to-action mapping into components that mirror the compositional
+          structure of the physical world: objects are distinct entities, interactions are pairwise, tasks decompose into
+          subtasks, and spatial relationships are the language of manipulation.
+        </p>
+
+        <p>
+          We survey 58 papers spanning 2016&ndash;2026, organized along two primary dimensions: the <em>type</em> of
+          structure imposed (graphs, affordances, keypoints, symbols) and the <em>role</em> the structure plays in the
+          manipulation pipeline (perception, planning, policy learning, world modeling). The survey is written for
+          researchers working at the intersection of robot learning, task and motion planning, and foundation models for
+          embodied AI.
+        </p>
+
+        <h2>2. Taxonomy of Approaches</h2>
+
+        <p>
+          We organize the field into six families, distinguished by how they structure the representation and where that
+          structure enters the manipulation pipeline.
+        </p>
+
+        <div class="taxonomy-tree">
+          <div class="taxonomy-root">Structured Representations for Generalizable Manipulation</div>
+          <ul>
+            <li>
+              <div class="taxonomy-branch"><span class="branch-id">A</span> <span class="branch-label">Dense Spatial &amp; Keypoint Representations</span></div>
+              <ul class="taxonomy-leaves">
+                <li><span class="leaf-id">A1.</span> Dense visual descriptors (DON, correspondence-based)</li>
+                <li><span class="leaf-id">A2.</span> Semantic keypoints (kPAM, KETO)</li>
+                <li><span class="leaf-id">A3.</span> Spatial action maps (Transporter Networks, CLIPort)</li>
+              </ul>
+            </li>
+            <li>
+              <div class="taxonomy-branch"><span class="branch-id">B</span> <span class="branch-label">Affordance-Based Representations</span></div>
+              <ul class="taxonomy-leaves">
+                <li><span class="leaf-id">B1.</span> Per-point affordance prediction (Where2Act, VAT-Mart, AdaAfford)</li>
+                <li><span class="leaf-id">B2.</span> Human-video affordance transfer (VRB, Robo-ABC, General Flow)</li>
+                <li><span class="leaf-id">B3.</span> Affordance-guided policies (AffordDP, SAGA, PALM)</li>
+              </ul>
+            </li>
+            <li>
+              <div class="taxonomy-branch"><span class="branch-id">C</span> <span class="branch-label">Scene Graph Representations</span></div>
+              <ul class="taxonomy-leaves">
+                <li><span class="leaf-id">C1.</span> Scene graphs for task planning (Zhu et al. 2020, cg+, ConceptGraphs, MoMa-LLM, DovSG)</li>
+                <li><span class="leaf-id">C2.</span> Scene graphs as policy inputs (Compose by Focus, KG-M3PO, GF-VLA, GSR)</li>
+                <li><span class="leaf-id">C3.</span> Action-conditioned / executable graphs (RoboEXP, UniManip)</li>
+              </ul>
+            </li>
+            <li>
+              <div class="taxonomy-branch"><span class="branch-id">D</span> <span class="branch-label">Object-Centric Decompositions</span></div>
+              <ul class="taxonomy-leaves">
+                <li><span class="leaf-id">D1.</span> Relational spatial reasoning (SORNet, StructFormer, StructDiffusion)</li>
+                <li><span class="leaf-id">D2.</span> Segmented 3D representations (GROOT, DreMa)</li>
+                <li><span class="leaf-id">D3.</span> Object-centric world models (3D-OES, OCWM, RoboDreamer)</li>
+              </ul>
+            </li>
+            <li>
+              <div class="taxonomy-branch"><span class="branch-id">E</span> <span class="branch-label">Symbolic &amp; Neuro-Symbolic Representations</span></div>
+              <ul class="taxonomy-leaves">
+                <li><span class="leaf-id">E1.</span> Skill-induced symbols (Konidaris et al. 2018)</li>
+                <li><span class="leaf-id">E2.</span> Learned operators &amp; predicates (Silver et al. 2021, Ahmetoglu et al. 2024, InterPreT)</li>
+                <li><span class="leaf-id">E3.</span> Neuro-symbolic predicates (VisualPredicator)</li>
+              </ul>
+            </li>
+            <li>
+              <div class="taxonomy-branch"><span class="branch-id">F</span> <span class="branch-label">Relational Dynamics &amp; Graph-Based Skill Models</span></div>
+              <ul class="taxonomy-leaves">
+                <li><span class="leaf-id">F1.</span> Graph neural dynamics (Interaction Networks, GN physics engines)</li>
+                <li><span class="leaf-id">F2.</span> Relational RL for manipulation (Li et al. 2020)</li>
+                <li><span class="leaf-id">F3.</span> Compositional factor graphs (Generative Factor Chaining)</li>
+                <li><span class="leaf-id">F4.</span> Heterogeneous/knowledge graphs (SoftGPT, skill libraries, GTN)</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+
+        <div class="blog-table-wrapper">
+          <table class="blog-table">
+            <caption>Table 1: Taxonomy summary with representative papers and key properties.</caption>
+            <thead>
+              <tr>
+                <th>Family</th>
+                <th>Representative Papers</th>
+                <th>Structure Type</th>
+                <th>Generalization Axis</th>
+                <th>Manual Design?</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>A. Spatial/Keypoint</td>
+                <td>DON, kPAM, Transporter</td>
+                <td>Per-pixel/point features, keypoints</td>
+                <td>Object instance, viewpoint</td>
+                <td>Partial (keypoint selection)</td>
+              </tr>
+              <tr>
+                <td>B. Affordance</td>
+                <td>Where2Act, VRB, SAGA</td>
+                <td>Contact points, trajectories, heatmaps</td>
+                <td>Object category, cross-embodiment</td>
+                <td>Minimal (self-supervised)</td>
+              </tr>
+              <tr>
+                <td>C. Scene Graph</td>
+                <td>ConceptGraphs, GSR, Compose by Focus</td>
+                <td>Nodes=objects, edges=relations</td>
+                <td>Scene configuration, task composition</td>
+                <td>Moderate (relation vocabulary)</td>
+              </tr>
+              <tr>
+                <td>D. Object-Centric</td>
+                <td>GROOT, StructDiffusion, DreMa</td>
+                <td>Per-object features/point clouds</td>
+                <td>Background, viewpoint, novel objects</td>
+                <td>Minimal (segmentation-based)</td>
+              </tr>
+              <tr>
+                <td>E. Symbolic</td>
+                <td>LOFT, VisualPredicator, InterPreT</td>
+                <td>PDDL predicates/operators</td>
+                <td>Task horizon, novel goals</td>
+                <td>Moderate (predicate space)</td>
+              </tr>
+              <tr>
+                <td>F. Relational Dynamics</td>
+                <td>IN, GN, Points2Plans</td>
+                <td>Object-relation graphs for dynamics</td>
+                <td>Object count, configuration</td>
+                <td>Low (graph structure from physics)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          A key observation: these families are not mutually exclusive, and the strongest recent systems combine elements
+          from multiple families. [SAGA, 2025] uses affordance heatmaps (B) grounded via foundation model features over
+          3D point clouds (D). [GSR, 2026] reasons over scene graphs (C) using learned symbolic transitions (E).
+          [Compose by Focus, 2025] feeds scene graphs (C) into diffusion policies with 3D object-centric encodings (D).
+          The trend is toward <strong>hybrid structured representations</strong> that layer multiple forms of structure.
+        </p>
+
+        <h2>3. Timeline & Evolution</h2>
+
+        <h3>Phase 1: Learning Structured Perception for Manipulation (2016&ndash;2019)</h3>
+
+        <p>
+          The field's foundations were laid by two parallel threads. In computer vision, [Battaglia et al., 2016]
+          introduced Interaction Networks, establishing that factoring dynamics into objects and pairwise relations &mdash;
+          a graph structure &mdash; enables generalization across system sizes. [Li et al., 2017] and [Yang et al., 2018]
+          developed scene graph generation methods that, while not targeting manipulation, created the perceptual
+          infrastructure that later manipulation work would consume. [Armeni et al., 2019] extended scene graphs to 3D, a
+          critical step for robotics where 2D representations are viewpoint-dependent.
+        </p>
+
+        <p>
+          In manipulation, [Florence et al., 2018] introduced Dense Object Nets (DON), demonstrating that self-supervised
+          dense visual descriptors could serve as task-agnostic representations enabling category-level grasp transfer.
+          [Manuelli et al., 2019] built on DON with kPAM, proposing semantic 3D keypoints as a sparse, task-relevant
+          structured representation &mdash; the first clean formalization of keypoint affordances for category-level
+          pick-and-place. Concurrently, [Konidaris et al., 2018] provided the theoretical foundation for how motor skills
+          induce symbolic representations suitable for planning, establishing the "skills entail symbols" principle.
+        </p>
+
+        <p>
+          <strong>Inflection point:</strong> DON and kPAM demonstrated that <em>less</em> representation (sparse
+          keypoints vs. full pose) can yield <em>more</em> generalization &mdash; a counterintuitive insight that
+          oriented the field away from full pose estimation toward task-relevant structured abstractions.
+        </p>
+
+        <h3>Phase 2: Structured Action Spaces and Affordance Prediction (2020&ndash;2022)</h3>
+
+        <p>
+          [Zeng et al., 2020] introduced Transporter Networks, achieving extraordinary sample efficiency (100% from 1
+          demo on block insertion) by structuring the action space as spatial displacements with built-in translational
+          equivariance. This was not just a better architecture &mdash; it was a demonstration that <strong>structuring
+          the action representation</strong> matters as much as structuring the observation. [Shridhar et al., 2021]
+          extended this with CLIPort, fusing CLIP's semantic structure with Transporter's spatial structure, showing that
+          internet-pretrained semantic knowledge could substitute for task-specific training data.
+        </p>
+
+        <p>
+          Simultaneously, the affordance prediction line emerged. [Mo et al., 2021] introduced Where2Act, predicting
+          per-pixel actionability for articulated objects &mdash; framing manipulation affordance as a dense visual
+          prediction task rather than requiring explicit part models. [Wu et al., 2022] extended this with VAT-Mart,
+          adding trajectory proposals to static affordance maps. [Wang et al., 2022] contributed AdaAfford, showing that
+          affordance priors could be adapted online through strategic interaction &mdash; a critical insight that static
+          affordance representations are insufficient for objects with hidden kinematic properties.
+        </p>
+
+        <p>
+          On the scene graph planning side, [Zhu et al., 2020] introduced dual-level geometric/symbolic scene graphs with
+          GNN processing for hierarchical manipulation planning, achieving 70%+ real-robot success while being nearly 4
+          orders of magnitude faster than PDDLStream. [Yuan et al., 2021] (SORNet) and [Liu et al., 2021]
+          (StructFormer) demonstrated transformer-based relational reasoning over objects for rearrangement, with
+          StructFormer showing that joint multi-object reasoning outperforms pairwise approaches.
+        </p>
+
+        <p>
+          <strong>Inflection point:</strong> Where2Act and VAT-Mart established affordance as a <em>dense spatial
+          prediction</em> rather than a categorical label, creating a representation that naturally interfaces with both
+          learning-based and optimization-based downstream planners.
+        </p>
+
+        <h3>Phase 3: Foundation Models Meet Structured Representations (2023&ndash;2024)</h3>
+
+        <p>
+          The arrival of large vision-language models (CLIP, SAM, GPT-4V, Stable Diffusion) fundamentally changed the
+          economics of structured representation. [Gu et al., 2024] (ConceptGraphs) showed that open-vocabulary 3D scene
+          graphs could be built by composing off-the-shelf foundation models (SAM + CLIP + LLaVA + GPT-4), without any 3D
+          dataset finetuning. This made scene graphs practical as a general-purpose interface between perception and
+          LLM-based planning.
+        </p>
+
+        <p>
+          [Bahl et al., 2023] (VRB) demonstrated that visual affordances extracted from human video could drive real robot
+          learning across four distinct paradigms (imitation, exploration, goal-conditioned, RL), establishing affordance
+          as a versatile cross-embodiment representation. [Ju et al., 2024] (Robo-ABC) showed that diffusion model
+          features contain emergent semantic correspondence enabling zero-shot cross-category affordance transfer &mdash;
+          no task-specific training needed.
+        </p>
+
+        <p>
+          On the planning side, [Honerkamp et al., 2024] (MoMa-LLM) proved that structured scene graph encodings
+          dramatically outperform raw representations when grounding LLMs for mobile manipulation planning. [Jiang et al.,
+          2024] (RoboEXP) introduced action-conditioned scene graphs that encode not just spatial relations but how to
+          <em>act</em> on them, making the graph itself an executable plan.
+        </p>
+
+        <p>
+          [Zhu et al., 2023] (GROOT) validated that object-centric 3D representations &mdash; segmented point clouds in
+          the robot frame &mdash; provide strong invariance to backgrounds, viewpoints, and novel object instances with
+          minimal architectural overhead. [Liu et al., 2022] (StructDiffusion) showed that diffusion models over
+          structured object-centric pose spaces outperform autoregressive approaches for multi-object rearrangement.
+        </p>
+
+        <p>
+          <strong>Inflection point:</strong> Foundation models made open-vocabulary structured representations practical.
+          The question shifted from "can we build scene graphs/affordance maps?" to "how should we use them for
+          manipulation?"
+        </p>
+
+        <h3>Phase 4: Structured Representations as the Core Skill Interface (2025&ndash;2026)</h3>
+
+        <p>
+          The most recent work treats structured representations not as auxiliary perception modules but as the
+          <strong>primary interface</strong> for manipulation skill learning and composition.
+        </p>
+
+        <p>
+          [Qi et al., 2025] (Compose by Focus) demonstrated that scene graphs as direct policy inputs &mdash; not just
+          for high-level planning &mdash; enable compositional generalization: skills trained in isolation compose in
+          cluttered scenes because the graph filters out irrelevant visual variation. This is arguably the clearest
+          evidence that representation structure, not training scale, is the key to compositional manipulation.
+        </p>
+
+        <p>
+          [Hu et al., 2026] (GSR) models world-state evolution as explicit transitions over scene graphs, achieving 92.5%
+          on RLBench kitchen operations with an 8B model &mdash; outperforming GPT-5 and Gemini-2.5-Pro. [Liu et al.,
+          2026] (UniManip) introduced a bi-level agentic operational graph that simultaneously serves as world model,
+          task plan, and recovery memory, achieving 93.75% on zero-shot pick-and-place with a single wrist-mounted
+          camera.
+        </p>
+
+        <p>
+          [Fang et al., 2025] (SAGA) proposed structured affordance grounding as a scalable bridge between foundation
+          model reasoning and low-level control, training on only 2,410 demonstrations &mdash; two orders of magnitude
+          fewer than prior generalist policies. [Liu et al., 2026] (PALM) showed that predicting future affordances as
+          intermediate latent representations stabilizes long-horizon control, achieving 91.8% on LIBERO-LONG.
+        </p>
+
+        <p>
+          <strong>Inflection point:</strong> The field has reached a point where structured representations consistently
+          outperform end-to-end approaches of much larger scale. The debate is no longer <em>whether</em> to use
+          structure, but <em>what kind</em> and <em>where</em> in the pipeline.
+        </p>
+
+        <h2>4. Key Papers & Contributions</h2>
+
+        <h3>4.1 Dense Spatial & Keypoint Representations</h3>
+
+        <p>
+          <strong>Dense Object Nets</strong> [Florence et al., 2018] established that learned per-pixel descriptors could
+          serve as a task-agnostic representation for manipulation, achieving category-level generalization via
+          self-supervised contrastive learning on RGBD data. The key insight &mdash; that dense descriptors eliminate the
+          need for explicit pose estimation while retaining spatial precision &mdash; opened the entire line of
+          correspondence-based manipulation.
+        </p>
+
+        <p>
+          <strong>kPAM</strong> [Manuelli et al., 2019] refined this to semantic 3D keypoints, showing that manipulation
+          goals could be formulated as geometric constraints on a small set of task-relevant points rather than full
+          SE(3) poses. The 98% success rate on shoe placement across 20 diverse instances (including boots and sneakers
+          with vastly different topology) demonstrated that keypoints capture <em>what matters for the task</em> while
+          discarding irrelevant geometric detail. The limitation &mdash; manual keypoint definition per category &mdash;
+          remains an active challenge.
+        </p>
+
+        <p>
+          <strong>Transporter Networks</strong> [Zeng et al., 2020] contributed the most sample-efficient structured
+          action representation: spatial feature transport via cross-correlation, achieving 100% from a single
+          demonstration. The architectural insight that manipulation can be decomposed into "where to attend" and "where
+          to transport" with built-in equivariance remains influential, though the restriction to SE(2) tabletop settings
+          limits applicability. <strong>CLIPort</strong> [Shridhar et al., 2021] extended this with CLIP's semantic
+          stream, demonstrating that frozen internet-pretrained features can substitute for task-specific demonstrations
+          &mdash; the multi-task model matched or beat single-task in 57% of evaluations.
+        </p>
+
+        <p>
+          <strong>Assessment:</strong> This family provides the strongest sample efficiency but is limited to relatively
+          simple action spaces (pick-and-place, SE(2)). The keypoint/descriptor paradigm is most powerful when
+          task-relevant structure can be captured by a small number of spatial correspondences.
+        </p>
+
+        <h3>4.2 Affordance-Based Representations</h3>
+
+        <p>
+          The affordance family has evolved through three generations, each expanding what "affordance" means for
+          manipulation.
+        </p>
+
+        <p>
+          <strong>Generation 1: Static per-point affordance.</strong> [Mo et al., 2021] (Where2Act) pioneered dense
+          affordance prediction for articulated objects, but with modest absolute success rates (~29% SSR for pushing) and
+          no trajectory information. [Mandikal &amp; Grauman, 2020] showed that visual affordance maps from human thermal
+          contact data could guide dexterous grasping RL, achieving 63% success with 3x better sample efficiency than
+          pure RL &mdash; the key insight being to decouple "where to grasp" from "how to grasp."
+        </p>
+
+        <p>
+          <strong>Generation 2: Affordance + trajectory.</strong> [Wu et al., 2022] (VAT-Mart) extended static affordance
+          to include trajectory proposals &mdash; predicting not just <em>where</em> but <em>how</em> to interact. The
+          interaction-for-perception training loop (RL generates data for perception, perception provides curiosity
+          rewards for RL) became a template for subsequent work. [Wang et al., 2022] (AdaAfford) added test-time
+          adaptation, showing that even 1&ndash;4 exploratory interactions could substantially improve affordance accuracy
+          on instances with hidden kinematic properties (e.g., pushing affordance on a closed door improved from 48% to
+          80% F-score).
+        </p>
+
+        <p>
+          <strong>Generation 3: Foundation-model affordance transfer.</strong> [Bahl et al., 2023] (VRB) demonstrated
+          that contact points + post-contact trajectories extracted from human video serve as a versatile,
+          embodiment-agnostic affordance interface &mdash; achieving 57% average across 8 tasks versus 25% for the next
+          best method. [Ju et al., 2024] (Robo-ABC) showed that diffusion model features enable zero-shot cross-category
+          affordance transfer (85.7% real-world grasping across 7 unseen categories). [Yuan et al., 2024] (General Flow)
+          pushed further, using 3D flow from human video as a universal affordance achieving 81% across 18 tasks
+          including deformable objects &mdash; the strongest human-to-robot transfer result to date.
+        </p>
+
+        <p>
+          <strong>The latest affordance-guided policies</strong> integrate affordance as structured conditioning for
+          diffusion policies. [Wu et al., 2024] (AffordDP) decomposes affordance into static (contact point via semantic
+          correspondence) and dynamic (trajectory via geometric registration) components, steering diffusion denoising
+          toward transferred affordances. [Fang et al., 2025] (SAGA) converts tasks into affordance-entity pairs
+          grounded as 3D heatmaps, training on 2,410 demos &mdash; two orders of magnitude fewer than VLA approaches.
+          [Liu et al., 2026] (PALM) predicts four complementary affordance types as latent queries for a diffusion
+          transformer, achieving 91.8% on LIBERO-LONG.
+        </p>
+
+        <p>
+          <strong>Assessment:</strong> The affordance family is the most practically successful for cross-object and
+          cross-embodiment generalization. Its strength is that affordance representations are task-relevant by
+          construction &mdash; they encode <em>how to interact</em> rather than just <em>what is there</em>. The weakness
+          is that affordance vocabularies remain relatively fixed; extending to new interaction types requires redesign.
+        </p>
+
+        <h3>4.3 Scene Graph Representations</h3>
+
+        <p>
+          Scene graphs have emerged as perhaps the most versatile structured representation, serving roles from high-level
+          planning to low-level policy conditioning.
+        </p>
+
+        <p>
+          <strong>For planning:</strong> [Zhu et al., 2020] pioneered dual-level (geometric + symbolic) scene graphs for
+          hierarchical manipulation planning, achieving 70.6% real-robot success while being ~4 orders of magnitude
+          faster than PDDLStream. The regression planning approach &mdash; searching backward from goals using
+          GNN-learned preimage networks &mdash; generalized from 18 short demonstrations to much longer horizons. [Jiao
+          et al., 2022] introduced Contact Graph+ (cg+), reducing planning to graph editing operations that directly map
+          to robot actions, achieving 40&ndash;100x speedup over PDDLStream.
+        </p>
+
+        <p>
+          <strong>Open-vocabulary scene graphs:</strong> [Gu et al., 2024] (ConceptGraphs) built the standard pipeline
+          for constructing open-vocabulary 3D scene graphs from foundation models. The key result is that LLM-based
+          retrieval over scene graphs dramatically outperforms CLIP for complex queries &mdash; R@1 of 0.80 vs. 0.26 for
+          negation queries, and perfect 1.0 vs. 0.0 for affordance queries on real lab scenes. [Honerkamp et al., 2024]
+          (MoMa-LLM) proved the complementary point: structured scene graph <em>encoding</em> (hierarchical room-object
+          format with frontier descriptions) outperforms raw encodings for LLM-based planning (87.2 vs. 77.6 AUC-E).
+          [Yan et al., 2024] (DovSG) addressed the practical challenge of dynamic environments, achieving 27x faster
+          local scene graph updates than full reconstruction.
+        </p>
+
+        <p>
+          <strong>As policy inputs &mdash; the frontier:</strong> [Qi et al., 2025] (Compose by Focus) is, in our view,
+          the most important recent paper in this family. By feeding task-relevant sub-scene graphs (just 3&ndash;4 nodes)
+          directly into a diffusion policy via a Graph Attention Network, they achieve 0.78&ndash;0.97 success on skill
+          composition where Diffusion Policy (0.0&ndash;0.52), DP3 (0.07&ndash;0.48), and \(\pi_0\) (0.02&ndash;0.77)
+          fail. The result is stark: <strong>the same policy architecture with and without scene graph conditioning
+          differs by 50+ percentage points on composition</strong>. [Narendra et al., 2026] (KG-M3PO) showed that
+          training the GNN end-to-end through RL gradients &mdash; rather than using the scene graph as a frozen
+          perception module &mdash; further improves performance, especially under partial observability (58% vs. 4% for
+          camera-only).
+        </p>
+
+        <p>
+          <strong>Action-conditioned and executable graphs:</strong> [Jiang et al., 2024] (RoboEXP) enriched scene graphs
+          with action nodes and four edge types (object&rarr;object, object&rarr;action, action&rarr;object,
+          action&rarr;action), making the graph itself an executable plan &mdash; to retrieve any object, execute actions
+          along the topological path. This achieved 70&ndash;90% success on tasks where GPT-4V baselines scored
+          0&ndash;30%. [Liu et al., 2026] (UniManip) extended this to a bi-level agentic operational graph serving
+          simultaneously as world model, task plan, and recovery memory.
+        </p>
+
+        <p>
+          [Hu et al., 2026] (GSR) represents the culmination of this direction: treating scene graphs as the primary
+          state space for an LLM-based reasoner, with explicit state-transition reasoning (predicting graph edits from
+          actions, verifying goal satisfaction). The result &mdash; outperforming GPT-5 on RLBench with an 8B model
+          &mdash; is the strongest evidence that structured representations can substitute for model scale.
+        </p>
+
+        <p>
+          <strong>Assessment:</strong> Scene graphs are the most general structured representation, capable of encoding
+          objects, attributes, spatial relations, and action preconditions in a unified framework. Their weakness is
+          computational overhead (foundation model inference for graph construction) and sensitivity to perception errors.
+          The critical open question is whether graphs should be used for planning, policy conditioning, or both &mdash;
+          recent evidence strongly favors both.
+        </p>
+
+        <h3>4.4 Object-Centric Decompositions</h3>
+
+        <p>
+          [Yuan et al., 2021] (SORNet) showed that conditioning a Vision Transformer on canonical object views + scene
+          images yields spatial representations that generalize zero-shot to unseen objects. The attention masking design
+          &mdash; preventing object tokens from attending to each other &mdash; forces each object's embedding to be
+          grounded in scene context rather than in other queries.
+        </p>
+
+        <p>
+          [Liu et al., 2021] (StructFormer) and [Liu et al., 2022] (StructDiffusion) advanced language-guided
+          multi-object rearrangement. StructFormer's transformer captures holistic structural constraints that pairwise
+          methods cannot (e.g., equal angular spacing in a circle), while StructDiffusion's diffusion formulation
+          generates diverse valid arrangements with a 16% improvement over StructFormer. The progression from
+          autoregressive to diffusion-based generation over structured object-centric spaces reflects a broader trend.
+        </p>
+
+        <p>
+          [Zhu et al., 2023] (GROOT) provided the cleanest demonstration that explicit object-centric 3D segmentation is
+          a powerful inductive bias: on hard generalization tests (novel backgrounds, camera shifts, new objects), GROOT
+          achieves 38&ndash;83% where baselines collapse to 0&ndash;8%. The recipe &mdash; segment objects, back-project
+          to 3D point clouds in robot frame, encode via PointNet, process via transformer &mdash; is simple but effective.
+        </p>
+
+        <p>
+          [Barcellona et al., 2024] (DreMa) used object-centric Gaussian Splatting as a "learnable digital twin,"
+          generating ~800 imagined demonstrations from 1&ndash;5 real ones via equivariant transformations. The result
+          &mdash; matching 20-demo PerAct performance from just 5 demos &mdash; shows that explicit compositional 3D
+          representations enable data augmentation strategies impossible in latent spaces.
+        </p>
+
+        <p>
+          <strong>Assessment:</strong> Object-centric decompositions provide the strongest viewpoint/background invariance
+          and the cleanest path to data augmentation. They are most effective when the scene can be cleanly segmented into
+          distinct objects &mdash; which, for most manipulation scenarios, is a reasonable assumption.
+        </p>
+
+        <h3>4.5 Symbolic & Neuro-Symbolic Representations</h3>
+
+        <p>
+          [Konidaris et al., 2018] established the theoretical foundation: given a set of motor skills (options), the
+          abstract symbolic vocabulary needed for planning can be derived mechanically from the skills' initiation and
+          effect sets. This "skills entail symbols" principle &mdash; that the <em>right</em> symbols are determined by
+          the agent's capabilities, not imposed top-down &mdash; is the deepest theoretical insight in this survey's
+          scope. The limitation is that it produces propositional, not relational, symbols.
+        </p>
+
+        <p>
+          [Silver et al., 2021] (LOFT) addressed the practical TAMP angle: learning PDDL operators from transition data,
+          achieving 100% success on 31-step planning horizons where all neural baselines scored 0%. The access to
+          classical planning heuristics (hAdd) via PDDL-compatible operators is a major practical advantage. [Han et al.,
+          2024] (InterPreT) closed the predicate learning gap by using GPT-4 to ground human language feedback into
+          executable predicate functions, then compiling PDDL domains for classical planning &mdash; achieving 73% on
+          combined test sets where Code-as-Policies managed 38%.
+        </p>
+
+        <p>
+          [Liang et al., 2025] (VisualPredicator) introduced neuro-symbolic predicates &mdash; Python code combining VLM
+          queries with algorithmic logic &mdash; and learned optimistic operators via online exploration. Achieving
+          ~90&ndash;95% on out-of-distribution tasks (more objects, longer horizons than training), it approaches oracle
+          performance without manual abstraction engineering. [Ahmetoglu et al., 2024] learned both object and relational
+          predicates from unsupervised manipulation experience, using Gumbel-Sigmoid attention to produce explicit binary
+          relations translatable to PDDL &mdash; achieving ~85% planning success with 4 objects where baselines reach
+          ~25%.
+        </p>
+
+        <p>
+          <strong>Assessment:</strong> Symbolic representations provide the strongest compositional generalization to
+          longer horizons and more objects, because classical planners handle combinatorics that neural approaches cannot.
+          The persistent bottleneck is the <em>grounding problem</em> &mdash; connecting symbols to continuous perception
+          and action. Recent neuro-symbolic approaches are closing this gap rapidly.
+        </p>
+
+        <h3>4.6 Relational Dynamics & Graph-Based Skill Models</h3>
+
+        <p>
+          [Battaglia et al., 2016] (Interaction Networks) and [Sanchez-Gonzalez et al., 2018] (Graph Networks as Physics
+          Engines) established that factoring dynamics into objects + pairwise relations enables zero-shot generalization
+          across system sizes &mdash; a model trained on 5-body systems transfers to 10+ bodies. This is the theoretical
+          backbone for all graph-based dynamics models in manipulation.
+        </p>
+
+        <p>
+          [Tung et al., 2020] (3D-OES) brought this to manipulation, achieving 0.86 MPC pushing success with sim-to-real
+          transfer by learning 3D object-factorized dynamics via GNN. [Li et al., 2020] connected graph-based relational
+          reasoning to RL for multi-object manipulation, stacking 6 blocks with 75% success using 77x less data than
+          prior work &mdash; the GNN's relational inductive bias is what makes curriculum transfer work across object
+          counts.
+        </p>
+
+        <p>
+          [Huang et al., 2024] (Points2Plans) introduced composable relational dynamics for long-horizon TAMP, using
+          delta-dynamics predictions with a hybrid latent-geometric rollout to achieve 85%+ real-world success. The key
+          insight &mdash; that relative (delta) state changes compound less error than absolute predictions &mdash; is a
+          practical contribution for any graph-based dynamics model.
+        </p>
+
+        <p>
+          [Mishra et al., 2024] (Generative Factor Chaining) represented multi-step manipulation as a spatial-temporal
+          factor graph where nodes are objects/robots and factors are modular diffusion models, composing novel skill
+          sequences via bi-directional message passing at inference.
+        </p>
+
+        <p>
+          <strong>Assessment:</strong> Graph-based dynamics models provide the strongest physics-aware generalization but
+          require clean object segmentation and assume relatively simple interaction physics. They are most powerful when
+          combined with symbolic planning (as in Points2Plans) rather than used as standalone world models.
+        </p>
+
+        <h2>5. State of the Art</h2>
+
+        <h3>What Works Best Today</h3>
+
+        <p>
+          The evidence from 2025&ndash;2026 converges on a clear picture:
+        </p>
+
+        <p>
+          For <strong>compositional long-horizon manipulation</strong>, scene-graph-conditioned policies with explicit
+          state-transition reasoning dominate. [Hu et al., 2026] (GSR) achieves 82.4% on LIBERO long-horizon tasks
+          (+14.4% over Gemini-2.5-Pro). [Qi et al., 2025] (Compose by Focus) achieves 0.78&ndash;0.97 on skill
+          composition where baselines score 0.0&ndash;0.52. The key factor is that graph structure filters out irrelevant
+          variation, enabling skills trained independently to compose in novel contexts.
+        </p>
+
+        <p>
+          For <strong>cross-object/cross-category generalization</strong>, affordance-based representations lead. [Yuan
+          et al., 2024] (General Flow) achieves 81% across 18 tasks via 3D flow from human video. [Ju et al., 2024]
+          (Robo-ABC) achieves 85.7% real-world grasping across 7 unseen categories. Foundation model features (DIFT,
+          SD-DINOv2) have made zero-shot affordance transfer practical.
+        </p>
+
+        <p>
+          For <strong>data-efficient skill learning</strong>, object-centric 3D representations with structured action
+          spaces are most effective. [Zeng et al., 2020] (Transporter) achieves 100% from 1 demo. [Barcellona et al.,
+          2024] (DreMa) matches 20-demo performance from 5 demos via compositional data augmentation. [Fang et al.,
+          2025] (SAGA) trains on 2,410 demos &mdash; orders of magnitude fewer than VLAs.
+        </p>
+
+        <p>
+          For <strong>zero-shot deployment without training</strong>, agentic systems with structured graph
+          representations show the most promise. [Liu et al., 2026] (UniManip) achieves 93.75% on zero-shot
+          pick-and-place, outperforming VLA baselines by 22.5% while using a single wrist-mounted camera (vs. dual
+          cameras for baselines).
+        </p>
+
+        <h3>Consensus</h3>
+
+        <ol>
+          <li><strong>End-to-end monolithic representations are insufficient for compositional generalization.</strong>
+            Every paper that directly compares finds structured representations outperform unstructured ones on novel
+            compositions, longer horizons, or more objects.</li>
+          <li><strong>Foundation models are the right perception backbone for structured representations.</strong> The
+            debate about hand-designed vs. learned features is effectively over &mdash; SAM, CLIP, DINOv2, and diffusion
+            features provide the perceptual grounding, while the <em>structure</em> imposed on top of these features
+            determines generalization.</li>
+          <li><strong>3D representations outperform 2D for manipulation.</strong> Across families &mdash; keypoints
+            (kPAM), affordances (General Flow), object-centric (GROOT), scene graphs (ConceptGraphs) &mdash; lifting to
+            3D consistently improves performance by decoupling from viewpoint.</li>
+        </ol>
+
+        <h3>Disagreement</h3>
+
+        <ol>
+          <li><strong>Scene graphs vs. affordances as the primary representation.</strong> Scene graphs encode <em>what
+            is there</em> and <em>how things relate</em>; affordances encode <em>how to interact</em>. Both work well,
+            and the strongest systems (SAGA, UniManip) combine both. But whether the graph or the affordance should be
+            the primary organizing principle remains an open design choice.</li>
+          <li><strong>Frozen vs. end-to-end training of structured representations.</strong> [Qi et al., 2025] uses
+            frozen foundation model features with a learned GNN; [Narendra et al., 2026] (KG-M3PO) trains the GNN
+            end-to-end through RL. Both work; the tradeoff is between leveraging pretrained knowledge (frozen) and
+            aligning representations to task performance (end-to-end).</li>
+          <li><strong>Classical planning vs. learned planning over structured representations.</strong> PDDL-based
+            approaches [Silver et al., 2021; Han et al., 2024] offer formal guarantees and efficient search. LLM-based
+            reasoning over graphs [Hu et al., 2026; Liu et al., 2026] is more flexible but provides no guarantees. The
+            right choice depends on task complexity and tolerance for failure.</li>
+        </ol>
+
+        <h2>6. Open Problems & Future Directions</h2>
+
+        <h3>6.1 The Grounding Gap</h3>
+
+        <p>
+          The most persistent challenge is connecting structured representations to precise low-level control. Scene
+          graphs and PDDL predicates provide excellent task-level reasoning but abstract away the continuous geometry
+          needed for contact-rich manipulation. Affordances capture contact geometry but lack the relational structure
+          needed for multi-step reasoning. <strong>Closing this gap &mdash; representations that are simultaneously
+          relational, spatial, and action-grounded &mdash; is the field's central open problem.</strong> Early attempts
+          like RoboEXP's action-conditioned edges and SAGA's affordance-entity pairs point the way, but neither fully
+          solves it.
+        </p>
+
+        <h3>6.2 Deformable and Contact-Rich Manipulation</h3>
+
+        <p>
+          Nearly every paper in this survey is evaluated on rigid objects. Deformable objects (cloth, rope, food),
+          contact-rich tasks (insertion, assembly), and force-sensitive manipulation remain underserved by current
+          structured representations. [Lee et al., 2018] showed that multimodal representations (vision + touch) are
+          critical for contact-rich tasks, and [Liu et al., 2025] (ViTaMIn) demonstrated scalable visuo-tactile data
+          collection. Integrating tactile structure into scene graphs or affordance representations &mdash; e.g., tactile
+          affordances as graph node attributes &mdash; is a promising but unexplored direction.
+        </p>
+
+        <h3>6.3 Dynamic and Partially Observable Environments</h3>
+
+        <p>
+          Most structured representations assume a static, fully observable scene. [Yan et al., 2024] (DovSG) addressed
+          dynamic updates but still achieves only 35% on long-term tasks. [Wang et al., 2022] (AdaAfford) showed that
+          active exploration can adapt affordances, but only for single-object interactions. How to maintain and update
+          structured representations in truly dynamic, partially observable environments &mdash; where objects move,
+          appear, and disappear &mdash; remains open.
+        </p>
+
+        <h3>6.4 Scalable Affordance Vocabularies</h3>
+
+        <p>
+          Current affordance systems use fixed interaction vocabularies (grasp, place, push, pull). SAGA defines 6
+          affordance types; PALM predicts 4. For manipulation to generalize to the full diversity of human tasks, we need
+          <strong>open-vocabulary or learnable affordance representations</strong> &mdash; affordance analogues of the
+          open-vocabulary revolution in object recognition. This connects to the neuro-symbolic predicate learning
+          direction ([Liang et al., 2025]), where new predicates (and hence new affordance types) can be discovered
+          through interaction.
+        </p>
+
+        <h3>6.5 Unified Representations Across Abstraction Levels</h3>
+
+        <p>
+          The field currently uses different representations at different abstraction levels: scene graphs for task
+          planning, affordances for skill selection, keypoints for motion generation. A truly general manipulation system
+          would benefit from a <strong>single structured representation that supports reasoning at all levels</strong>
+          &mdash; from "which room has the mug?" to "which pixel on the handle should I grasp?" Graph-based
+          representations with hierarchical resolution (building &rarr; room &rarr; object &rarr; part &rarr; contact
+          point) are the natural candidate, but no system has demonstrated this full hierarchy for manipulation.
+        </p>
+
+        <h2>7. Recommended Reading Order</h2>
+
+        <ol>
+          <li><strong>[Battaglia et al., 2016] Interaction Networks</strong> &mdash; Establishes the foundational
+            principle: factoring the world into objects and relations enables generalization. Read this first for the
+            conceptual framework that underlies everything else.</li>
+          <li><strong>[Zeng et al., 2020] Transporter Networks</strong> &mdash; The clearest demonstration that
+            structuring the action representation (not just the observation) yields extraordinary sample efficiency.
+            Establishes the spatial action paradigm.</li>
+          <li><strong>[Mo et al., 2021] Where2Act</strong> &mdash; Introduces dense affordance prediction as a
+            structured interface between perception and manipulation. Read this to understand how affordance
+            representations work and why they generalize across objects.</li>
+          <li><strong>[Gu et al., 2024] ConceptGraphs</strong> &mdash; Shows how foundation models can build
+            open-vocabulary 3D scene graphs that support both perception and planning. The modern infrastructure paper
+            for structured scene understanding.</li>
+          <li><strong>[Qi et al., 2025] Compose by Focus</strong> &mdash; The strongest evidence that scene graphs as
+            direct policy inputs enable compositional generalization. Read this last as it synthesizes ideas from all four
+            preceding papers into a complete system.</li>
+        </ol>
+
+        <p>
+          <strong>Honorable mentions for deeper study:</strong> [Konidaris et al., 2018] for the theoretical foundations
+          of symbol grounding, [Bahl et al., 2023] (VRB) for affordance from human video, [Hu et al., 2026] (GSR) for
+          scene-graph-based reasoning at scale, and [Liang et al., 2025] (VisualPredicator) for the neuro-symbolic
+          frontier.
+        </p>
+
+        <div class="references-section">
+          <h2 class="references-header">References</h2>
+          <ol class="references-list">
+            <li>Ahmetoglu, A., et al. (2024). "Symbolic Manipulation Planning with Discovered Object and Relational Predicates." 2024.</li>
+            <li>Armeni, I., et al. (2019). "3D Scene Graph: A Structure for Unified Semantics, 3D Space, and Camera." ICCV 2019.</li>
+            <li>Bahl, S., et al. (2023). "Affordances from Human Videos as a Versatile Representation for Robotics." CVPR 2023.</li>
+            <li>Barcellona, L., et al. (2024). "Dream to Manipulate: Compositional World Models Empowering Robot Imitation Learning with Imagination." arXiv:2412.14957.</li>
+            <li>Battaglia, P.W., et al. (2016). "Interaction Networks for Learning about Objects, Relations and Physics." NeurIPS 2016.</li>
+            <li>Fang, K., et al. (2025). "SAGA: Open-World Mobile Manipulation via Structured Affordance Grounding." arXiv:2512.12842.</li>
+            <li>Florence, P.R., et al. (2018). "Dense Object Nets: Learning Dense Visual Object Descriptors By and For Robotic Manipulation." CoRL 2018.</li>
+            <li>Gu, Q., et al. (2024). "ConceptGraphs: Open-Vocabulary 3D Scene Graphs for Perception and Planning." ICRA 2024.</li>
+            <li>Guo, M. &amp; B&uuml;rger, M. (2021). "Geometric Task Networks: Learning Efficient and Explainable Skill Coordination for Object Manipulation." 2021.</li>
+            <li>Han, M., et al. (2024). "InterPreT: Interactive Predicate Learning from Language Feedback for Generalizable Task Planning." RSS 2024.</li>
+            <li>Honerkamp, D., et al. (2024). "Language-Grounded Dynamic Scene Graphs for Interactive Object Search with Mobile Manipulation." RA-L 2024.</li>
+            <li>Hu, K., et al. (2026). "GSR: Learning Structured Reasoning for Embodied Manipulation." arXiv:2602.01693.</li>
+            <li>Huang, Y., et al. (2024). "Points2Plans: From Point Clouds to Long-Horizon Plans with Composable Relational Dynamics." ICRA 2025.</li>
+            <li>Jeong, Y., et al. (2025). "Object-Centric World Model for Language-Guided Manipulation." 2025.</li>
+            <li>Jiang, H., et al. (2024). "RoboEXP: Action-Conditioned Scene Graph via Interactive Exploration for Robotic Manipulation." 2024.</li>
+            <li>Jiao, Z., et al. (2022). "Sequential Manipulation Planning on Scene Graph." IROS 2022.</li>
+            <li>Ju, Y., et al. (2024). "Robo-ABC: Affordance Generalization Beyond Categories via Semantic Correspondence for Robot Manipulation." 2024.</li>
+            <li>Konidaris, G., et al. (2018). "From Skills to Symbols: Learning Symbolic Representations for Abstract High-Level Planning." JAIR 2018.</li>
+            <li>Lee, M.A., et al. (2018). "Making Sense of Vision and Touch: Self-Supervised Learning of Multimodal Representations for Contact-Rich Tasks." ICRA 2019.</li>
+            <li>Li, R., et al. (2020). "Towards Practical Multi-Object Manipulation using Relational Reinforcement Learning." 2020.</li>
+            <li>Li, S., et al. (2025). "Graph-Fused Vision-Language-Action for Policy Reasoning in Multi-Arm Robotic Manipulation." 2025.</li>
+            <li>Li, Y., et al. (2017). "Scene Graph Generation from Objects, Phrases and Region Captions." ICCV 2017.</li>
+            <li>Liang, Y., et al. (2025). "VISUALPREDICATOR: Learning Abstract World Models with Neuro-Symbolic Predicates for Robot Planning." ICLR 2025.</li>
+            <li>Liu, F., et al. (2025). "ViTaMIn: Learning Contact-Rich Tasks Through Robot-Free Visuo-Tactile Manipulation Interface." 2025.</li>
+            <li>Liu, H., et al. (2026). "UniManip: General-Purpose Zero-Shot Robotic Manipulation with Agentic Operational Graph." 2026.</li>
+            <li>Liu, J., et al. (2023). "SoftGPT: Learn Goal-oriented Soft Object Manipulation Skills by Generative Pre-trained Heterogeneous Graph Transformer." 2023.</li>
+            <li>Liu, W., et al. (2021). "StructFormer: Learning Spatial Structure for Language-Guided Semantic Rearrangement of Novel Objects." 2021.</li>
+            <li>Liu, W., et al. (2022). "StructDiffusion: Language-Guided Creation of Physically-Valid Structures using Unseen Objects." RSS 2023.</li>
+            <li>Liu, Y., et al. (2026). "PALM: Progress-Aware Policy Learning via Affordance Reasoning for Long-Horizon Robotic Manipulation." 2026.</li>
+            <li>Mandikal, P. &amp; Grauman, K. (2020). "Learning Dexterous Grasping with Object-Centric Visual Affordances." ICRA 2021.</li>
+            <li>Manuelli, L., et al. (2019). "kPAM: KeyPoint Affordances for Category-Level Robotic Manipulation." ISRR 2019.</li>
+            <li>Mishra, U.A., et al. (2024). "Generative Factor Chaining: Coordinated Manipulation with Diffusion-based Factor Graph." 2024.</li>
+            <li>Mo, K., et al. (2021). "Where2Act: From Pixels to Actions for Articulated 3D Objects." ICCV 2021.</li>
+            <li>Narendra, A., et al. (2026). "Knowledge-Guided Manipulation Using Multi-Task Reinforcement Learning." ICRA 2026.</li>
+            <li>Qi, H., et al. (2025). "Compose by Focus: Scene Graph-based Atomic Skills for Compositional Generalization." ICRA 2026.</li>
+            <li>Sanchez-Gonzalez, A., et al. (2018). "Graph Networks as Learnable Physics Engines for Inference and Control." ICML 2018.</li>
+            <li>Shridhar, M., et al. (2021). "CLIPort: What and Where Pathways for Robotic Manipulation." CoRL 2021.</li>
+            <li>Silver, T., et al. (2021). "Learning Symbolic Operators for Task and Motion Planning." IROS 2021.</li>
+            <li>Tung, H.-Y., et al. (2020). "3D-OES: Viewpoint-Invariant Object-Factorized Environment Simulators." CoRL 2020.</li>
+            <li>Wang, Y., et al. (2022). "AdaAfford: Learning to Adapt Manipulation Affordance for 3D Articulated Objects via Few-shot Interactions." ECCV 2022.</li>
+            <li>Wu, R., et al. (2022). "VAT-Mart: Learning Visual Action Trajectory Proposals for Manipulating 3D ARTiculated Objects." ICLR 2022.</li>
+            <li>Wu, S., et al. (2024). "AffordDP: Generalizable Diffusion Policy with Transferable Affordance." 2024.</li>
+            <li>Yan, Z., et al. (2024). "Dynamic Open-Vocabulary 3D Scene Graphs for Long-term Language-Guided Mobile Manipulation." RA-L 2025.</li>
+            <li>Yang, J., et al. (2018). "Graph R-CNN for Scene Graph Generation." ECCV 2018.</li>
+            <li>Yuan, C., et al. (2024). "General Flow as Foundation Affordance for Scalable Robot Learning." 2024.</li>
+            <li>Yuan, W., et al. (2021). "SORNet: Spatial Object-Centric Representations for Sequential Manipulation." CoRL 2021.</li>
+            <li>Zeng, A., et al. (2020). "Transporter Networks: Rearranging the Visual World for Robotic Manipulation." CoRL 2020.</li>
+            <li>Zhu, Y., et al. (2020). "Hierarchical Planning for Long-Horizon Manipulation with Geometric and Symbolic Scene Graphs." ICRA 2021.</li>
+            <li>Zhu, Y., et al. (2023). "GROOT: Learning Generalizable Manipulation Policies with Object-Centric 3D Representations." CoRL 2023.</li>
+          </ol>
+        </div>
+      </article>
+    </div>
+
+    <!-- Blog styling and spacing script -->
+    <script defer src="/js/blog.js"></script>
+    <script defer src="/js/katex-init.js"></script>
+  </body>
+</html>

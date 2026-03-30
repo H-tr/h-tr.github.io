@@ -534,6 +534,85 @@ nav a:active {
   font-style: italic;
 }
 
+/* ============================================
+   TAXONOMY TREE
+   ============================================ */
+
+.taxonomy-tree {
+  margin: 1.8rem 0;
+  padding: 0;
+}
+
+.taxonomy-root {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  letter-spacing: 0.01em;
+}
+
+.taxonomy-tree ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.taxonomy-tree > ul > li {
+  margin-bottom: 0.9rem;
+}
+
+.taxonomy-branch {
+  font-weight: 500;
+  color: #2c3e50;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.taxonomy-branch .branch-id {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #fff;
+  background: #2c3e50;
+  width: 1.4rem;
+  height: 1.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  flex-shrink: 0;
+  position: relative;
+  top: 0.05rem;
+}
+
+.taxonomy-branch .branch-label {
+  font-style: italic;
+}
+
+.taxonomy-leaves {
+  margin: 0.35rem 0 0 0.65rem;
+  padding-left: 1.1rem;
+  border-left: 2px solid #e8e6e0;
+}
+
+.taxonomy-leaves li {
+  font-size: 0.88rem;
+  color: #555;
+  padding: 0.2rem 0;
+  line-height: 1.5;
+}
+
+.taxonomy-leaves .leaf-id {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 0.75rem;
+  color: #999;
+  margin-right: 0.35rem;
+}
+
 /* Math equations sizing - KaTeX default (1.21em) matches LaTeX convention */
 .katex {
   font-size: 1.21em;

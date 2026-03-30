@@ -110,31 +110,50 @@
           plays</em> in the planning pipeline.
         </p>
 
-<pre><code class="language-bash">LLM/VLM for TAMP
-|
-+- A. LLMs as Task Planners (semantic reasoning, no geometry)
-|   +- A1. Open-loop plan generation
-|   +- A2. Closed-loop planning with feedback
-|   +- A3. Code/program generation
-|
-+- B. LLMs as Translators to Formal Specifications
-|   +- B1. NL -> PDDL (for classical planners)
-|   +- B2. NL -> Temporal Logic (STL/LTL)
-|   +- B3. NL -> Constraints (for TAMP solvers)
-|
-+- C. Foundation Models Integrated into TAMP Search
-|   +- C1. LLMs as heuristics / warm-starters
-|   +- C2. VLMs as constraint generators / validators
-|   +- C3. LLMs for failure reasoning and recovery
-|
-+- D. VLMs/VLAs as End-to-End Action Models
-|   +- D1. VLMs fine-tuned for action prediction
-|   +- D2. VLMs for spatial grounding and affordances
-|
-+- E. Structured World Representations as Interface
-    +- E1. 3D scene graphs for LLM grounding
-    +- E2. Explicit state tracking for LLM planners
-    +- E3. Spatial VLMs for metric reasoning</code></pre>
+        <div class="taxonomy-tree">
+          <div class="taxonomy-root">LLM/VLM for TAMP</div>
+          <ul>
+            <li>
+              <div class="taxonomy-branch"><span class="branch-id">A</span> <span class="branch-label">LLMs as Task Planners</span></div>
+              <ul class="taxonomy-leaves">
+                <li><span class="leaf-id">A1.</span> Open-loop plan generation</li>
+                <li><span class="leaf-id">A2.</span> Closed-loop planning with feedback</li>
+                <li><span class="leaf-id">A3.</span> Code/program generation</li>
+              </ul>
+            </li>
+            <li>
+              <div class="taxonomy-branch"><span class="branch-id">B</span> <span class="branch-label">LLMs as Translators to Formal Specifications</span></div>
+              <ul class="taxonomy-leaves">
+                <li><span class="leaf-id">B1.</span> NL &rarr; PDDL (for classical planners)</li>
+                <li><span class="leaf-id">B2.</span> NL &rarr; Temporal Logic (STL/LTL)</li>
+                <li><span class="leaf-id">B3.</span> NL &rarr; Constraints (for TAMP solvers)</li>
+              </ul>
+            </li>
+            <li>
+              <div class="taxonomy-branch"><span class="branch-id">C</span> <span class="branch-label">Foundation Models Integrated into TAMP Search</span></div>
+              <ul class="taxonomy-leaves">
+                <li><span class="leaf-id">C1.</span> LLMs as heuristics / warm-starters</li>
+                <li><span class="leaf-id">C2.</span> VLMs as constraint generators / validators</li>
+                <li><span class="leaf-id">C3.</span> LLMs for failure reasoning and recovery</li>
+              </ul>
+            </li>
+            <li>
+              <div class="taxonomy-branch"><span class="branch-id">D</span> <span class="branch-label">VLMs/VLAs as End-to-End Action Models</span></div>
+              <ul class="taxonomy-leaves">
+                <li><span class="leaf-id">D1.</span> VLMs fine-tuned for action prediction</li>
+                <li><span class="leaf-id">D2.</span> VLMs for spatial grounding and affordances</li>
+              </ul>
+            </li>
+            <li>
+              <div class="taxonomy-branch"><span class="branch-id">E</span> <span class="branch-label">Structured World Representations as Interface</span></div>
+              <ul class="taxonomy-leaves">
+                <li><span class="leaf-id">E1.</span> 3D scene graphs for LLM grounding</li>
+                <li><span class="leaf-id">E2.</span> Explicit state tracking for LLM planners</li>
+                <li><span class="leaf-id">E3.</span> Spatial VLMs for metric reasoning</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
 
         <p>
           <strong>Family A: LLMs as Task Planners.</strong> The earliest and most popular approach. An LLM receives a
