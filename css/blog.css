@@ -496,6 +496,44 @@ nav a:active {
   font-size: 0.95rem;
 }
 
+/* AI-generated notice — left sidebar on wide screens */
+.ai-generated-notice {
+  display: none;
+  position: fixed;
+  right: calc(50% + 520px);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 170px;
+  padding-right: 1.2rem;
+  border-right: 1px solid #eee;
+  font-size: 0.75rem;
+  color: #bbb;
+  line-height: 1.6;
+  font-style: italic;
+}
+
+.ai-generated-notice.visible {
+  display: block;
+}
+
+@media (max-width: 1200px) {
+  .ai-generated-notice {
+    display: none !important;
+  }
+}
+
+/* Model label tag on survey items */
+.blog-model-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.8rem;
+  color: #aaa;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid #eee;
+  border-radius: 3px;
+  font-style: italic;
+}
+
 /* Math equations sizing - KaTeX default (1.21em) matches LaTeX convention */
 .katex {
   font-size: 1.21em;

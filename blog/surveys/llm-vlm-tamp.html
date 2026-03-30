@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Survey: LLM and VLM for Task and Motion Planning</title>
+
+    <!-- Fonts -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Prism.js initialization -->
+    <script src="/js/prism-init.js"></script>
+
+    <!-- KaTeX Math Support -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Site Assets -->
+    <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg" />
+    <link href="/css/blog.css" rel="stylesheet" />
+
+    <!-- KaTeX Scripts -->
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"
+    ></script>
+  </head>
+  <body>
+    <div class="blog-post">
+      <a href="../?tab=survey" class="back-button">
+        <i class="fas fa-arrow-left"></i>Back
+      </a>
+
+      <header class="blog-post-header">
+        <h1 class="blog-post-title">Survey: LLM and VLM for Task and Motion Planning</h1>
+        <div class="blog-post-date">March 29, 2026</div>
+      </header>
+
+      <article class="blog-post-content">
+
+        <h2>1. Introduction & Problem Definition</h2>
+
+        <p>
+          Task and Motion Planning (TAMP) is the problem of jointly determining <em>what</em> to do (a sequence of
+          symbolic actions like "pick," "place," "open") and <em>how</em> to do it (collision-free trajectories,
+          feasible grasps, stable placements) to achieve a goal specified in natural language. It is the computational
+          backbone of any robot that must execute multi-step manipulation in unstructured environments — cooking a
+          meal, tidying a room, assembling a kit.
+        </p>
+
+        <p>
+          TAMP is hard for two reasons that compound each other. First, the <em>task planning</em> layer faces
+          combinatorial explosion: with \(n\) objects and \(k\) actions, the search space grows exponentially in the
+          plan horizon. Second, the <em>motion planning</em> layer faces continuous optimization in high-dimensional
+          configuration spaces, where feasibility depends on geometry the task planner cannot see. Classical TAMP
+          systems [Garrett et al., 2020; Toussaint, 2015] handle both layers through formal representations (PDDL,
+          logic-geometric programs) solved by complete algorithms — but they require painstaking manual specification
+          of every domain: predicates, action schemas, samplers, and heuristics. This engineering bottleneck has
+          confined TAMP to laboratory demonstrations for decades.
+        </p>
+
+        <p>
+          The emergence of Large Language Models (LLMs) and Vision-Language Models (VLMs) offers a tantalizing
+          shortcut. These models encode vast procedural knowledge ("to make coffee, first fill the kettle..."),
+          commonsense spatial reasoning ("forks go left of plates"), and open-vocabulary perception — precisely the
+          kinds of knowledge that TAMP engineers previously had to hand-code. The central question of this survey is:
+          <strong>Can foundation models replace, augment, or bypass the manual engineering bottleneck in TAMP, and if
+          so, at what cost to correctness, robustness, and generality?</strong>
+        </p>
+
+        <p>
+          The answer, as we will argue, is nuanced. LLMs are powerful specification generators but unreliable
+          reasoners. VLMs add spatial grounding but still lack metric precision. The most successful systems use
+          foundation models not as planners but as <em>translators</em>, <em>heuristics</em>, and <em>constraint
+          proposers</em> within architectures that retain classical guarantees. The field is converging on this
+          insight, but getting the interface right — what to delegate to the foundation model, what to keep in the
+          solver — remains the core open problem.
+        </p>
+
+        <p>
+          This survey covers work from 2022 to early 2026, spanning the full arc from the first demonstrations of
+          LLM-based robot planning to the current state of the art.
+        </p>
+
+        <h2>2. Taxonomy of Approaches</h2>
+
+        <p>
+          We organize the literature into five families, distinguished by <em>what role the foundation model
+          plays</em> in the planning pipeline.
+        </p>
+
+<pre><code class="language-bash">LLM/VLM for TAMP
+|
++- A. LLMs as Task Planners (semantic reasoning, no geometry)
+|   +- A1. Open-loop plan generation
+|   +- A2. Closed-loop planning with feedback
+|   +- A3. Code/program generation
+|
++- B. LLMs as Translators to Formal Specifications
+|   +- B1. NL -> PDDL (for classical planners)
+|   +- B2. NL -> Temporal Logic (STL/LTL)
+|   +- B3. NL -> Constraints (for TAMP solvers)
+|
++- C. Foundation Models Integrated into TAMP Search
+|   +- C1. LLMs as heuristics / warm-starters
+|   +- C2. VLMs as constraint generators / validators
+|   +- C3. LLMs for failure reasoning and recovery
+|
++- D. VLMs/VLAs as End-to-End Action Models
+|   +- D1. VLMs fine-tuned for action prediction
+|   +- D2. VLMs for spatial grounding and affordances
+|
++- E. Structured World Representations as Interface
+    +- E1. 3D scene graphs for LLM grounding
+    +- E2. Explicit state tracking for LLM planners
+    +- E3. Spatial VLMs for metric reasoning</code></pre>
+
+        <p>
+          <strong>Family A: LLMs as Task Planners.</strong> The earliest and most popular approach. An LLM receives a
+          natural language instruction and generates a sequence of high-level actions, which are then executed by
+          pre-trained low-level controllers. This is <em>task planning only</em> — the motion planning problem is
+          assumed solved by existing primitives. The key design choices are: how to ground the LLM's outputs in the
+          robot's actual capabilities (affordance scoring in SayCan, semantic translation in [Huang et al., 2022],
+          code generation in [Liang et al., 2022]), and whether to close the loop with environment feedback.
+        </p>
+
+        <p>
+          <strong>Family B: LLMs as Translators.</strong> Rather than using the LLM as a planner, use it as a
+          <em>translator</em> from natural language to a formal representation (PDDL, STL, constraint code) that a
+          classical solver can optimize. This separates linguistic competence (the LLM's strength) from logical
+          reasoning (the solver's strength). The key challenge is translation fidelity — LLMs produce syntactically
+          or semantically incorrect formal specifications roughly 10-60% of the time, depending on domain
+          complexity [Gestrin et al., 2024; Liu et al., 2023].
+        </p>
+
+        <p>
+          <strong>Family C: Foundation Models in TAMP Search.</strong> The most tightly integrated approaches. Here,
+          the LLM or VLM participates directly in the TAMP solver's search loop — proposing candidate plans to
+          warm-start tree search [Lee et al., 2025], generating continuous constraint parameters for trajectory
+          optimization [Shcherba et al., 2025], predicting which geometric refinements will fail [Yan et al., 2025],
+          or reasoning about motion planning failures to guide replanning [Wang et al., 2024]. These systems retain
+          the classical TAMP's completeness properties while using foundation models to accelerate search.
+        </p>
+
+        <p>
+          <strong>Family D: End-to-End VLAs.</strong> The most radical departure from classical TAMP.
+          Vision-Language-Action models (RT-2, PaLM-E, OpenVLA) fine-tune VLMs to directly output robot actions as
+          tokenized text, bypassing both symbolic task planning and explicit motion planning. These systems
+          demonstrate impressive semantic generalization but operate at the single-action level — they do not perform
+          multi-step planning in any meaningful sense.
+        </p>
+
+        <p>
+          <strong>Family E: Structured World Representations.</strong> A cross-cutting concern: how to represent the
+          world so that foundation models can reason about it effectively. This includes 3D scene graphs for scalable
+          environment grounding, explicit JSON state tracking for temporal reasoning, spatial VLMs for metric distance
+          estimation, and 3D voxel value maps composed via code.
+        </p>
+
+        <h2>3. Timeline & Evolution</h2>
+
+        <h3>Phase 1: Proof of Concept (Early 2022)</h3>
+        <p>
+          Three near-simultaneous papers established that LLMs could be used for robot task planning at all.
+          [Huang et al., 2022] showed that GPT-3 could decompose "make breakfast" into step-by-step plans, with a
+          semantic translation layer boosting executability from 8% to 79%. SayCan [Ahn et al., 2022] grounded these
+          plans in real-robot affordances via value-function scoring, achieving 74% execution success on a mobile
+          manipulator. Socratic Models [Zeng et al., 2022] demonstrated that multiple foundation models could be
+          composed via language as an intermodal bus.
+        </p>
+        <p>
+          These papers were exciting but limited. All operated at the <em>task level only</em> — they assumed a
+          library of pre-trained skills handled motion planning. Plans were generated open-loop or with minimal
+          grounding. The motion planning problem was nowhere in sight.
+        </p>
+
+        <h3>Phase 2: Closing the Loop (Late 2022 - Mid 2023)</h3>
+        <p>
+          The second wave addressed the brittleness of open-loop LLM planning. Inner Monologue [Huang et al., 2022b]
+          injected success detection, scene descriptions, and human corrections as textual feedback, improving
+          real-robot kitchen task success from 30.8% to 60.4% under adversarial disturbances. Code as Policies
+          [Liang et al., 2022] shifted the output representation from natural language to executable code, enabling
+          spatial-geometric reasoning (98% accuracy on numerical computation tasks) and hierarchical composition.
+        </p>
+        <p>
+          Concurrently, the <em>critical perspective</em> emerged. [Valmeekam et al., 2023] rigorously demonstrated
+          that GPT-4 achieves only ~35% correct plans on Blocksworld — dropping to near-zero when action names are
+          obfuscated — proving that LLM "planning" is pattern matching, not reasoning. This was an inflection point:
+          it forced the community to take seriously the distinction between <em>proposing</em> plans and
+          <em>guaranteeing</em> them.
+        </p>
+
+        <h3>Phase 3: Bridging Task and Motion (2023 - 2024)</h3>
+        <p>
+          The third wave began integrating LLMs with actual TAMP systems. LLM+P [Liu et al., 2023] used the LLM as a
+          translator from natural language to PDDL, then solved the planning problem with Fast Downward — achieving
+          90% on Blocksworld where LLMs alone scored 20%. Text2Motion [Lin et al., 2023] interleaved LLM task
+          planning with Q-function-based geometric feasibility checking, reaching 82% on multi-step manipulation
+          versus 13% for SayCan/Inner Monologue.
+        </p>
+        <p>
+          On the VLM side, VoxPoser [Huang et al., 2023] used LLM-written code to compose 3D voxel value maps from
+          VLM detections, enabling zero-shot manipulation trajectories (88% real-world success). RT-2 [Brohan et al.,
+          2023] demonstrated that VLMs fine-tuned on robot data could transfer web-scale semantic knowledge to
+          low-level control, doubling generalization performance over RT-1.
+        </p>
+        <p>
+          [Kambhampati et al., 2024] formalized the emerging consensus as the <strong>LLM-Modulo framework</strong>:
+          LLMs as approximate generators within a verified loop. This became the dominant architectural pattern.
+        </p>
+
+        <h3>Phase 4: Tightening the Integration (2024 - Present)</h3>
+        <p>
+          The current phase is characterized by increasingly precise integration of foundation models into the TAMP
+          search loop. VLM-TAMP [Yang et al., 2024] uses VLMs to generate <em>subgoals</em> (not actions) that TAMP
+          planners refine with full geometric reasoning — achieving 50-100% on 30-50-step kitchen tasks where direct
+          VLM action generation scores 0%. OWL-TAMP [Kumar et al., 2024] has VLMs generate both discrete plan
+          constraints and continuous constraint functions as Python code, achieving 92% on open-world manipulation
+          tasks. STaLM [Lee et al., 2025] warm-starts Monte Carlo Tree Search with LLM-generated plans, achieving
+          84-100% where PDDLStream scores 0-56%.
+        </p>
+        <p>
+          On the negative side, [Mendez-Mendez, 2025] benchmarked 16 LLM-based TAMP variants across 4,950 problems
+          and found that all underperform engineered planners, with the counterintuitive finding that providing
+          geometric information to the LLM <em>increases</em> task-planning errors.
+        </p>
+
+        <h2>4. Key Papers & Contributions</h2>
+
+        <h3>4.1 Family A: LLMs as Task Planners</h3>
+        <p>
+          <strong>SayCan</strong> [Ahn et al., 2022] is the foundational paper of the field. Its core insight —
+          multiply LLM semantic scores by learned value functions to score a fixed menu of robot skills — established
+          the "LLM proposes, affordances dispose" paradigm. With PaLM as the LLM, SayCan achieved 84% planning
+          success and 74% execution success across 101 real-world kitchen tasks.
+        </p>
+        <p>
+          <strong>Inner Monologue</strong> [Huang et al., 2022b] addressed SayCan's limitations by feeding success
+          detection, scene descriptions, and human corrections back to the LLM as natural language. Real-robot kitchen
+          success improved from 30.8% to 60.4% under adversarial disturbances. The key insight was that
+          <strong>language is a universal interface</strong> between perception, planning, and action.
+        </p>
+        <p>
+          <strong>Code as Policies</strong> [Liang et al., 2022] shifted the output representation from natural
+          language to executable Python code: 98% accuracy on spatial-geometric reasoning tasks (vs. 58% for
+          chain-of-thought), and 97.2% on seen simulation tasks.
+        </p>
+        <p>
+          <strong>KnowNo</strong> [Ren et al., 2023] addressed <em>when should the robot ask for help?</em> Using
+          conformal prediction over LLM softmax scores, KnowNo provides distribution-free coverage guarantees — the
+          only paper in the field with formal statistical guarantees on task success rates.
+        </p>
+
+        <h3>4.2 Family B: LLMs as Translators to Formal Specifications</h3>
+        <p>
+          <strong>LLM+P</strong> [Liu et al., 2023] is the cleanest articulation of the translator paradigm. Given a
+          natural language problem description, a human-provided PDDL domain file, and one example, GPT-4 generates a
+          problem-specific PDDL file that Fast Downward solves optimally. On Blocksworld, this achieves 90% (vs. 20%
+          for LLM-as-planner).
+        </p>
+        <p>
+          <strong>AutoTAMP</strong> [Chen et al., 2023] extends the translator paradigm to Signal Temporal Logic,
+          enabling continuous-time, multi-agent coordination. Its two-stage autoregressive error correction raised
+          success rates from ~42% to ~88% on the hardest domain.
+        </p>
+        <p>
+          <strong>NL2Plan</strong> [Gestrin et al., 2024] pushed the frontier by generating <em>both</em> PDDL
+          domain and problem files from minimal text descriptions — no expert-provided domain required. Its six-stage
+          pipeline solved 260% more unseen tasks than direct LLM PDDL generation.
+        </p>
+
+        <h3>4.3 Family C: Foundation Models in TAMP Search</h3>
+        <p>
+          This is the most technically demanding and most promising family.
+        </p>
+        <p>
+          <strong>Text2Motion</strong> [Lin et al., 2023] was the first to interleave LLM task planning with
+          geometric feasibility checking — 82% overall success versus 13% for SayCan/Inner Monologue.
+        </p>
+        <p>
+          <strong>VLM-TAMP</strong> [Yang et al., 2024] identified the right abstraction level: <em>subgoals</em>,
+          not actions. 50-100% on 30-50-step tasks where direct VLM action generation scored 0%.
+        </p>
+        <p>
+          <strong>OWL-TAMP</strong> [Kumar et al., 2024] achieved 92% overall success by having VLMs generate both
+          discrete plan constraints and continuous constraint functions as Python code. 19/19 tasks on real dual-arm
+          hardware with zero task-specific modification.
+        </p>
+        <p>
+          <strong>STaLM</strong> [Lee et al., 2025] used the LLM as a one-shot heuristic to warm-start Monte Carlo
+          Tree Search — 84-100% across all problems vs. PDDLStream 0-56%.
+        </p>
+        <p>
+          <strong>MOPS</strong> [Shcherba et al., 2025] formulated the interface as nested optimization: LLM selects
+          constraints, CMA-ES refines parameters, gradient-based trajectory optimization solves the NLP. 30-40%
+          improvement over prior code-generation approaches.
+        </p>
+        <p>
+          <strong>VIZ-COAST</strong> [Yan et al., 2025] introduced <em>proactive</em> constraint generation: VLM
+          predicts which symbolic plans will fail at the geometric level <em>before planning begins</em>. 100%
+          success where baselines scored 0-7.5%.
+        </p>
+
+        <h3>4.4 Family D: End-to-End VLAs</h3>
+        <p>
+          <strong>RT-2</strong> [Brohan et al., 2023] — the seminal VLA paper. Generalization to unseen objects
+          improved ~2x over RT-1. Over 6,000 real-world trials.
+        </p>
+        <p>
+          <strong>PaLM-E</strong> [Driess et al., 2023] — 562B parameters, doubling SayCan's success (82.5% vs.
+          38.7%) while retaining 96% of base language capability.
+        </p>
+        <p>
+          <strong>OpenVLA</strong> [Kim et al., 2024] — open-source 7B model outperforming 55B RT-2-X by 16.5%.
+          Single-GPU adaptation practical.
+        </p>
+
+        <h3>4.5 Family E: Structured World Representations</h3>
+        <p>
+          <strong>SayPlan</strong> [Rana et al., 2023] — hierarchical 3D scene graphs, token usage dropped 60-82%,
+          86.6% executability on long-horizon tasks.
+        </p>
+        <p>
+          <strong>ConceptGraphs</strong> [Gu et al., 2024] — open-vocabulary 3D scene graphs from RGB-D, ~70% node
+          label accuracy, ~90% edge accuracy.
+        </p>
+        <p>
+          <strong>VoxPoser</strong> [Huang et al., 2023] — 3D voxel value maps via LLM-written code, 88% real-world
+          success, zero-shot trajectory priors accelerating dynamics learning from >12 hours to <3 minutes.
+        </p>
+
+        <h2>5. State of the Art</h2>
+
+        <h3>What Works Best Today</h3>
+        <p>
+          For <strong>pure task planning</strong>: Code as Policies and descendants. KnowNo for calibrated
+          uncertainty.
+        </p>
+        <p>
+          For <strong>long-horizon TAMP</strong>: VLM-as-subgoal-generator + classical-TAMP [Yang et al., 2024;
+          Kumar et al., 2024]. OWL-TAMP's 92% is the current high-water mark.
+        </p>
+        <p>
+          For <strong>scalable environment grounding</strong>: SayPlan + ConceptGraphs.
+        </p>
+        <p>
+          For <strong>low-level visuomotor control</strong>: VLAs (OpenVLA) as skill primitives.
+        </p>
+
+        <h3>Consensus</h3>
+        <ol>
+          <li><strong>LLMs cannot plan autonomously.</strong> Established by multiple evaluations.</li>
+          <li><strong>External verification is necessary.</strong> The LLM-Modulo pattern is dominant.</li>
+          <li><strong>Code is better than natural language</strong> as output representation.</li>
+          <li><strong>The LLM should not see raw geometry.</strong> Geometric details <em>increase</em>
+            task-planning errors.</li>
+        </ol>
+
+        <h3>Disagreement</h3>
+        <ol>
+          <li>Modular vs. end-to-end.</li>
+          <li>How much PDDL is needed.</li>
+          <li>VLMs as spatial reasoners — qualitative vs. metric.</li>
+        </ol>
+
+        <h2>6. Open Problems & Future Directions</h2>
+
+        <h3>6.1 The Interface Problem</h3>
+        <p>
+          The central unsolved problem: designing the right <strong>interface</strong> between foundation models and
+          TAMP solvers. A theoretical framework for <em>what information the foundation model should provide, at what
+          granularity, to which solver component</em> would be enormously valuable.
+        </p>
+
+        <h3>6.2 Continuous and Contact-Rich Manipulation</h3>
+        <p>
+          Nearly all work evaluates on pick-and-place. Contact-rich manipulation — tool use, deformable objects,
+          dexterous manipulation — remains almost entirely unaddressed.
+        </p>
+
+        <h3>6.3 Partial Observability and Dynamic Environments</h3>
+        <p>
+          Only CoCo-TAMP [Kim et al., 2026] addresses partial observability. Real-world TAMP requires integrating
+          foundation model priors with probabilistic state estimation.
+        </p>
+
+        <h3>6.4 Real-Time Replanning and Reactivity</h3>
+        <p>
+          Foundation model query latency (0.5-5s) makes real-time replanning infeasible at manipulation frequencies
+          (10-50 Hz). Needs either small fast on-robot models or pre-computed constraint libraries.
+        </p>
+
+        <h3>6.5 Scaling Beyond Tabletop Pick-and-Place</h3>
+        <p>
+          Most papers evaluate on tabletop with 3-10 objects. Benchmarks that stress-test at scale are urgently
+          needed.
+        </p>
+
+        <h3>6.6 Connection to Diffusion-Based Motion Generation</h3>
+        <p>
+          Diffusion Policy and StructDiffusion are natural complements: language model reasons about <em>what</em>,
+          diffusion model generates <em>how</em>.
+        </p>
+
+        <h2>7. Recommended Reading Order</h2>
+
+        <ol>
+          <li><strong>SayCan</strong> [Ahn et al., 2022] — foundational paradigm</li>
+          <li><strong>"On the Planning Abilities of LLMs"</strong> [Valmeekam et al., 2023] — necessary corrective</li>
+          <li><strong>Code as Policies</strong> [Liang et al., 2022] — dominant output representation</li>
+          <li><strong>OWL-TAMP</strong> [Kumar et al., 2024] — best VLM+TAMP integration</li>
+          <li><strong>VoxPoser</strong> [Huang et al., 2023] — VLM spatial grounding for continuous control</li>
+        </ol>
+
+        <p>
+          Then branch: formal-specification (LLM+P &rarr; AutoTAMP &rarr; CaStL &rarr; NL2Plan), VLA (RT-2 &rarr;
+          PaLM-E &rarr; OpenVLA), scene representation (SayPlan &rarr; ConceptGraphs &rarr; SpatialVLM), or TAMP
+          integration (Text2Motion &rarr; LLM3 &rarr; STaLM &rarr; MOPS &rarr; VIZ-COAST).
+        </p>
+
+        <div class="references-section">
+          <h2 class="references-header">References</h2>
+          <ol class="references-list">
+            <li>Ahn, M., et al. (2022). "Do As I Can, Not As I Say: Grounding Language in Robotic Affordances." arXiv:2204.01691.</li>
+            <li>Brohan, A., et al. (2023). "RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control." arXiv:2307.15818.</li>
+            <li>Chen, B., et al. (2024). "SpatialVLM: Endowing Vision-Language Models with Spatial Reasoning Capabilities." CVPR 2024.</li>
+            <li>Chen, Y., et al. (2023). "AutoTAMP: Autoregressive Task and Motion Planning with LLMs as Translators and Checkers." arXiv:2306.06531.</li>
+            <li>Chi, C., et al. (2023). "Diffusion Policy: Visuomotor Policy Learning via Action Diffusion." RSS 2023.</li>
+            <li>Driess, D., et al. (2023). "PaLM-E: An Embodied Multimodal Language Model." ICML 2023.</li>
+            <li>Gestrin, E., et al. (2024). "NL2Plan: Robust LLM-Driven Planning from Minimal Text Descriptions." ICAPS 2024.</li>
+            <li>Gu, Q., et al. (2024). "ConceptGraphs: Open-Vocabulary 3D Scene Graphs for Perception and Planning." ICRA 2024.</li>
+            <li>Guo, W., et al. (2024). "CaStL: Constraints as Specifications through LLM Translation." arXiv:2410.22225.</li>
+            <li>Huang, W., et al. (2022). "Language Models as Zero-Shot Planners." ICML 2022.</li>
+            <li>Huang, W., et al. (2022b). "Inner Monologue: Embodied Reasoning through Planning with Language Models." CoRL 2022.</li>
+            <li>Huang, W., et al. (2023). "VoxPoser: Composable 3D Value Maps for Robotic Manipulation." CoRL 2023.</li>
+            <li>Huang, W., et al. (2024). "ReKep: Spatio-Temporal Reasoning of Relational Keypoint Constraints." RSS 2024.</li>
+            <li>Kambhampati, S., et al. (2024). "LLMs Can't Plan, But Can Help Planning in LLM-Modulo Frameworks." ICML 2024.</li>
+            <li>Kim, M. J., et al. (2024). "OpenVLA: An Open-Source Vision-Language-Action Model." arXiv:2406.09246.</li>
+            <li>Kim, Y., et al. (2026). "CoCo-TAMP: LLM-Guided State Estimation for Partially Observable TAMP." arXiv:2603.03704.</li>
+            <li>Kumar, N., et al. (2024). "OWL-TAMP: Open-World TAMP via VLM Generated Constraints." IEEE RA-L 2025.</li>
+            <li>Lee, D., et al. (2025). "Prime the Search: Using LLMs for Guiding Geometric TAMP." IJRR 2025.</li>
+            <li>Liang, J., et al. (2022). "Code as Policies: Language Model Programs for Embodied Control." arXiv:2209.07753.</li>
+            <li>Lin, K., et al. (2023). "Text2Motion: From Natural Language Instructions to Feasible Plans." Autonomous Robots 2023.</li>
+            <li>Liu, B., et al. (2023). "LLM+P: Empowering LLMs with Optimal Planning Proficiency." arXiv:2304.11477.</li>
+            <li>Mendez-Mendez, J. (2025). "A Systematic Study of LLMs for TAMP With PDDLStream." arXiv:2510.00182.</li>
+            <li>Rana, K., et al. (2023). "SayPlan: Grounding LLMs using 3D Scene Graphs." CoRL 2023.</li>
+            <li>Ren, A. Z., et al. (2023). "KnowNo: Robots That Ask For Help." CoRL 2023.</li>
+            <li>Shcherba, D., et al. (2025). "MOPS: Meta-Optimization and Program Search using Language Models for TAMP." CoRL 2025.</li>
+            <li>Valmeekam, K., et al. (2023). "On the Planning Abilities of Large Language Models." NeurIPS 2023.</li>
+            <li>Yan, M., et al. (2025). "Using VLM Reasoning to Constrain TAMP." arXiv.</li>
+            <li>Yang, C. R., et al. (2024). "Guiding Long-Horizon TAMP with Vision Language Models." ICRA 2025.</li>
+            <li>Yoneda, T., et al. (2023). "Statler: State-Maintaining Language Models for Embodied Reasoning." ICRA 2024.</li>
+          </ol>
+        </div>
+      </article>
+    </div>
+
+    <!-- Blog styling and spacing script -->
+    <script defer src="/js/blog.js"></script>
+    <script defer src="/js/katex-init.js"></script>
+  </body>
+</html>

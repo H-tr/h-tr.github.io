@@ -34,6 +34,12 @@
     <button class="subnav-tab" data-tab-index="1">Survey</button>
   </div>
 
+  <aside class="ai-generated-notice" id="aiNotice">
+    Surveys here are AI-generated as personal learning aids. I do not claim authorship of the content.
+    In the spirit of sharing &mdash; and not wasting expensive tokens &mdash; they are published here.
+    The generating model is labelled on each entry.
+  </aside>
+
   <div class="blog-tabs-viewport">
     <div class="blog-tabs-track" id="blogTabsTrack">
 
@@ -259,7 +265,30 @@
       <div class="blog-tab-panel">
         <section class="blog-list">
           <!-- Add new survey here -->
-          <div class="blog-empty-state">No surveys yet.</div>
+
+          <div class="blog-item">
+            <div class="blog-content">
+              <div class="blog-header">
+                <div class="blog-title">
+                  LLM and VLM for Task and Motion Planning
+                </div>
+                <div class="blog-date">March 29, 2026</div>
+              </div>
+              <div class="blog-summary">
+                Can foundation models replace, augment, or bypass the manual engineering bottleneck in TAMP?
+                This survey covers five families of approaches — from LLMs as task planners to VLAs as end-to-end
+                action models — across the full arc from 2022 to early 2026, and argues that foundation models
+                work best as translators, heuristics, and constraint proposers within architectures that retain
+                classical guarantees.
+              </div>
+              <div class="blog-links">
+                <a href="surveys/llm-vlm-tamp.html" class="blog-link">
+                  <i class="fas fa-book-open"></i>Full Text
+                </a>
+                <span class="blog-model-tag">Claude Opus 4.6</span>
+              </div>
+            </div>
+          </div>
         </section>
       </div>
 
