@@ -160,7 +160,7 @@
         const cite = document.createElement('a');
         cite.className = 'cite';
         cite.href = `#ref-${num}`;
-        cite.textContent = num;
+        cite.textContent = `[${num}]`;
         cite.setAttribute('aria-label', `Citation ${num}`);
         cite.setAttribute('data-ref', num);
 
