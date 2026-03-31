@@ -1,0 +1,994 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Survey: Formal Logic and Reasoning Frameworks for Robotic Systems</title>
+
+    <!-- Fonts -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Prism.js initialization -->
+    <script src="/js/prism-init.js"></script>
+
+    <!-- KaTeX Math Support -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Site Assets -->
+    <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg" />
+    <link href="/css/blog.css" rel="stylesheet" />
+    <link href="/css/references.css" rel="stylesheet" />
+
+    <!-- KaTeX Scripts -->
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"
+    ></script>
+  </head>
+  <body>
+    <div class="blog-post">
+      <a href="../?tab=survey" class="back-button">
+        <i class="fas fa-arrow-left"></i>Back
+      </a>
+
+      <header class="blog-post-header">
+        <h1 class="blog-post-title">Survey: Formal Logic and Reasoning Frameworks for Robotic Systems</h1>
+        <div class="blog-post-date">March 31, 2026</div>
+      </header>
+
+      <article class="blog-post-content">
+        <section class="blog-section">
+
+        <p>
+          Autonomous robots must reason about actions, time, uncertainty, and physical constraints to operate reliably in unstructured environments. Over six decades, the AI and robotics communities have developed a rich landscape of logical formalisms &mdash; from classical planning languages like PDDL to temporal logics like STL, probabilistic programming languages like Pyro, and SMT solvers like Z3 &mdash; each capturing different facets of the reasoning problem. This survey provides a comprehensive, opinionated guide to these logical tools, organized by the type of reasoning they enable, and evaluates their maturity, complementarity, and applicability to modern robotic systems. We argue that no single formalism suffices; the frontier lies in principled integration of multiple logical tools within unified architectures, increasingly mediated by large language models that translate between human intent and formal specification.
+        </p>
+
+        <h2>1. Introduction &amp; Problem Definition</h2>
+
+        <p>
+          A robot tasked with &ldquo;set the table for dinner&rdquo; must determine which objects to move and in what order (task planning), compute collision-free trajectories for each manipulation (motion planning), monitor that plates do not collide during placement (safety verification), reason about uncertain object poses from noisy perception (state estimation), and recover gracefully when a glass slips from the gripper (replanning under partial observability). Each of these sub-problems demands a different style of formal reasoning, and the overarching challenge is that they are deeply coupled.
+        </p>
+
+        <p>
+          <strong>Why this matters.</strong> As robots move from structured factory floors to homes, hospitals, and disaster sites, the environments become open-ended, the tasks become linguistically specified, and the consequences of failure become safety-critical. Informal, ad-hoc reasoning &mdash; hardcoded state machines, hand-tuned heuristics &mdash; does not scale. Formal logical tools provide three things informal methods cannot: (1) <em>compositionality</em> &mdash; complex specifications built from simple, reusable primitives; (2) <em>verifiability</em> &mdash; the ability to prove, or at least systematically check, that a robot&rsquo;s behavior satisfies its specification; and (3) <em>interpretability</em> &mdash; formal specifications are inspectable and debuggable, unlike opaque neural policies.
+        </p>
+
+        <p>
+          <strong>What makes it hard.</strong> The core difficulty is a trilemma among <em>expressiveness</em>, <em>computational tractability</em>, and <em>groundability</em>. Classical planning (PDDL) is tractable and groundable but cannot express continuous dynamics or uncertainty. Temporal logics (LTL, STL) elegantly express time-extended behaviors but synthesis is computationally expensive. Probabilistic programming handles uncertainty natively but inference is intractable for high-dimensional problems. No single formalism occupies the sweet spot. Moreover, robots operate at the intersection of discrete symbolic reasoning and continuous physical dynamics, a regime that strains every formalism&rsquo;s assumptions. The field&rsquo;s history is, in many ways, the history of attacking different faces of this trilemma.
+        </p>
+
+        <p>
+          This survey covers the full landscape: classical logic-based planning (Section 2.1), temporal logics (Section 2.2), probabilistic reasoning (Section 2.3), satisfiability-based methods (Section 2.4), ontological reasoning (Section 2.5), and behavior trees as a reactive execution formalism (Section 2.6). We trace the field&rsquo;s evolution from McCarthy&rsquo;s 1963 situation calculus to today&rsquo;s LLM-mediated neuro-symbolic pipelines (Section 3), identify the most impactful contributions in each family (Section 4), catalog practical software tools (Section 5), assess the state of the art (Section 6), and argue for the most promising open directions (Section 7).
+        </p>
+
+        <h2>2. Taxonomy of Approaches</h2>
+
+        <p>
+          We organize logical tools for robotic reasoning along two axes: <em>what kind of reasoning</em> the formalism supports, and <em>what kind of world model</em> it assumes. Table 1 provides the high-level taxonomy; subsequent subsections elaborate each family.
+        </p>
+
+        <div class="taxonomy-tree">
+          <div class="taxonomy-root">Logical Tools for Robotic Reasoning</div>
+          <ul>
+            <li>
+              <div class="taxonomy-branch"><span class="branch-id">A</span> <span class="branch-label">Classical Logic-Based Planning</span></div>
+              <ul class="taxonomy-leaves">
+                <li><span class="leaf-id">A1.</span> PDDL</li>
+                <li><span class="leaf-id">A2.</span> ASP / Action Languages (A/B/C)</li>
+                <li><span class="leaf-id">A3.</span> Situation Calculus</li>
+              </ul>
+            </li>
+            <li>
+              <div class="taxonomy-branch"><span class="branch-id">B</span> <span class="branch-label">Temporal Logics</span></div>
+              <ul class="taxonomy-leaves">
+                <li><span class="leaf-id">B1.</span> LTL, CTL, GR(1)</li>
+                <li><span class="leaf-id">B2.</span> STL, MTL</li>
+                <li><span class="leaf-id">B3.</span> Extensions (cLTL, CaTL, ProbSTL, SpaTiaL, wSTL)</li>
+              </ul>
+            </li>
+            <li>
+              <div class="taxonomy-branch"><span class="branch-id">C</span> <span class="branch-label">Probabilistic Reasoning</span></div>
+              <ul class="taxonomy-leaves">
+                <li><span class="leaf-id">C1.</span> PPLs (Church, Pyro, Gen, ProbLog)</li>
+                <li><span class="leaf-id">C2.</span> Probabilistic Model Checking (PRISM, Storm)</li>
+                <li><span class="leaf-id">C3.</span> Belief-space Planning, POMDPs</li>
+              </ul>
+            </li>
+            <li>
+              <div class="taxonomy-branch"><span class="branch-id">D</span> <span class="branch-label">Satisfiability-Based Methods</span></div>
+              <ul class="taxonomy-leaves">
+                <li><span class="leaf-id">D1.</span> SAT / SMT (Z3)</li>
+                <li><span class="leaf-id">D2.</span> &delta;-complete reasoning (dReal)</li>
+                <li><span class="leaf-id">D3.</span> MILP</li>
+              </ul>
+            </li>
+            <li>
+              <div class="taxonomy-branch"><span class="branch-id">E</span> <span class="branch-label">Ontological &amp; Knowledge Representation</span></div>
+              <ul class="taxonomy-leaves">
+                <li><span class="leaf-id">E1.</span> OWL / Description Logics (KnowRob)</li>
+                <li><span class="leaf-id">E2.</span> Prolog</li>
+              </ul>
+            </li>
+            <li>
+              <div class="taxonomy-branch"><span class="branch-id">F</span> <span class="branch-label">Behavior Trees</span></div>
+              <ul class="taxonomy-leaves">
+                <li><span class="leaf-id">F1.</span> BT formalism + LTL/CTL verification</li>
+                <li><span class="leaf-id">F2.</span> BT synthesis from temporal logic</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+
+        <div class="blog-table-wrapper">
+          <table class="blog-table">
+            <caption>Table 1. Taxonomy of Logical Tools for Robotic Reasoning</caption>
+            <thead>
+              <tr>
+                <th>Family</th>
+                <th>Representative Formalisms</th>
+                <th>World Model</th>
+                <th>Strengths</th>
+                <th>Weaknesses</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Classical Logic-Based Planning</strong></td>
+                <td>Situation Calculus, STRIPS, PDDL, Action Languages (A/B/C), ASP</td>
+                <td>Discrete, deterministic, fully observable</td>
+                <td>Mature solvers, composable actions, well-understood complexity</td>
+                <td>No time, no uncertainty, no continuous dynamics</td>
+              </tr>
+              <tr>
+                <td><strong>Temporal Logics</strong></td>
+                <td>LTL, CTL, MTL, STL, cLTL, CaTL, GR(1)</td>
+                <td>Discrete (LTL/CTL) or continuous (STL) traces</td>
+                <td>Rich temporal specifications, synthesis &amp; monitoring</td>
+                <td>State explosion, expensive synthesis, limited scalability</td>
+              </tr>
+              <tr>
+                <td><strong>Probabilistic Reasoning</strong></td>
+                <td>Church, Pyro, Gen, ProbLog, PRISM, Storm, POMDPs</td>
+                <td>Stochastic, partially observable</td>
+                <td>Handles uncertainty natively, principled inference</td>
+                <td>Inference intractability, scalability bottleneck</td>
+              </tr>
+              <tr>
+                <td><strong>Satisfiability-Based</strong></td>
+                <td>SAT, SMT (Z3, dReal), MILP</td>
+                <td>Constraint systems over Booleans/reals</td>
+                <td>Sound, complete (or &delta;-complete), handles nonlinear dynamics</td>
+                <td>Scalability, discretization overhead</td>
+              </tr>
+              <tr>
+                <td><strong>Ontological / Knowledge Representation</strong></td>
+                <td>OWL, Description Logics, Prolog, KnowRob</td>
+                <td>Structured relational knowledge</td>
+                <td>Semantic interoperability, commonsense reasoning</td>
+                <td>No dynamics, no temporal logic, scalability</td>
+              </tr>
+              <tr>
+                <td><strong>Behavior Trees</strong></td>
+                <td>BT formalism + LTL/CTL verification</td>
+                <td>Reactive, hierarchical control</td>
+                <td>Modular, reactive, composable, verifiable</td>
+                <td>Not a reasoning formalism per se; requires external planners</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>2.1 Classical Logic-Based Planning</h3>
+
+        <p>
+          Classical logic-based planning treats the world as a set of <em>logical propositions</em> (true/false facts about the current state) and <em>actions</em> that change those propositions. The core question is: given an initial state and a goal state, find a sequence of actions that transforms one into the other. Formally, a planning problem is a tuple \(\langle S, A, \gamma, s_0, G \rangle\) where \(S\) is a finite set of states (each defined by a set of propositions), \(A\) is a set of actions, \(\gamma: S \times A \to S\) is a deterministic transition function, \(s_0\) is the initial state, and \(G \subseteq S\) is the set of goal states. Each action \(a \in A\) has <em>preconditions</em> (propositions that must hold for the action to be applicable) and <em>effects</em> (propositions added or removed after execution).
+        </p>
+
+        <blockquote>
+          <p><strong>Example.</strong> Consider a robot that must set a table. The state includes propositions like <code>on(plate, counter)</code>, <code>hand-empty</code>, <code>clear(table)</code>. The action <code>pick-up(plate)</code> has preconditions <code>{on(plate, counter), hand-empty}</code> and effects <code>{holding(plate), &not;on(plate, counter), &not;hand-empty}</code>. A planner searches for a sequence of such actions that reaches the goal state <code>{on(plate, table), on(fork, table)}</code>. The key assumption is that everything not mentioned in an action&rsquo;s effects stays unchanged &mdash; the <em>frame assumption</em>.</p>
+        </blockquote>
+
+        <p>
+          The oldest family traces to McCarthy&rsquo;s situation calculus [44], which reified world states (&ldquo;situations&rdquo;) and actions as first-order logical terms. The key operation is <code>result(a, s)</code> &mdash; applying action <code>a</code> in situation <code>s</code> to produce a successor situation. This was elegant but immediately ran into the <em>frame problem</em>: the need to explicitly axiomatize everything that does <em>not</em> change after each action, producing O(actions &times; fluents) frame axioms.
+        </p>
+
+        <p>
+          <strong>STRIPS and PDDL.</strong> The practical response to the frame problem was STRIPS [19], which introduced add/delete lists to compactly represent action effects with an implicit frame assumption: anything not mentioned in the effects is unchanged. PDDL [45] standardized and extended the STRIPS representation with types, conditional effects, universal quantification, and a modular &ldquo;requirements&rdquo; system. PDDL remains the <em>de facto</em> standard for task planning in robotics. Its subsequent versions added temporal planning with durative actions (PDDL 2.1 (Fox and Long, 2003)), derived predicates (PDDL 2.2), trajectory constraints and preferences (PDDL 3.0), and hybrid discrete-continuous processes (PDDL+). For probabilistic extensions, PPDDL introduced stochastic effects and RDDL provided relational dynamic influence diagrams for POMDPs.
+        </p>
+
+        <p>
+          PDDL&rsquo;s power comes from its ecosystem: domain-independent planners like Fast Downward (Helmert et al., 2006) use sophisticated heuristic search (causal graph heuristics, landmark heuristics) to solve PDDL problems efficiently, and the International Planning Competition (IPC) has driven two decades of algorithmic progress. In robotics, PDDL is the standard task-level backbone in task-and-motion planning (TAMP) systems. PDDLStream [22] elegantly extends PDDL with <em>streams</em> &mdash; declarative wrappers around blackbox sampling procedures (inverse kinematics solvers, motion planners) &mdash; reducing TAMP to sequences of finite PDDL problems solved by off-the-shelf planners.
+        </p>
+
+        <p>
+          <strong>Action Languages and ASP.</strong> A parallel line of work by Gelfond and Lifschitz [24] introduced <em>action languages</em> (A, B, C) &mdash; propositional formalisms with built-in inertia that solve the frame problem automatically. Language B adds <em>static causal laws</em> for indirect effects (ramifications); Language C generalizes further. These are designed to be compiled into <em>Answer Set Programs</em> (logic programs under stable model semantics), enabling computation via modern ASP solvers like Clingo [23]. ASP&rsquo;s strength is <em>elaboration tolerance</em> &mdash; the ability to modularly add constraints, defaults, exceptions, and preferences without rewriting the core program. This makes ASP particularly suited to robotic domains with commonsense reasoning requirements, incomplete knowledge, and sensing actions [56], [46]. Rizwan et al. [51] demonstrate ASP for human-robot collaborative assembly, using external atoms to bridge symbolic planning with geometric feasibility checks &mdash; a compelling model for integrating logical and continuous reasoning.
+        </p>
+
+        <p>
+          However, the ASP grounding bottleneck (full instantiation before solving) limits scalability, and ASP lacks native support for continuous variables, time, or probability. The survey by Meli et al. [46] finds that standard logic programming (Prolog, ASP) currently offers the best tradeoff of expressivity, efficiency, and software maturity for most robotic tasks, but notes that temporal and probabilistic formalisms &mdash; despite offering greater expressivity &mdash; suffer from state explosion that prevents scaling to realistic scenarios.
+        </p>
+
+        <h3>2.2 Temporal Logics</h3>
+
+        <p>
+          Classical planning answers &ldquo;what sequence of actions achieves the goal?&rdquo; Temporal logics answer a richer question: &ldquo;does the system&rsquo;s behavior over time satisfy a specification?&rdquo; This shift from goal-reaching to <em>trajectory-level</em> properties is essential for robotics, where safety (&ldquo;never collide&rdquo;), liveness (&ldquo;eventually reach the target&rdquo;), persistence (&ldquo;always maintain communication&rdquo;), and ordering (&ldquo;deliver water before sushi&rdquo;) all matter.
+        </p>
+
+        <p>
+          Temporal logics extend standard propositional logic with operators that reason over <em>time</em>. The four core operators are: &square; (&ldquo;always&rdquo; &mdash; the property must hold at every future time step), &loz; (&ldquo;eventually&rdquo; &mdash; the property must hold at some future time step), U (&ldquo;until&rdquo; &mdash; one property holds until another becomes true), and &#9675; (&ldquo;next&rdquo; &mdash; the property holds at the next time step). These operators compose: \(\square(\text{safe}) \wedge \lozenge(\text{goal})\) means &ldquo;always remain safe <em>and</em> eventually reach the goal.&rdquo;
+        </p>
+
+        <blockquote>
+          <p><strong>Example.</strong> A delivery robot must visit room A then room B, while always avoiding obstacles: \(\square(\neg \text{collision}) \wedge (\lozenge(\text{at\_A} \wedge \lozenge(\text{at\_B})))\). This single formula encodes a safety constraint, a liveness requirement, and an ordering constraint &mdash; something a classical planning goal like <code>{at_B}</code> cannot express. The temporal logic approach works by compiling this formula into an automaton (a state machine) that tracks which parts of the specification have been satisfied so far, then finding a robot policy that drives the automaton to an accepting state.</p>
+        </blockquote>
+
+        <p>
+          <strong>Linear Temporal Logic (LTL).</strong> LTL (Pnueli, 1977) extends propositional logic with the temporal operators above over <em>discrete</em> traces. An LTL formula specifies a property that an infinite discrete trace must satisfy. The standard approach to LTL-based robot control is <em>reactive synthesis</em>: translate the LTL formula into a deterministic automaton (Rabin, B&uuml;chi, or for the co-safe fragment, a DFA), take the product with a discrete abstraction of the robot&rsquo;s workspace, and solve the resulting game or planning problem [35]. Tools like TuLiP (Wongpiromsarn et al., 2011) and LTLMoP (Finucane et al., 2010) automate this pipeline for GR(1) specifications.
+        </p>
+
+        <p>
+          LTL&rsquo;s limitations for robotics are well-known. First, synthesis suffers from state-space explosion &mdash; the automaton can be doubly exponential in the formula&rsquo;s length. Second, LTL operates over discrete traces, requiring a finite abstraction of the continuous workspace, which introduces conservatism. Third, LTL is Boolean (satisfied or not), with no notion of &ldquo;how well&rdquo; a specification is met. Despite these limitations, LTL remains the workhorse for task specification in robotics. He et al. [28] were the first to bring LTL into manipulation planning, introducing a novel abstraction over object-location permutations that avoids workspace discretization. Bozkurt et al. [7] showed how LTL specifications can drive model-free RL via automata-based reward shaping. And Xu et al. [62] demonstrated hierarchical LTL (HLTL) for multi-robot systems, decomposing complex natural-language instructions into hierarchical temporal specifications via LLMs.
+        </p>
+
+        <p>
+          <strong>Signal Temporal Logic (STL).</strong> While LTL operates over discrete Boolean propositions, STL [41] extends temporal logic to <em>continuous real-valued signals</em> with <em>time bounds</em>. The temporal operators now carry intervals: \(\square_{\lbrack a,b\rbrack}\) means &ldquo;always during time \(\lbrack a,b\rbrack\)&rdquo; and \(\lozenge_{\lbrack a,b\rbrack}\) means &ldquo;at some point during \(\lbrack a,b\rbrack\).&rdquo; Predicates are inequalities over signals rather than Boolean atoms.
+        </p>
+
+        <blockquote>
+          <p><strong>Example.</strong> For a mobile robot navigating to a goal: \(\square_{\lbrack 0,10\rbrack}(\text{speed} \lt 30) \wedge \lozenge_{\lbrack 0,5\rbrack}(\text{distance\_to\_goal} \lt 0.1)\) means &ldquo;keep speed below 30 for the entire first 10 seconds, and reach within 0.1m of the goal at some point within the first 5 seconds.&rdquo; Unlike LTL, STL assigns a quantitative <em>robustness score</em> &mdash; not just pass/fail, but <em>how well</em> the specification is satisfied. A trajectory with speed peaking at 20 is more robust than one peaking at 29, even though both satisfy the formula.</p>
+        </blockquote>
+
+        <p>
+          The seminal paper introduced monitoring &mdash; checking whether a continuous signal trace satisfies an STL formula &mdash; via a two-stage process: predicate filters convert real-valued signals to Boolean signals, then interval-propagation evaluates the temporal operators.
+        </p>
+
+        <p>
+          STL&rsquo;s true power emerged with <em>quantitative robustness semantics</em> [17], [18], which assign a real-valued robustness score measuring how strongly a signal satisfies or violates a specification. Positive robustness means satisfaction; the magnitude indicates the margin. This robustness score is differentiable (in a generalized sense), opening the door to optimization.
+        </p>
+
+        <p>
+          Leung et al. [39] made this operational with STLCG, translating STL robustness into PyTorch computation graphs that support automatic differentiation. This was foundational: it cast STL and neural networks into the same computational language, enabling STL specifications to serve as differentiable loss functions, regularizers, or constraints in any gradient-based pipeline. The paper demonstrated trajectory planning, parametric STL clustering, and neural network regularization &mdash; all via backpropagation through temporal logic.
+        </p>
+
+        <p>
+          The practical consequence for robotics is profound. STL robustness can be encoded as Mixed-Integer Linear Program (MILP) constraints via the Big-M method (Raman et al., 2014), enabling optimal control synthesis subject to temporal specifications. Tools like PyTeLo [11] provide modular MILP encodings, and the survey by Zhao et al. [67] on optimization-based TAMP catalogs how STL integrates with trajectory optimization for contact-rich manipulation.
+        </p>
+
+        <p>
+          <strong>Extensions and Variants.</strong> The base temporal logics have been extended in multiple directions, each addressing a specific robotics need:
+        </p>
+
+        <ul>
+          <li><em>Counting Temporal Logics (cLTL/cLTL+)</em> [53]: Adds counting quantifiers over robot populations &mdash; &ldquo;at least 5 robots surveil area A&rdquo; &mdash; with ILP-based synthesis that scales independently of fleet size. This breaks the exponential barrier of per-robot LTL assignment.</li>
+          <li><em>Capability Temporal Logic (CaTL/CaTL+)</em> [12]: A fragment of STL tailored for heterogeneous robot teams, specifying tasks as tuples of (duration, region, required capabilities, required resources). The novel <em>multi-class STL (mcSTL)</em> computes independent robustness scores per predicate class, preventing resource deficits from being masked by capability surpluses.</li>
+          <li><em>Probabilistic STL (ProbSTL)</em> [61]: Extends STL with a sub-language for probabilistic statements over predictions, achieving superior monitoring accuracy under perception uncertainty.</li>
+          <li><em>Spatio-Temporal Logic (SpaTiaL)</em> [50]: Unifies spatial relations between objects with temporal task patterns for robot-agnostic manipulation specification.</li>
+          <li><em>Weighted STL (wSTL)</em> [65]: Adds importance weights to STL sub-formulas, used for generating concise explanations of learned robot policies.</li>
+        </ul>
+
+        <p>
+          The survey by Bartocci et al. [3] on mining STL specifications provides the definitive catalog of methods for learning STL formulas from data &mdash; a critical capability when specifications are not known a priori.
+        </p>
+
+        <h3>2.3 Probabilistic Reasoning</h3>
+
+        <p>
+          Real robots face pervasive uncertainty: noisy sensors, stochastic dynamics, unknown environments, and unpredictable human partners. The formalisms above either ignore uncertainty entirely (PDDL, LTL) or treat it as adversarial nondeterminism (reactive synthesis). Probabilistic reasoning tools model uncertainty explicitly by maintaining <em>probability distributions</em> over possible world states and computing expectations or bounds over outcomes. The central formulation is: given a prior distribution \(P(s)\) over states, a stochastic transition model \(P(s' | s, a)\), and an observation model \(P(o | s)\), compute a <em>belief</em> \(b(s) = P(s | o_1, \ldots, o_t)\) and select actions that maximize expected reward (or satisfy a specification with high probability).
+        </p>
+
+        <blockquote>
+          <p><strong>Example.</strong> A robot must pick up a cup whose position is uncertain due to sensor noise. Rather than planning for a single estimated pose, the robot maintains a Gaussian belief \(b(\text{cup\_pos}) = \mathcal{N}(\mu, \Sigma)\). If the covariance \(\Sigma\) is too large, the planner inserts a &ldquo;look at cup&rdquo; action to reduce uncertainty before grasping &mdash; the plan reasons about <em>when to sense</em>, not just what to do. A probabilistic model checker can then verify: &ldquo;is the probability of a successful grasp above 0.95?&rdquo;</p>
+        </blockquote>
+
+        <p>
+          <strong>Probabilistic Programming Languages (PPLs).</strong> Church [26] established probabilistic programming as a reasoning paradigm by showing that arbitrary generative models &mdash; including planning problems &mdash; can be expressed as stochastic programs and solved via probabilistic inference. The key innovation was <em>stochastic memoization</em>, which enabled compact representation of infinite nonparametric Bayesian models. Church demonstrated <em>planning as inference</em>: expressing goals as observations in a generative model, then conditioning to derive optimal actions. This paradigm directly connects to robot task planning &mdash; representing the world as a probabilistic program and inferring plans as posterior samples.
+        </p>
+
+        <p>
+          Church spawned a lineage of practical PPLs. Pyro [6] brings deep probabilistic programming to PyTorch, supporting variational inference, MCMC, and Gaussian processes at scale. Gen [15] provides <em>programmable inference</em> in Julia, giving researchers fine-grained control over proposal distributions and inference strategies &mdash; critical for robotics applications where domain-specific inference knowledge dramatically improves performance. ProbLog (De Raedt et al., 2007) takes a different approach, extending Prolog with probabilistic facts, enabling logical reasoning under uncertainty via weighted model counting. Its neuro-symbolic extension DeepProbLog integrates neural network predicates.
+        </p>
+
+        <p>
+          For robotics specifically, Cannizzaro et al. [10] demonstrate COBRA-PPM, combining causal Bayesian networks with Pyro for interventional inference in robot manipulation, achieving 88.6% prediction accuracy and 94.2% task success on block-stacking with sim-to-real transfer. This is currently the most direct application of probabilistic programming as a formal reasoning tool for robotic decision-making.
+        </p>
+
+        <p>
+          The real-time dimension is addressed by Hummelgren et al. [31], who introduce ProbTime, the first real-time probabilistic programming language combining inference with first-class timing primitives, using Sequential Monte Carlo under schedulability constraints.
+        </p>
+
+        <p>
+          <strong>Probabilistic Model Checking.</strong> Where PPLs perform inference over programs, probabilistic model checkers verify properties of stochastic models. The PRISM model checker (Kwiatkowska et al., 2011) and its successor Storm [29] support DTMCs, CTMCs, MDPs, and POMDPs, checking properties expressed in probabilistic temporal logics (PCTL, CSL, rPATL). These tools answer questions like &ldquo;what is the maximum probability of reaching the goal while keeping expected energy below threshold?&rdquo; &mdash; quantitative queries that Boolean verification cannot express.
+        </p>
+
+        <p>
+          Kwiatkowska et al. [36] provide the authoritative survey on probabilistic model checking for autonomy, showing how the framework extends from single-agent MDPs to multi-agent stochastic games with Nash equilibrium synthesis. Lacerda et al. [37] demonstrate practical deployment: their PRISM-based framework generates verified policies for mobile service robots with formal guarantees on task completion probability, deployed for 8+ months on real robots in elder-care and office environments. The key innovation is a <em>task progression metric</em> for co-safe LTL that enables graceful degradation when full task completion becomes impossible.
+        </p>
+
+        <p>
+          Ye et al. [63] bridge domain-specific robotics modeling and probabilistic verification with RoboChart+PRISM, providing an end-to-end pipeline from graphical state-machine design to PCTL model checking. Lampacrescia et al. [38] extend Storm with statistical model checking for faster but approximate verification of robotic systems.
+        </p>
+
+        <p>
+          <strong>Belief-Space Planning.</strong> Kaelbling and Lozano-P&eacute;rez [34] take a different approach to uncertainty: rather than verifying stochastic models, they plan directly in <em>belief space</em> &mdash; the space of probability distributions over world states. Their key insight is that belief-space goals and pre-images can be compactly described using a small vocabulary of logical fluents over probability distributions (e.g., <code>BIn(cup, cupboard, 0.05)</code> means &ldquo;with probability &gt; 0.95, the cup is in the cupboard&rdquo;). These fluents have closed-form regression functions under Gaussian beliefs, enabling the same regression-based planning machinery used for deterministic TAMP to work under uncertainty. This is a hybrid logical-probabilistic formalism: logical structure for planning, probabilistic content within the fluents.
+        </p>
+
+        <p>
+          <strong>Hybrid Logic-Probabilistic Systems.</strong> Zhang et al. [66] present iCORPP, which bridges ASP-based commonsense reasoning with POMDPs by using the probabilistic logic language P-log to dynamically construct compact probabilistic models from logical knowledge. This represents the most mature integration of logic programming and probabilistic sequential decision-making for real-robot service tasks.
+        </p>
+
+        <h3>2.4 Satisfiability-Based Methods</h3>
+
+        <p>
+          A powerful meta-approach to robotic reasoning casts planning and verification problems as <em>satisfiability queries</em>: encode the problem as a logical formula over variables (Booleans, integers, reals), then ask a solver whether there exists an assignment of variables that makes the formula true. SAT solvers handle purely Boolean formulas; SMT (Satisfiability Modulo Theories) solvers extend this to arithmetic, inequalities, and nonlinear functions. The formulation is: given a formula \(\varphi(x_1, \ldots, x_n)\) over variables \(x_i\), find an assignment \(\sigma\) such that \(\varphi(\sigma) = \text{true}\), or prove that no such assignment exists.
+        </p>
+
+        <blockquote>
+          <p><strong>Example.</strong> To verify that a robot arm trajectory is collision-free over a 5-second window, encode the arm&rsquo;s forward kinematics as equations over joint angles \(q(t)\), obstacle positions as inequality constraints \(\|p_{\text{link}}(q(t)) - p_{\text{obs}}\| > r\), and the time interval as a real variable \(t \in \lbrack 0, 5\rbrack\). An SMT solver checks whether any time point violates the safety constraint. If unsatisfiable, the trajectory is provably safe; if satisfiable, the solver returns a concrete counterexample (the exact time and configuration of collision).</p>
+        </blockquote>
+
+        <p>
+          <strong>SMT Solving.</strong> Z3 [16] is the foundational SMT solver, supporting arithmetic, bit-vectors, arrays, and quantifiers. With 12,000+ citations, it is the de facto backend for an enormous range of formal verification and constraint-based planning tools. For robotics, Z3&rsquo;s ability to reason about mixed Boolean-integer-real constraints makes it suitable for encoding temporal logic checking, planning constraints, and safety verification.
+        </p>
+
+        <p>
+          <strong>&delta;-Complete Reasoning.</strong> For robotic systems with nonlinear dynamics (drag proportional to velocity squared, trigonometric kinematics), exact SMT solving is undecidable. Gao et al. [20], [21] introduced <em>&delta;-complete decision procedures</em> and the dReal solver, which relaxes exact satisfiability to <em>&delta;-satisfiability</em>: a formula is either unsatisfiable or satisfiable up to a bounded numerical perturbation &delta;. This is grounded in computable analysis (Type 2 computability theory) and provides formal correctness guarantees for numerical reasoning about nonlinear ODEs &mdash; precisely the mathematics governing physical robots.
+        </p>
+
+        <p>
+          <strong>Planning via SMT.</strong> Bryce et al. [8] were the first to encode PDDL+ planning with nonlinear continuous change as SMT problems solved by dReal, introducing planning-specific heuristics that exploit the problem structure. Cashmore et al. [13] extended this to the full PDDL+ semantics (including processes and events) with SMTPlan, using computer algebra systems for symbolic integration and a <em>zero-crossing constraint</em> technique to ensure invariant conditions hold throughout time intervals &mdash; not just at discrete checkpoints. SMTPlan dramatically outperforms discretization-based planners (UPMurphi, DiNo) and is insensitive to time horizon length, but struggles with large discrete branching factors. Goldman et al. [25] combined dReal with HTN planning (SHOP2) and controller synthesis (CIRCA) in the Hy-CIRCA architecture for correct-by-construction hybrid planning.
+        </p>
+
+        <p>
+          <strong>STL Model Checking via SMT.</strong> Yu et al. [64] implement STLmc, which reduces robust STL model checking of hybrid systems to SMT queries. Their parallelized two-step algorithm first obtains a discrete abstraction (Z3), then checks nonlinear ODE refinements (dReal) in parallel. The key theoretical contribution is extending &epsilon;-strengthening from first-order logic to full STL, cleanly reducing quantitative robustness verification to Boolean satisfiability.
+        </p>
+
+        <h3>2.5 Ontological and Knowledge Representation</h3>
+
+        <p>
+          Robots operating in human environments need more than planning and verification &mdash; they need <em>semantic knowledge</em> about objects, their properties, spatial relations, and commonsense constraints. An ontology is a formal, structured representation of concepts and their relationships within a domain, expressed using description logics or predicate calculus. It defines a hierarchy of classes (e.g., <code>Cup &sqsub; Container &sqsub; Object</code>), properties (e.g., <code>hasHandle</code>, <code>isFragile</code>), and inference rules that allow the robot to derive implicit knowledge from explicit facts.
+        </p>
+
+        <blockquote>
+          <p><strong>Example.</strong> A robot is told to &ldquo;put the drink in the fridge.&rdquo; The ontology knows that <code>Juice &sqsub; Drink</code>, that <code>Fridge &sqsub; Container</code> with property <code>keepsCold</code>, and that <code>Juice</code> instances are <code>isPerishable</code>. From these axioms, the robot infers that the juice bottle on the counter is the target object &mdash; without being told explicitly &mdash; and can query whether the fridge is reachable given spatial constraints. This is knowledge the planner cannot derive from PDDL preconditions alone.</p>
+        </blockquote>
+
+        <p>
+          <strong>KnowRob.</strong> Tenorth and Beetz [60] introduced KnowRob, the most influential knowledge processing infrastructure for cognition-enabled robots. It represents world knowledge using OWL ontologies grounded in Description Logics, with SWI-Prolog as the reasoning engine. The key architectural innovation is <em>virtual knowledge bases</em> &mdash; knowledge computed on demand by grounding queries in the robot&rsquo;s perception system, internal data structures, or external sources. KnowRob 2.0 [4] extended this with physics simulation-based reasoning, episodic memories (NEEMs), and &ldquo;computable relations&rdquo; that attach procedural computation to logical predicates &mdash; enabling queries about grasp forces, pouring dynamics, and spatial reachability that purely symbolic systems cannot answer.
+        </p>
+
+        <p>
+          <strong>Surveys and Comparisons.</strong> Olivares-Alarcos et al. [49] systematically compared six ontology-based frameworks (KnowRob, ROSETTA, IEEE-ORA/OROSU, ORO, CARESSES, RehabRobo-Onto) across ontology scope, reasoning scope, and application domain, finding that no two frameworks define the same set of basic terms &mdash; even &ldquo;Action&rdquo; vs. &ldquo;Task&rdquo; lacks consensus. Manzoor et al. [43] expanded to ten systems, cataloging the logical tools used: OWL dominates for ontology encoding, Prolog for reasoning, with PDDL appearing in several systems for plan generation from ontological knowledge. Aguado et al. [1] surveyed 32 ontology-based projects for dependable autonomy, revealing that formal temporal logics (STL, LTL) are essentially absent from the ontology literature &mdash; a significant gap suggesting these communities have developed in isolation.
+        </p>
+
+        <p>
+          <strong>Ontology-Mediated Planning.</strong> John and Koopmann [33] propose a formal framework where OWL-DL knowledge bases define state descriptions and action preconditions can query implicit knowledge via description logic reasoning under open-world semantics. This is a promising direction for connecting the expressiveness of ontological reasoning with the algorithmic power of classical planning.
+        </p>
+
+        <h3>2.6 Behavior Trees</h3>
+
+        <p>
+          Behavior Trees (BTs) are not a logical formalism in the same sense as PDDL or STL, but they are the dominant <em>reactive execution framework</em> in robotics and serve as the critical interface between logical specifications and robot control. A BT is a directed rooted tree where <em>leaves</em> are either actions (things the robot does) or conditions (things the robot checks), and <em>internal nodes</em> define control flow: a <strong>Sequence</strong> node executes children left-to-right, succeeding only if all succeed; a <strong>Fallback</strong> node tries children in order, succeeding if any one succeeds; a <strong>Parallel</strong> node runs children concurrently. The tree is &ldquo;ticked&rdquo; at a fixed rate from the root, making it inherently reactive &mdash; the robot re-evaluates its situation every tick cycle.
+        </p>
+
+        <blockquote>
+          <p><strong>Example.</strong> A mobile robot tasked with fetching a cup could use a BT where the root is a Sequence: (1) Fallback[check if holding cup &rarr; navigate to cup &rarr; pick up cup], (2) navigate to delivery location, (3) place cup. If the cup slips mid-delivery, the &ldquo;check if holding cup&rdquo; condition fails on the next tick, and the Fallback automatically re-triggers the pick-up subtree &mdash; no explicit replanning needed. This reactive recovery is the key advantage over flat plan execution.</p>
+        </blockquote>
+
+        <p>
+          Iovino et al. [32] provide the comprehensive survey (166 papers): BTs encode task-switching logic in this hierarchical structure, yielding modularity (subtrees are self-contained), reactivity (continuous re-evaluation via ticks), and transparency (human-readable hierarchy). Crucially, BTs generalize FSMs, decision trees, subsumption architectures, and teleo-reactive programs [32].
+        </p>
+
+        <p>
+          <strong>Formal Verification of BTs.</strong> BTs become relevant to this survey through their formal verification. Biggar et al. [5] introduced a framework expressing BTs in LTL, enabling modular verification where subtree changes can be checked independently. Serbinowska and Johnson [54] built BehaVerify, translating py_trees BTs into nuXmv models for LTL model checking, scaling to 100+ node BTs (BlueROV underwater vehicle). Their follow-up [55] formalized <em>Stateful BTs</em> with persistent blackboard memory, proving computational equivalence to Turing machines (unbounded) and finite automata (bounded), and achieved 100x scalability improvements over competing tools &mdash; verifying 20,000-node BTs in 32 seconds. Tadiello and Troubitsyna [58] approach BT verification via Event-B, enabling safety invariant proofs.
+        </p>
+
+        <p>
+          <strong>BT Synthesis from Temporal Logic.</strong> Hong et al. [30] address the harder direction: automatically constructing BTs that satisfy given LTL specifications, using grammar-based Monte Carlo Tree Search with CSP model verification as the simulation phase. This replaces slow simulator-based feedback with static formal verification, achieving correct-by-construction BT synthesis for robotic missions.
+        </p>
+
+        <h2>3. Timeline &amp; Evolution</h2>
+
+        <p>
+          The field&rsquo;s evolution follows a clear arc from theoretical foundations through practical tools to modern hybrid systems.
+        </p>
+
+        <p>
+          <strong>1963&ndash;1971: Logical Foundations.</strong> McCarthy&rsquo;s situation calculus [44] established that first-order logic could represent dynamic worlds with actions. The frame problem was identified (McCarthy and Hayes, 1969), and STRIPS [19] provided the first practical resolution with add/delete lists.
+        </p>
+
+        <p>
+          <strong>1977&ndash;1998: Standardization and Formal Specification.</strong> Pnueli (1977) introduced LTL for program verification, which would later migrate to robotics. Gelfond and Lifschitz [24] developed stable model semantics and action languages, solving the frame problem in a principled way. PDDL [45] standardized the planning language, enabling the IPC competitions that drove two decades of planner development.
+        </p>
+
+        <p>
+          <strong>2004&ndash;2010: Continuous-Time Reasoning.</strong> Maler and Nickovic [41] introduced STL, extending temporal logic to continuous real-valued signals &mdash; a pivotal moment for cyber-physical systems. Donz&eacute; and Maler [17] and Fainekos and Pappas [18] added quantitative robustness semantics, transforming STL from a monitoring tool into an optimization objective. Church [26] established probabilistic programming as a reasoning paradigm.
+        </p>
+
+        <p>
+          <strong>2008&ndash;2013: Solver Infrastructure.</strong> Z3 [16] and dReal [21] provided the SMT backbone for formal reasoning about real-valued and nonlinear constraints. KnowRob [60] established ontological reasoning for robot manipulation. Kaelbling and Lozano-P&eacute;rez [34] demonstrated belief-space TAMP on a real PR2 robot.
+        </p>
+
+        <p>
+          <strong>2015&ndash;2020: Bridging Logic and Learning.</strong> He et al. [28] brought LTL to manipulation planning. Leung et al. [39] made STL differentiable via STLCG, bridging temporal logic and deep learning. Bozkurt et al. [7] showed LTL could drive model-free RL. Garrett et al. [7] published PDDLStream, making PDDL practical for TAMP. Cashmore et al. [13] solved full PDDL+ via SMT.
+        </p>
+
+        <p>
+          <strong>2022&ndash;present: LLMs as Specification Translators &amp; Hybrid Systems.</strong> The most significant recent inflection point is using LLMs not as planners but as <em>formalizers</em> &mdash; translating natural language into PDDL, LTL, or STL specifications that are then solved by verified classical tools [59]. Systems like LLM+P, Lang2LTL, NL2STL, and Nl2Hltl2Plan [62] demonstrate this paradigm. Concurrently, formal methods for verifying learned robot policies have matured [42], and large-scale structured surveys [2] confirm the field&rsquo;s shift toward probabilistic verification and formal synthesis.
+        </p>
+
+        <p><strong>Key inflection points:</strong></p>
+
+        <ol>
+          <li><em>PDDL (1998)</em>: Created the common language that enabled systematic planner comparison and drove algorithmic progress.</li>
+          <li><em>STL (2004)</em>: Extended formal specification to continuous signals, making temporal logic relevant to control systems.</li>
+          <li><em>STL robustness semantics (2009&ndash;2010)</em>: Turned verification into optimization, opening the door to gradient-based methods.</li>
+          <li><em>STLCG (2020)</em>: Made temporal logic differentiable, bridging formal methods and deep learning.</li>
+          <li><em>LLMs as formalizers (2023&ndash;present)</em>: Removed the specification bottleneck by automating natural-language-to-formal-language translation.</li>
+        </ol>
+
+        <h2>4. Key Papers &amp; Contributions</h2>
+
+        <h3>4.1 Classical Planning</h3>
+
+        <p>
+          <strong>McCarthy [44], &ldquo;Situations, Actions, and Causal Laws.&rdquo;</strong> The origin paper. Introduced the situation calculus &mdash; situations as first-order terms, actions as transformers via <code>result(a, s)</code>, fluents parameterized by situations. Demonstrated on the monkey-and-bananas problem. Purely theoretical, with no computational implementation and no treatment of uncertainty or continuous dynamics. But it established the conceptual vocabulary (preconditions, effects, state representation) that PDDL inherited 35 years later.
+        </p>
+
+        <p>
+          <strong>McDermott et al. [45], &ldquo;PDDL &mdash; The Planning Domain Definition Language.&rdquo;</strong> The paper that launched a thousand planners. PDDL&rsquo;s genius was separating domain &ldquo;physics&rdquo; from planner &ldquo;advice&rdquo; and factoring the language into optional requirement subsets, creating a neutral common ground adoptable at each planner&rsquo;s capability level. Its limitations &mdash; deterministic only, no temporal/continuous reasoning, informally specified semantics &mdash; drove all subsequent extensions (PDDL 2.1 through PDDL+, PPDDL, RDDL). For robotics today, PDDL is indispensable as the task-level interface in TAMP systems.
+        </p>
+
+        <p>
+          <strong>Garrett et al. [22], &ldquo;PDDLStream.&rdquo;</strong> The most practically impactful TAMP paper. By introducing <em>streams</em> (declarative wrappers around blackbox samplers) and an <em>adaptive algorithm</em> that plans optimistically with placeholder objects, PDDLStream reduced TAMP to sequences of finite PDDL problems. The unique-optimistic-objects-per-stream-instance design enables lazy evaluation, and the system successfully executed real-world PR2 tasks (meal serving, cooking). The limitation &mdash; open-loop execution only &mdash; motivates ongoing work on closed-loop replanning.
+        </p>
+
+        <p>
+          <strong>Gelfond and Lifschitz [24], &ldquo;Action Languages.&rdquo;</strong> Solved the frame and ramification problems simultaneously through built-in inertia and static causal laws. The translation to answer set programs made action languages computationally practical. This paper is the bridge between theoretical action formalisms and the modern ASP planning ecosystem.
+        </p>
+
+        <h3>4.2 Temporal Logics</h3>
+
+        <p>
+          <strong>Maler and Nickovic [41], &ldquo;Monitoring Temporal Properties of Continuous Signals.&rdquo;</strong> The STL foundational paper. The two-stage monitoring approach (predicate filters + interval propagation) was efficient (O(k&middot;n)) and practical &mdash; tested on a nuclear plant steam generator trace (1M time units in 2.84s). The limitation to offline, Boolean monitoring motivated all subsequent work on quantitative semantics and online monitoring.
+        </p>
+
+        <p>
+          <strong>Leung et al. [39], &ldquo;Backpropagation through Signal Temporal Logic Specifications.&rdquo;</strong> STLCG is, in my assessment, the single most important paper bridging formal methods and modern machine learning for robotics. By mapping STL&rsquo;s recursive robustness semantics to recurrent computation graphs, it made temporal logic a differentiable &ldquo;layer&rdquo; composable with neural networks. The smooth approximations (logsumexp) and integral robustness formula addressed the non-smooth, point-sensitive nature of standard robustness. Every subsequent paper on differentiable STL, STL-guided RL, or STL-regularized learning builds on this foundation.
+        </p>
+
+        <p>
+          <strong>He et al. [28], &ldquo;Towards Manipulation Planning with Temporal Logic Specifications.&rdquo;</strong> First to bring LTL into manipulation TAMP, using a novel abstraction over object-location permutations rather than workspace discretization. The synergistic three-layer architecture (abstraction graph &times; DFA product &rarr; Dijkstra&rsquo;s &rarr; sampling-based motion planning) avoided the state explosion that plagued standard LTL abstractions. All 50 runs per specification succeeded within 100 seconds on a 34-DOF PR2, with no backtracking. The limitation &mdash; exponential growth in objects and locations &mdash; motivates ongoing work on heuristic search in product graphs.
+        </p>
+
+        <p>
+          <strong>Sahin et al. [53], &ldquo;Multirobot Coordination with Counting Temporal Logics.&rdquo;</strong> An elegant extension: by tracking robot <em>counts per state</em> rather than identities, the cLTL aggregate encoding achieves O(h(|&rarr;|+|&mu;|)) decision variables &mdash; independent of fleet size N. This is the scalability breakthrough for multi-robot temporal logic planning.
+        </p>
+
+        <h3>4.3 Probabilistic Reasoning</h3>
+
+        <p>
+          <strong>Goodman et al. [26], &ldquo;Church: A Language for Generative Models.&rdquo;</strong> Established probabilistic programming as a reasoning formalism. The <em>planning-as-inference</em> demonstration &mdash; casting MDP/POMDP optimal action selection as conditioning a generative model on goal achievement &mdash; is the conceptual foundation for all subsequent work connecting probabilistic programming to robot planning. The <em>stochastic memoization</em> innovation for nonparametric Bayesian models was technically brilliant.
+        </p>
+
+        <p>
+          <strong>Kaelbling and Lozano-P&eacute;rez [34], &ldquo;Integrated Task and Motion Planning in Belief Space.&rdquo;</strong> The most influential paper connecting symbolic planning and probabilistic reasoning for manipulation. The vocabulary of belief-state fluents with closed-form regression functions under Gaussian beliefs is a rare example of a representation that is simultaneously formally clean and practically functional. The system autonomously generates perception actions as first-class operators &mdash; the planner decides <em>when and where to look</em>, not just what to do. Demonstrated on a real PR2 for multi-object manipulation.
+        </p>
+
+        <p>
+          <strong>Kwiatkowska et al. [36], &ldquo;Probabilistic Model Checking and Autonomy.&rdquo;</strong> The authoritative survey by the PRISM creators. The key insight: a single framework &mdash; probabilistic model checking with progressively richer temporal logics &mdash; handles the full spectrum from MDPs to multi-agent stochastic games with Nash equilibrium synthesis. The limitation: scalability. The paper is refreshingly honest about this: &ldquo;efficiency is a major limitation.&rdquo;
+        </p>
+
+        <p>
+          <strong>Lacerda et al. [37], &ldquo;Probabilistic Planning with Formal Performance Guarantees for Mobile Service Robots.&rdquo;</strong> The most mature deployment of probabilistic verification in real-world robotics. The <em>task progression metric</em> for graceful degradation &mdash; doing &ldquo;as much as possible&rdquo; when full task completion is impossible &mdash; is an idea every real-world robotic planner should adopt. Eight months of continuous deployment validates the approach.
+        </p>
+
+        <h3>4.4 Satisfiability and Hybrid Reasoning</h3>
+
+        <p>
+          <strong>de Moura and Bj&oslash;rner [16], &ldquo;Z3: An Efficient SMT Solver.&rdquo;</strong> Infrastructure paper. Z3 is the silent backbone underneath much of formal methods for robotics &mdash; it&rsquo;s the solver that makes constraint-based planning, STL checking, neural network verification, and PDDL+ solving computationally feasible.
+        </p>
+
+        <p>
+          <strong>Gao et al. [2012/2013], &ldquo;&delta;-Complete Decision Procedures / dReal.&rdquo;</strong> The theoretical and practical foundation for reasoning about nonlinear real arithmetic with formal guarantees. The &delta;-relaxation idea is philosophically important for robotics: if a system is &delta;-satisfiable but not truly satisfiable, it is fragile under tiny perturbations &mdash; itself a safety-relevant finding. dReal handles polynomials, trigonometric functions, exponentials, and ODE solutions.
+        </p>
+
+        <p>
+          <strong>Cashmore et al. [13], &ldquo;Planning for Hybrid Systems via Satisfiability Modulo Theories.&rdquo;</strong> SMTPlan is the state of the art for PDDL+ planning with nonlinear polynomial dynamics. The zero-crossing constraint for ensuring invariant conditions hold throughout intervals &mdash; not just at endpoints &mdash; is a crucial correctness technique. Performance is independent of time horizon length, unlike discretization-based methods. The limitation is discrete scalability: performance degrades sharply beyond ~5 happenings.
+        </p>
+
+        <h3>4.5 Ontological Reasoning</h3>
+
+        <p>
+          <strong>Tenorth and Beetz [60], &ldquo;KnowRob.&rdquo;</strong> The most cited ontology-based reasoning system for robots. The virtual knowledge base concept &mdash; computing answers on-the-fly by combining static ontological knowledge with procedural queries into perception, spatial reasoning, and web sources &mdash; is the right architecture for open-world robot knowledge. The hybrid open-world (OWL) + closed-world (Prolog) approach balances expressiveness with computational tractability.
+        </p>
+
+        <h3>4.6 Surveys Mapping the Landscape</h3>
+
+        <p>
+          <strong>Luckcuck et al. [40]</strong> is the most comprehensive taxonomy of formal methods for autonomous robotics (63 papers, 2007&ndash;2018), cataloging temporal logics, dynamic logics, process algebras, set-based methods, and ontologies. Notable gaps: no STL, no PDDL, no probabilistic programming. <strong>Meli et al. [46]</strong> fills the logic programming gap with 114 papers on ASP, Prolog, and PDDL for robotic task planning. <strong>Manganaris et al. [42]</strong> covers the intersection of formal methods with deep learning for robot policy learning and verification. <strong>Tantakoun et al. [59]</strong> maps the LLM-as-formalizer landscape. <strong>Cohen et al. [14]</strong> frames the entire field along a spectrum from formal symbols to neural embeddings, arguing that most &ldquo;end-to-end&rdquo; systems secretly rely on symbolic structure.
+        </p>
+
+        <h2>5. Software, Tools &amp; Practical Resources</h2>
+
+        <h3>5.1 Planning Tools</h3>
+
+        <div class="blog-table-wrapper">
+          <table class="blog-table">
+            <thead>
+              <tr>
+                <th>Tool</th>
+                <th>Language</th>
+                <th>Key Features</th>
+                <th>Maturity</th>
+                <th>URL</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Fast Downward</strong></td>
+                <td>C++</td>
+                <td>Heuristic search for PDDL 2.2, multiple IPC winner</td>
+                <td>Very high (380 citations)</td>
+                <td><a href="http://github.com/aibasel/downward">github.com/aibasel/downward</a></td>
+              </tr>
+              <tr>
+                <td><strong>Unified Planning (AIPlan4EU)</strong></td>
+                <td>Python</td>
+                <td>Planner-independent API, auto-selects engines</td>
+                <td>High (295 citations)</td>
+                <td><a href="http://github.com/aiplan4eu/unified-planning">github.com/aiplan4eu/unified-planning</a></td>
+              </tr>
+              <tr>
+                <td><strong>Clingo</strong></td>
+                <td>C++/Python</td>
+                <td>ASP grounder+solver, multi-shot solving, theory propagation</td>
+                <td>Very high (766 stars)</td>
+                <td><a href="http://github.com/potassco/clingo">github.com/potassco/clingo</a></td>
+              </tr>
+              <tr>
+                <td><strong>PDDLStream</strong></td>
+                <td>Python</td>
+                <td>PDDL + streams for TAMP, FastDownward backend</td>
+                <td>High</td>
+                <td><a href="http://github.com/caelan/pddlstream">github.com/caelan/pddlstream</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          <strong>Getting started with PDDL:</strong> The <a href="http://planning.wiki">Planning.wiki</a> [27] at <a href="http://planning.wiki">planning.wiki</a> is the best beginner resource, with worked examples and planner selection guides. The ROS 2 course by Rodr&iacute;guez Lera et al. [52] provides hands-on integration of PDDL with robotic architectures. For ASP, the Potassco tutorial ecosystem at <a href="http://potassco.org">potassco.org</a> covers hybrid ASP, constraint solving, and robotics applications.
+        </p>
+
+        <h3>5.2 Temporal Logic Tools</h3>
+
+        <div class="blog-table-wrapper">
+          <table class="blog-table">
+            <thead>
+              <tr>
+                <th>Tool</th>
+                <th>Language</th>
+                <th>Key Features</th>
+                <th>Maturity</th>
+                <th>URL</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>STLCG</strong></td>
+                <td>Python/PyTorch</td>
+                <td>Differentiable STL robustness via computation graphs</td>
+                <td>High (79 citations)</td>
+                <td><a href="http://github.com/StanfordASL/stlcg">github.com/StanfordASL/stlcg</a></td>
+              </tr>
+              <tr>
+                <td><strong>RTAMT</strong></td>
+                <td>Python/C++</td>
+                <td>Online/offline STL monitoring, ROS 1/2 integration</td>
+                <td>High (75 citations)</td>
+                <td><a href="http://github.com/nickovic/rtamt">github.com/nickovic/rtamt</a></td>
+              </tr>
+              <tr>
+                <td><strong>PyTeLo</strong></td>
+                <td>Python</td>
+                <td>MTL/STL/wSTL parsing &rarr; MILP encoding via Gurobi</td>
+                <td>Moderate (10 citations)</td>
+                <td><a href="http://github.com/descyphy/pytelo">github.com/descyphy/pytelo</a></td>
+              </tr>
+              <tr>
+                <td><strong>TuLiP</strong></td>
+                <td>Python</td>
+                <td>LTL/GR(1) synthesis for hybrid systems</td>
+                <td>High (125 citations)</td>
+                <td><a href="http://github.com/tulip-control/tulip-control">github.com/tulip-control/tulip-control</a></td>
+              </tr>
+              <tr>
+                <td><strong>STLmc</strong></td>
+                <td>Python</td>
+                <td>Robust STL model checking via Z3/dReal</td>
+                <td>Moderate (18 citations)</td>
+                <td><a href="http://stlmc.github.io">stlmc.github.io</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          <strong>Recommendation:</strong> If you work with continuous signals and want to integrate STL into a learning pipeline, start with STLCG. If you need runtime monitoring on a real robot (ROS 2), use RTAMT. If you need controller synthesis from LTL/GR(1) specs, use TuLiP. For MILP-based optimization subject to temporal specs, use PyTeLo.
+        </p>
+
+        <h3>5.3 Probabilistic Reasoning Tools</h3>
+
+        <div class="blog-table-wrapper">
+          <table class="blog-table">
+            <thead>
+              <tr>
+                <th>Tool</th>
+                <th>Language</th>
+                <th>Key Features</th>
+                <th>Maturity</th>
+                <th>URL</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Pyro</strong></td>
+                <td>Python/PyTorch</td>
+                <td>SVI, MCMC, deep generative models</td>
+                <td>Very high (9000 citations)</td>
+                <td><a href="http://pyro.ai">pyro.ai</a></td>
+              </tr>
+              <tr>
+                <td><strong>NumPyro</strong></td>
+                <td>Python/JAX</td>
+                <td>100x+ faster MCMC/NUTS via JAX</td>
+                <td>High</td>
+                <td><a href="http://github.com/pyro-ppl/numpyro">github.com/pyro-ppl/numpyro</a></td>
+              </tr>
+              <tr>
+                <td><strong>Gen.jl</strong></td>
+                <td>Julia</td>
+                <td>Programmable inference, robotics-oriented</td>
+                <td>High (1800 citations)</td>
+                <td><a href="http://gen.dev">gen.dev</a></td>
+              </tr>
+              <tr>
+                <td><strong>ProbLog</strong></td>
+                <td>Python</td>
+                <td>Probabilistic Prolog, weighted model counting</td>
+                <td>Moderate (397 stars)</td>
+                <td><a href="http://github.com/ML-KULeuven/problog">github.com/ML-KULeuven/problog</a></td>
+              </tr>
+              <tr>
+                <td><strong>Storm</strong></td>
+                <td>C++/Python</td>
+                <td>Probabilistic model checker (DTMCs, MDPs, POMDPs)</td>
+                <td>Very high (235 citations)</td>
+                <td><a href="http://stormchecker.org">stormchecker.org</a></td>
+              </tr>
+              <tr>
+                <td><strong>PRISM</strong></td>
+                <td>Java</td>
+                <td>Probabilistic model checker, multiple temporal logics</td>
+                <td>Very high</td>
+                <td><a href="http://prismmodelchecker.org">prismmodelchecker.org</a></td>
+              </tr>
+              <tr>
+                <td><strong>GTSAM</strong></td>
+                <td>C++/Python</td>
+                <td>Factor graph optimization for SLAM/state estimation</td>
+                <td>Very high (3355 citations)</td>
+                <td><a href="http://github.com/borglab/gtsam">github.com/borglab/gtsam</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          <strong>Recommendation:</strong> For Bayesian deep learning in Python, use Pyro or NumPyro. For robotics perception and state estimation, GTSAM is the standard. For programmable inference in research settings, Gen.jl offers the most control. For formal verification of stochastic models, Storm has the best combination of coverage and performance. For logic-based probabilistic reasoning, ProbLog bridges symbolic and statistical worlds.
+        </p>
+
+        <h3>5.4 Satisfiability Solvers</h3>
+
+        <div class="blog-table-wrapper">
+          <table class="blog-table">
+            <thead>
+              <tr>
+                <th>Tool</th>
+                <th>Language</th>
+                <th>Key Features</th>
+                <th>URL</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Z3</strong></td>
+                <td>C++/Python</td>
+                <td>SMT solver, arithmetic/bitvectors/arrays, quantifiers</td>
+                <td><a href="http://github.com/Z3Prover/z3">github.com/Z3Prover/z3</a></td>
+              </tr>
+              <tr>
+                <td><strong>dReal</strong></td>
+                <td>C++/Python</td>
+                <td>&delta;-complete SMT for nonlinear reals, ODE support</td>
+                <td><a href="http://dreal.github.io">dreal.github.io</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>5.5 Ontological Reasoning</h3>
+
+        <div class="blog-table-wrapper">
+          <table class="blog-table">
+            <thead>
+              <tr>
+                <th>Tool</th>
+                <th>Language</th>
+                <th>Key Features</th>
+                <th>URL</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>KnowRob</strong></td>
+                <td>C++/Prolog/Python</td>
+                <td>OWL ontologies + Prolog reasoning, ROS integration</td>
+                <td><a href="http://knowrob.org">knowrob.org</a></td>
+              </tr>
+              <tr>
+                <td><strong>SWI-Prolog</strong></td>
+                <td>C/Prolog</td>
+                <td>Full Prolog with extensive libraries, ROS bindings</td>
+                <td><a href="http://swi-prolog.org">swi-prolog.org</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>5.6 Behavior Tree Tools</h3>
+
+        <div class="blog-table-wrapper">
+          <table class="blog-table">
+            <thead>
+              <tr>
+                <th>Tool</th>
+                <th>Language</th>
+                <th>Key Features</th>
+                <th>URL</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>BehaviorTree.CPP</strong></td>
+                <td>C++</td>
+                <td>ROS 2 integration, XML specification, widely adopted</td>
+                <td><a href="http://github.com/BehaviorTree/BehaviorTree.CPP">github.com/BehaviorTree/BehaviorTree.CPP</a></td>
+              </tr>
+              <tr>
+                <td><strong>py_trees</strong></td>
+                <td>Python</td>
+                <td>Python BT library, composable, ROS integration</td>
+                <td><a href="http://github.com/splintered-reality/py_trees">github.com/splintered-reality/py_trees</a></td>
+              </tr>
+              <tr>
+                <td><strong>BehaVerify</strong></td>
+                <td>Python</td>
+                <td>BT &rarr; nuXmv translation for LTL/CTL verification</td>
+                <td><a href="http://github.com/verivital/behaverify">github.com/verivital/behaverify</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2>6. State of the Art</h2>
+
+        <p>
+          <strong>What works best today, and under what conditions?</strong>
+        </p>
+
+        <p>
+          For <em>deterministic task planning</em> in manipulation, <strong>PDDL + Fast Downward</strong> (or the Unified Planning Framework for convenience) remains the gold standard. PDDLStream is the most practical TAMP framework. For <em>temporal task specifications</em>, <strong>LTL</strong> dominates for discrete tasks; <strong>STL</strong> dominates for continuous-time control and monitoring. The STLCG differentiable approach has been adopted widely for integrating temporal constraints into optimization and learning.
+        </p>
+
+        <p>
+          For <em>multi-robot coordination</em>, the choice depends on fleet size: standard LTL product-automaton approaches work for small teams (&lt; 10); counting temporal logics (cLTL) or capability temporal logics (CaTL) scale to hundreds of agents via MILP encoding.
+        </p>
+
+        <p>
+          For <em>uncertainty handling</em>, the landscape is bifurcated. Probabilistic model checking (Storm, PRISM) provides formal guarantees for small-to-medium models. Probabilistic programming (Pyro, Gen) handles richer models but without formal guarantees. Belief-space TAMP [34] is the most principled integration of symbolic planning and probabilistic reasoning, but scales poorly with the number of objects.
+        </p>
+
+        <p>
+          For <em>formal verification</em>, model checking (nuXmv for BTs, PRISM/Storm for stochastic systems, STLmc for STL over hybrid systems) provides the strongest guarantees but faces state-space explosion. Runtime monitoring (RTAMT for STL) is the practical compromise &mdash; checking properties during execution rather than proving them for all possible executions.
+        </p>
+
+        <p><strong>Where is there consensus?</strong></p>
+
+        <ul>
+          <li>PDDL is the right level of abstraction for symbolic task planning in TAMP.</li>
+          <li>STL robustness is the right metric for continuous-time specification satisfaction in control.</li>
+          <li>No single formalism handles the full reasoning stack; integration is necessary.</li>
+          <li>LLMs should translate natural language to formal specifications, not act as planners themselves [59], [14].</li>
+        </ul>
+
+        <p><strong>Where is there disagreement?</strong></p>
+
+        <ul>
+          <li>Whether probabilistic programming or probabilistic model checking is more useful for robotics. Model checking provides guarantees but doesn&rsquo;t scale; PPLs scale but provide no guarantees.</li>
+          <li>Whether temporal logic synthesis or temporal-logic-guided RL is the right approach for policy generation. Synthesis is correct-by-construction but limited to small state spaces; RL scales but sacrifices guarantees [42].</li>
+          <li>Whether ontological reasoning (KnowRob-style) will remain relevant as LLMs absorb commonsense knowledge. The structured, inspectable nature of ontologies argues for their continued role in safety-critical applications, but the engineering overhead is substantial.</li>
+        </ul>
+
+        <h2>7. Open Problems &amp; Future Directions</h2>
+
+        <h3>7.1 The Specification Bottleneck</h3>
+
+        <p>
+          Writing formal specifications &mdash; whether PDDL domains, LTL formulas, or STL constraints &mdash; requires expertise that most robotics practitioners lack. LLMs as formalizers [59] partially address this, but current systems struggle with semantic errors (the generated PDDL may parse and solve but not match human intent), and fine-tuned models (e.g., Mistral-7B for NL&rarr;LTL [62]) are limited to the distribution of their training data. The open problem is <em>verified specification generation</em>: ensuring that the formal specification faithfully captures the user&rsquo;s intent, not just that it is syntactically valid.
+        </p>
+
+        <h3>7.2 Scalable Formal Guarantees for Learned Policies</h3>
+
+        <p>
+          The central tension identified by Manganaris et al. [42] &mdash; scalability versus expressiveness in formal verification of neural policies &mdash; remains open. Set-propagation methods suffer compounding over-approximation; HJ reachability is exponential in dimension; certificate functions (Lyapunov, barrier) only verify simple safety/stability. The most promising direction is <em>compositional verification</em>: proving properties of subsystems independently and composing the guarantees &mdash; but this requires the right decomposition, which is itself an open problem.
+        </p>
+
+        <h3>7.3 Unified Discrete-Continuous-Probabilistic Reasoning</h3>
+
+        <p>
+          No existing framework seamlessly handles discrete task logic, continuous dynamics, temporal constraints, and probabilistic uncertainty within a single formalism. PDDL+ with SMT [13] handles discrete + continuous but not probability. Probabilistic PDDL (PPDDL/RDDL) handles discrete + probability but not continuous dynamics. STL handles continuous time but not planning. Belief-space TAMP [34] handles planning + uncertainty but not temporal specifications. The integration of these is perhaps the field&rsquo;s most important open problem.
+        </p>
+
+        <p>
+          A promising approach is <em>temporal ASP with probabilistic extensions</em>: telingo (Cabalar et al., 2019) adds temporal operators to ASP; Cabalar et al. [9] add metric temporal constructs; combining these with probabilistic logic programming (P-log, ProbLog) could yield a unified symbolic reasoner for temporal-probabilistic-discrete domains.
+        </p>
+
+        <h3>7.4 Real-Time Formal Reasoning</h3>
+
+        <p>
+          Most formal methods operate offline: PDDL planners generate plans before execution; STL monitoring checks traces after the fact; probabilistic model checking verifies models ahead of time. Real robots need <em>online</em> formal reasoning &mdash; replanning when the world changes, monitoring in real-time, and adapting specifications on the fly. Hummelgren et al.&rsquo;s [31] ProbTime (real-time probabilistic programming) and RTAMT&rsquo;s online STL monitoring are steps in this direction, but a general framework for real-time formal reasoning with bounded computation time remains elusive.
+        </p>
+
+        <h3>7.5 Connection to the Researcher&rsquo;s Own Work</h3>
+
+        <p>
+          For a researcher working at the intersection of reasoning, planning, robot manipulation, diffusion policies, foundation models, and sim-to-real transfer, the most actionable open problems are:
+        </p>
+
+        <ol>
+          <li><strong>STL-guided diffusion policies.</strong> STLCG makes STL differentiable; diffusion models generate trajectories. Combining them &mdash; using STL robustness as a guidance signal during diffusion sampling &mdash; would produce trajectories that satisfy formal temporal specifications without requiring MILP reformulation. This bridges your work on diffusion policy with formal methods.</li>
+          <li><strong>PDDL + foundation models for TAMP.</strong> PDDLStream provides the symbolic backbone; foundation models (vision-language models, world models) provide the perceptual grounding and constraint evaluation. The gap is making the stream interfaces (IK samplers, collision checkers, motion planners) learnable and differentiable rather than handcoded.</li>
+          <li><strong>Formal specifications for imitation learning.</strong> When learning from demonstrations, the &ldquo;specification&rdquo; is implicit in the demonstrations. Mining STL specifications from demonstrations [3] could make these implicit specifications explicit, enabling formal verification of learned policies and transfer of specifications across embodiments.</li>
+          <li><strong>Sim-to-real with formal guarantees.</strong> The reality gap means formal guarantees derived in simulation may not transfer. dReal&rsquo;s &delta;-complete reasoning provides a principled framework: if a property is &delta;-robust in simulation, and the sim-to-real gap is bounded by &delta;, the property transfers. Making this bound tight and practical is the challenge.</li>
+        </ol>
+
+        <h2>8. Recommended Reading Order</h2>
+
+        <p>
+          For someone entering this field, I recommend the following five papers in this order:
+        </p>
+
+        <ol>
+          <li><strong>McDermott et al. [45], &ldquo;PDDL &mdash; The Planning Domain Definition Language.&rdquo;</strong> Start here to understand the dominant planning formalism. Read alongside the <a href="http://planning.wiki">Planning.wiki</a> tutorial for practical grounding. Install Fast Downward and solve a simple planning problem.</li>
+          <li><strong>Maler and Nickovic [41], &ldquo;Monitoring Temporal Properties of Continuous Signals.&rdquo;</strong> This is short, clean, and foundational. Understand how STL extends temporal logic to continuous signals. Install RTAMT and monitor a simple signal.</li>
+          <li><strong>Leung et al. [39], &ldquo;Backpropagation through Signal Temporal Logic Specifications.&rdquo;</strong> The bridge between formal methods and deep learning. Clone the STLCG repo, run the trajectory planning demo, and study how STL robustness becomes a differentiable loss.</li>
+          <li><strong>Garrett et al. [22], &ldquo;PDDLStream: Integrating Symbolic Planners and Blackbox Samplers.&rdquo;</strong> The practical state of the art for PDDL-based TAMP. Install pddlstream and run the manipulation examples to see how symbolic planning and geometric reasoning compose.</li>
+          <li><strong>Manganaris et al. [42], &ldquo;Formal Methods in Robot Policy Learning and Verification.&rdquo;</strong> The most current survey of the learning &times; formal methods intersection. Read this to understand where the field is heading &mdash; particularly the automata-theoretic RL and differentiable STL sections &mdash; and to identify your own entry points.</li>
+        </ol>
+
+        <p><strong>First tools to install:</strong></p>
+
+        <ol>
+          <li>Fast Downward (classical PDDL planning)</li>
+          <li>RTAMT (STL monitoring, ROS 2 compatible)</li>
+          <li>STLCG (differentiable STL in PyTorch)</li>
+          <li>Clingo (ASP solving)</li>
+          <li>Pyro (probabilistic programming)</li>
+        </ol>
+
+        </section>
+
+        <div class="references-section">
+          <h2 class="references-header">References</h2>
+          <ol class="references-list">
+            <li id="ref-1">Aguado, E., Gomez, V., Hernando, M. et al. (2024). A survey of ontology-enabled processes for dependable robot autonomy. <em>Frontiers in Robotics and AI</em>, 11.</li>
+            <li id="ref-2">Azaiez, A., Anisi, D.A., Farrell, M., and Luckcuck, M. (2025). Revisiting formal methods for autonomous robots: A structured survey. arXiv:2509.20488.</li>
+            <li id="ref-3">Bartocci, E., Mateis, C., Nesterini, E., and Nickovic, D. (2022). Survey on mining signal temporal logic specifications. <em>Information and Computation</em>, 289.</li>
+            <li id="ref-4">Beetz, M., Be&szlig;ler, D., Haidu, A. et al. (2018). KnowRob 2.0 &mdash; A 2nd generation knowledge processing framework for cognition-enabled robotic agents. <em>IEEE ICRA</em>.</li>
+            <li id="ref-5">Biggar, O., Zamani, M., and Shames, I. (2020). A framework for formal verification of behavior trees with linear temporal logic. <em>IEEE RA-L</em>.</li>
+            <li id="ref-6">Bingham, E., Chen, J.P., Jankowiak, M. et al. (2019). Pyro: Deep universal probabilistic programming. <em>JMLR</em>, 20(1).</li>
+            <li id="ref-7">Bozkurt, A.K., Wang, Y., Zavlanos, M., and Pajic, M. (2020). Model-free reinforcement learning for stochastic games with linear temporal logic objectives. arXiv:2010.01050.</li>
+            <li id="ref-8">Bryce, D., Gao, S., Musliner, D.J., and Goldman, R.P. (2015). SMT-based nonlinear PDDL+ planning. <em>AAAI</em>.</li>
+            <li id="ref-9">Cabalar, P., Di&eacute;guez, M., Schaub, T., and Schuhmann, A. (2025). Computational methods for dynamic answer set programming. arXiv.</li>
+            <li id="ref-10">Cannizzaro, R., Groom, M., Routley, J., Ness, R.O., and Kunze, L. (2024). COBRA-PPM: A causal Bayesian reasoning architecture using probabilistic programming for robot manipulation under uncertainty. arXiv.</li>
+            <li id="ref-11">Cardona, G.A., Leahy, K., Mann, M., and Vasile, C.-I. (2023). PyTeLo: A flexible and efficient temporal logic tool for Python. arXiv.</li>
+            <li id="ref-12">Cardona, G.A. and Vasile, C.-I. (2024). Planning for heterogeneous teams of robots with temporal logic, capability, and resource constraints. <em>IJRR</em>.</li>
+            <li id="ref-13">Cashmore, M., Magazzeni, D., and Zehtabi, P. (2020). Planning for hybrid systems via satisfiability modulo theories. <em>JAIR</em>, 67, 235&ndash;283.</li>
+            <li id="ref-14">Cohen, V., Liu, J.X., Mooney, R., Tellex, S., and Watkins, D. (2024). A survey of robotic language grounding: Tradeoffs between symbols and embeddings. <em>IJCAI</em>.</li>
+            <li id="ref-15">Cusumano-Towner, M., Saad, F., Lew, A., and Mansinghka, V. (2019). Gen: A general-purpose probabilistic programming system with programmable inference. <em>PLDI</em>.</li>
+            <li id="ref-16">de Moura, L. and Bj&oslash;rner, N. (2008). Z3: An efficient SMT solver. <em>TACAS</em>.</li>
+            <li id="ref-17">Donz&eacute;, A. and Maler, O. (2010). Robust satisfaction of temporal logic over real-valued signals. <em>FORMATS</em>.</li>
+            <li id="ref-18">Fainekos, G. and Pappas, G.J. (2009). Robustness of temporal logic specifications for continuous-time signals. <em>Theoretical Computer Science</em>, 410(42).</li>
+            <li id="ref-19">Fikes, R.E. and Nilsson, N.J. (1971). STRIPS: A new approach to the application of theorem proving to problem solving. <em>Artificial Intelligence</em>, 2(3-4).</li>
+            <li id="ref-20">Gao, S., Avigad, J., and Clarke, E.M. (2012). &delta;-complete decision procedures for satisfiability over the reals. <em>IJCAR</em>.</li>
+            <li id="ref-21">Gao, S., Kong, S., and Clarke, E.M. (2013). dReal: An SMT solver for nonlinear theories over the reals. <em>CADE</em>.</li>
+            <li id="ref-22">Garrett, C.R., Lozano-P&eacute;rez, T., and Kaelbling, L.P. (2020). PDDLStream: Integrating symbolic planners and blackbox samplers via optimistic adaptive planning. <em>ICAPS</em>.</li>
+            <li id="ref-23">Gebser, M., Kaminski, R., Kaufmann, B., and Schaub, T. (2014). Clingo = ASP + control: Preliminary report. <em>ICLP Technical Communications</em>.</li>
+            <li id="ref-24">Gelfond, M. and Lifschitz, V. (1998). Action languages. <em>Electronic Transactions on Artificial Intelligence</em>, 2.</li>
+            <li id="ref-25">Goldman, R.P., Bryce, D., Pelican, M.J.S., Musliner, D.J., and Bae, K. (2016). A hybrid architecture for correct-by-construction hybrid planning and control. <em>AAAI Spring Symposium</em>.</li>
+            <li id="ref-26">Goodman, N.D., Mansinghka, V.K., Roy, D.M., Bonawitz, K., and Tenenbaum, J.B. (2008). Church: A language for generative models. <em>UAI</em>.</li>
+            <li id="ref-27">Green, A. et al. (2025). <a href="http://planning.wiki">Planning.wiki</a> &mdash; The AI planning &amp; PDDL wiki. <a href="http://planning.wiki">planning.wiki</a>.</li>
+            <li id="ref-28">He, K., Lahijanian, M., Kavraki, L.E., and Vardi, M.Y. (2015). Towards manipulation planning with temporal logic specifications. <em>IEEE ICRA</em>.</li>
+            <li id="ref-29">Hensel, C., Junges, S., Katoen, J.-P., Quatmann, T., and Volk, M. (2021). The probabilistic model checker Storm. <em>STTT</em>.</li>
+            <li id="ref-30">Hong, W., Chen, Z., Li, M. et al. (2023). Formal verification based synthesis for behavior trees. <em>SETTA</em>.</li>
+            <li id="ref-31">Hummelgren, L., Becker, M., and Broman, D. (2023). Real-time probabilistic programming. <em>RTSS</em>.</li>
+            <li id="ref-32">Iovino, M., Scukins, E., Styrud, J. et al. (2022). A survey of behavior trees in robotics and AI. <em>Robotics and Autonomous Systems</em>.</li>
+            <li id="ref-33">John, T. and Koopmann, P. (2024). Planning with OWL-DL ontologies (extended version). arXiv.</li>
+            <li id="ref-34">Kaelbling, L.P. and Lozano-P&eacute;rez, T. (2013). Integrated task and motion planning in belief space. <em>IJRR</em>, 32(9-10).</li>
+            <li id="ref-35">Kress-Gazit, H., Fainekos, G.E., and Pappas, G.J. (2009). Temporal-logic-based reactive mission and motion planning. <em>IEEE TRO</em>, 25(6).</li>
+            <li id="ref-36">Kwiatkowska, M., Norman, G., and Parker, D. (2022). Probabilistic model checking and autonomy. <em>Annual Review of Control, Robotics, and Autonomous Systems</em>, 5.</li>
+            <li id="ref-37">Lacerda, B., Faruq, F., Parker, D., and Hawes, N. (2019). Probabilistic planning with formal performance guarantees for mobile service robots. <em>IJRR</em>, 38(9).</li>
+            <li id="ref-38">Lampacrescia, M., Klauck, M., and Palmas, M. (2024). Towards verifying robotic systems using statistical model checking in STORM. arXiv.</li>
+            <li id="ref-39">Leung, K., Ar&eacute;chiga, N., and Pavone, M. (2020). Backpropagation through signal temporal logic specifications: Infusing logical structure into gradient-based methods. <em>WAFR / IJRR</em>.</li>
+            <li id="ref-40">Luckcuck, M., Farrell, M., Dennis, L.A., Dixon, C., and Fisher, M. (2019). Formal specification and verification of autonomous robotic systems: A survey. <em>ACM Computing Surveys</em>, 52(5).</li>
+            <li id="ref-41">Maler, O. and Nickovic, D. (2004). Monitoring temporal properties of continuous signals. <em>FORMATS/FTRTFT</em>.</li>
+            <li id="ref-42">Manganaris, A., Giammarino, V., Qureshi, A.H., and Jagannathan, S. (2026). Formal methods in robot policy learning and verification: A survey. <em>TMLR</em>.</li>
+            <li id="ref-43">Manzoor, S., Rocha, Y.G., Joo, S.-H. et al. (2021). Ontology-based knowledge representation in robotic systems: A survey oriented toward applications. <em>Applied Sciences</em>, 11(4324).</li>
+            <li id="ref-44">McCarthy, J. (1963). Situations, actions, and causal laws. Stanford AI Project Memo 2.</li>
+            <li id="ref-45">McDermott, D., Ghallab, M., Howe, A. et al. (1998). PDDL &mdash; The planning domain definition language. Tech Report CVC TR-98-003.</li>
+            <li id="ref-46">Meli, D., Nakawala, H., and Fiorini, P. (2023). Logic programming for deliberative robotic task planning. <em>Artificial Intelligence Review</em>.</li>
+            <li id="ref-47">Meli, D., Sridharan, M., and Fiorini, P. (2021). Inductive learning of answer set programs for autonomous surgical task planning. <em>Machine Learning</em>, 110.</li>
+            <li id="ref-48">Nickovic, D. (2026). RTAMT &mdash; Real-time STL monitoring library. <a href="http://github.com/nickovic/rtamt">github.com/nickovic/rtamt</a>.</li>
+            <li id="ref-49">Olivares-Alarcos, A., Be&szlig;ler, D., Khamis, A. et al. (2019). A review and comparison of ontology-based approaches to robot autonomy. <em>The Knowledge Engineering Review</em>, 34.</li>
+            <li id="ref-50">Pek, C., Schuppe, G.F., Esposito, F., Tumova, J., and Kragic, D. (2023). SpaTiaL: Monitoring and planning of robotic tasks using spatio-temporal logic specifications. arXiv.</li>
+            <li id="ref-51">Rizwan, M., Patoglu, V., and Erdem, E. (2020). Human-robot collaborative assembly planning: An answer set programming approach. <em>TPLP / ICLP</em>.</li>
+            <li id="ref-52">Rodr&iacute;guez Lera, F.J. et al. (2024). PDDL course: Deliberation, planning, and execution in robotic architectures using ROS 2.</li>
+            <li id="ref-53">Sahin, Y.E., Nilsson, P., and Ozay, N. (2020). Multirobot coordination with counting temporal logics. arXiv:1810.13087.</li>
+            <li id="ref-54">Serbinowska, S.S. and Johnson, T.T. (2022). BehaVerify: Verifying temporal logic specifications for behavior trees. <em>SEFM</em>.</li>
+            <li id="ref-55">Serbinowska, S.S., Robinette, P.K., Karsai, G., and Johnson, T.T. (2024). Formalizing stateful behavior trees. <em>FMAS</em>.</li>
+            <li id="ref-56">Son, T.C., Pontelli, E., Balduccini, M., and Schaub, T. (2022). Answer set planning: A survey. arXiv:2202.05793.</li>
+            <li id="ref-57">Sun, X. and Shoukry, Y. (2022). Neurosymbolic motion and task planning for linear temporal logic tasks. arXiv:2210.05180.</li>
+            <li id="ref-58">Tadiello, M. and Troubitsyna, E. (2022). Verifying safety of behaviour trees in Event-B. <em>iFM</em>.</li>
+            <li id="ref-59">Tantakoun, M., Zhu, X., and Muise, C. (2025). LLMs as planning formalizers: A survey. arXiv:2503.18971.</li>
+            <li id="ref-60">Tenorth, M. and Beetz, M. (2013). KnowRob: A knowledge processing infrastructure for cognition-enabled robots. <em>IJRR</em>, 32(5).</li>
+            <li id="ref-61">Tiger, M. and Heintz, F. (2020). Incremental reasoning in probabilistic signal temporal logic. <em>IJCAI</em>.</li>
+            <li id="ref-62">Xu, S., Luo, X., Huang, Y. et al. (2024). Nl2Hltl2Plan: Scaling up natural language understanding for multi-robots through hierarchical temporal logic task representation. arXiv:2408.08188.</li>
+            <li id="ref-63">Ye, K., Cavalcanti, A., Foster, S. et al. (2022). Probabilistic modelling and verification using RoboChart and PRISM. <em>SoSyM</em>, 21(2).</li>
+            <li id="ref-64">Yu, G., Lee, J., and Bae, K. (2022). STLmc: Robust STL model checking of hybrid systems using SMT. <em>CAV</em>.</li>
+            <li id="ref-65">Yuasa, M., Sreenivas, R.S., and Tran, H.T. (2026). Neuro-symbolic generation of explanations for robot policies with weighted signal temporal logic. <em>IEEE RA-L</em>.</li>
+            <li id="ref-66">Zhang, S., Khandelwal, P., and Stone, P. (2024). iCORPP: Interleaved commonsense reasoning and probabilistic planning on robots. arXiv.</li>
+            <li id="ref-67">Zhao, Z., Cheng, S., Ding, Y. et al. (2024). A survey of optimization-based task and motion planning: From classical to learning approaches. <em>IEEE/ASME T-Mech</em>.</li>
+          </ol>
+        </div>
+      </article>
+    </div>
+
+    <!-- Blog styling and spacing script -->
+    <script defer src="/js/blog.js"></script>
+    <script defer src="/js/katex-init.js"></script>
+    <script defer src="/js/references.js"></script>
+  </body>
+</html>
