@@ -60,3 +60,5 @@ drafts/
 .env.production.local
 
 *.mp4
+.codex
+.claude
