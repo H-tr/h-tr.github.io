@@ -391,11 +391,6 @@ nav a:active {
   margin-right: 0.4rem;
 }
 
-.copy-button:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-1px);
-}
-
 /* Responsive Design */
 @media (max-width: 768px) {
   body {

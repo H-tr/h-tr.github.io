@@ -1,110 +1,129 @@
 /**
- * Prism.js Initialization and Dynamic Script Loading
- * 
- * This script handles loading Prism.js and its dependencies
+ * Prism.js initialization — single source of truth for code blocks.
+ *
+ * Loads Prism + languages from CDN, waits for them to finish, then
+ * highlights and attaches a copy button. State changes for the button
+ * are class-based; icon swaps are handled entirely in CSS
+ * (see css/prism-custom.css: .toolbar button:before / .copy-success:before).
  */
 (function () {
-  // Base CDN URL for Prism.js
   const PRISM_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0';
 
-  // Theme and base scripts
-  const baseScripts = [
-    { type: 'css', path: `${PRISM_CDN}/plugins/toolbar/prism-toolbar.min.css` },
-    { type: 'css', path: '/css/prism-custom.css' },
-    { type: 'js', path: `${PRISM_CDN}/prism.min.js` }
-  ];
+  const languages = ['python', 'javascript', 'css', 'bash', 'yaml', 'json', 'lisp'];
 
-  // Languages to load
-  const languages = [
-    'python',
-    'javascript',
-    'css',
-    'bash',
-    'yaml',
-    'json',
-    'lisp'
-  ];
+  function loadCss(href) {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    document.head.appendChild(link);
+  }
 
-  // Load all base scripts first
-  baseScripts.forEach(script => {
-    if (script.type === 'css') {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = script.path;
-      document.head.appendChild(link);
-    } else {
-      const scriptEl = document.createElement('script');
-      scriptEl.src = script.path;
-      document.head.appendChild(scriptEl);
-    }
-  });
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src;
+      s.async = false; // preserve execution order
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error(`Failed to load ${src}`));
+      document.head.appendChild(s);
+    });
+  }
 
-  // Then load all language scripts
-  languages.forEach(lang => {
-    const scriptEl = document.createElement('script');
-    scriptEl.src = `${PRISM_CDN}/components/prism-${lang}.min.js`;
-    document.head.appendChild(scriptEl);
-  });
-
-  // Wait for DOM content to be loaded
-  document.addEventListener('DOMContentLoaded', function () {
-    // Load compatibility script after Prism is ready
-    const compatScript = document.createElement('script');
-    compatScript.src = '/js/prism-compat.js';
-    document.head.appendChild(compatScript);
-
-    // Custom clipboard functionality - GitHub style
-    setTimeout(() => {
-      if (window.Prism) {
-        // Initialize Prism
-        Prism.highlightAll();
-
-        // Add toolbar and copy button
-        document.querySelectorAll('pre > code').forEach(codeBlock => {
-          // Make sure the pre has a position relative
-          const preBlock = codeBlock.parentElement;
-          if (preBlock) {
-            // Create toolbar
-            const toolbar = document.createElement('div');
-            toolbar.className = 'toolbar';
-
-            // Create copy button
-            const copyButton = document.createElement('button');
-            const span = document.createElement('span');
-            span.textContent = 'Copy';
-            copyButton.appendChild(span);
-
-            // Add copy functionality
-            copyButton.addEventListener('click', () => {
-              navigator.clipboard.writeText(codeBlock.textContent)
-                .then(() => {
-                  // Show success state
-                  copyButton.classList.add('copy-success');
-                  setTimeout(() => {
-                    copyButton.classList.remove('copy-success');
-                  }, 2000);
-                })
-                .catch(err => {
-                  console.error('Failed to copy: ', err);
-                });
-            });
-
-            // Add button to toolbar
-            toolbar.appendChild(copyButton);
-
-            // Add toolbar to code block container
-            if (!preBlock.parentElement.classList.contains('code-toolbar')) {
-              const wrapper = document.createElement('div');
-              wrapper.className = 'code-toolbar';
-              preBlock.parentNode.insertBefore(wrapper, preBlock);
-              wrapper.appendChild(preBlock);
-              wrapper.appendChild(toolbar);
-            } else {
-              preBlock.parentElement.appendChild(toolbar);
-            }
-          }
-        });
+  function domReady() {
+    return new Promise(resolve => {
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', resolve, { once: true });
+      } else {
+        resolve();
       }
-    }, 300); // Slightly longer delay to make sure everything is loaded
-  });
-})(); 
+    });
+  }
+
+  let buttonsAttached = false;
+  function attachCopyButtons() {
+    if (buttonsAttached) return;
+    buttonsAttached = true;
+
+    // Nuke any pre-existing copy buttons from earlier renderers / cached scripts.
+    document.querySelectorAll('.copy-button').forEach(el => el.remove());
+    document.querySelectorAll('div.code-block > pre').forEach(pre => {
+      const outer = pre.parentElement;
+      outer.parentNode.insertBefore(pre, outer);
+      outer.remove();
+    });
+
+    document.querySelectorAll('pre > code[class*="language-"]').forEach(codeBlock => {
+      const pre = codeBlock.parentElement;
+      if (!pre) return;
+      const alreadyWrapped = pre.parentElement && pre.parentElement.classList.contains('code-toolbar');
+      if (alreadyWrapped) {
+        // Remove any duplicate toolbars inside the wrapper, keep the first.
+        const toolbars = pre.parentElement.querySelectorAll(':scope > .toolbar');
+        toolbars.forEach((tb, i) => { if (i > 0) tb.remove(); });
+        return;
+      }
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'code-toolbar';
+
+      const toolbar = document.createElement('div');
+      toolbar.className = 'toolbar';
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.setAttribute('aria-label', 'Copy code');
+      const icon = document.createElement('i');
+      icon.className = 'fa-regular fa-copy';
+      icon.setAttribute('aria-hidden', 'true');
+      btn.appendChild(icon);
+
+      btn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(codeBlock.textContent);
+          icon.className = 'fa-solid fa-check';
+          btn.classList.add('copy-success');
+          clearTimeout(btn._resetTimer);
+          btn._resetTimer = setTimeout(() => {
+            icon.className = 'fa-regular fa-copy';
+            btn.classList.remove('copy-success');
+          }, 1600);
+        } catch (err) {
+          console.error('Copy failed:', err);
+        }
+      });
+
+      toolbar.appendChild(btn);
+      pre.parentNode.insertBefore(wrapper, pre);
+      wrapper.appendChild(pre);
+      wrapper.appendChild(toolbar);
+    });
+  }
+
+  loadCss(`${PRISM_CDN}/plugins/toolbar/prism-toolbar.min.css`);
+  loadCss('/css/prism-custom.css');
+
+  (async () => {
+    try {
+      await loadScript(`${PRISM_CDN}/prism.min.js`);
+      if (window.Prism) {
+        Prism.manual = true; // we call highlightAll ourselves
+      }
+      await Promise.all(languages.map(l =>
+        loadScript(`${PRISM_CDN}/components/prism-${l}.min.js`).catch(e => console.warn(e.message))
+      ));
+      await domReady();
+
+      // Run compat (converts legacy .code-section blocks) before highlighting.
+      try {
+        await loadScript('/js/prism-compat.js');
+      } catch (e) {
+        console.warn(e.message);
+      }
+
+      if (window.Prism) Prism.highlightAll();
+      attachCopyButtons();
+    } catch (err) {
+      console.error('Prism init failed:', err);
+    }
+  })();
+})();

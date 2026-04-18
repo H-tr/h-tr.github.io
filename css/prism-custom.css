@@ -190,14 +190,9 @@ div.code-toolbar > .toolbar button {
   box-shadow: none;
 }
 
-div.code-toolbar > .toolbar button span {
-  display: none;
-}
-
-div.code-toolbar > .toolbar button:before {
-  content: "\f0c5"; /* Font Awesome copy */
-  font-family: "Font Awesome 6 Free";
-  font-weight: 400;
+div.code-toolbar > .toolbar button i {
+  font-size: 1em;
+  line-height: 1;
 }
 
 div.code-toolbar > .toolbar button:hover,
@@ -210,10 +205,10 @@ div.code-toolbar > .toolbar button:focus {
 div.code-toolbar > .toolbar button.copy-success {
   background: #fff;
   border-color: #c9c0a3;
+  color: var(--code-string);
 }
 
-div.code-toolbar > .toolbar button.copy-success:before {
-  content: "\f00c"; /* Font Awesome check */
+div.code-toolbar > .toolbar button.copy-success i {
   color: var(--code-string);
 }
 
