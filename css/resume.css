@@ -26,7 +26,7 @@ h1, h2, h3, h4, h5, h6 {
 .header h1 {
   font-size: 2.5rem;
   margin: 0 0 0.5rem;
-  color: #000;
+  color: #2c2c2e;
 }
 
 /* Navigation */
@@ -48,13 +48,13 @@ nav a {
 }
 
 nav a:hover {
-  color: #000;
+  color: #2c2c2e;
   text-decoration: none;
 }
 
 /* Style for the active page link */
 nav a.active {
-  color: #000; /* Black */
+  color: #2c2c2e; /* Black */
   font-weight: 600; /* Bolder */
   text-decoration: none;
 }
@@ -67,7 +67,7 @@ nav a:visited {
 
 /* Style for the link while being clicked (momentary) */
 nav a:active {
-    color: #000; /* Black when clicking */
+    color: #2c2c2e; /* Black when clicking */
     text-decoration: none;
 }
 
@@ -181,7 +181,7 @@ h2.resume-name {
 .resume-section h2 {
   font-size: 1.5rem;
   margin: 1.5rem 0 1rem;
-  color: #000;
+  color: #2c2c2e;
   border-bottom: 2px solid #eee;
   padding-bottom: 0.5rem;
 }
@@ -202,7 +202,7 @@ h2.resume-name {
 
 .award-item strong {
   font-weight: 500;
-  color: #000;
+  color: #2c2c2e;
 }
 
 .award-details {
