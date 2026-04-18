@@ -418,31 +418,24 @@
                     </figcaption>
                 </figure>
 
-                <h3>4.1 Why OMPL as the front end</h3>
                 <p>
-                    <a href="https://ompl.kavrakilab.org/" target="_blank">OMPL</a> [1] gives us 26 planners for
-                    free (RRT, RRT-Connect, RRT*, PRM, PRM*, BIT*, ABIT*, AIT*, KPIECE, EST, SBL, and more), a
-                    well-factored C-space abstraction, goal regions, projections, and the
-                    <code class="language-cpp">ProjectedStateSpace</code> and
-                    <code class="language-cpp">AtlasStateSpace</code> machinery that is essential for manifold
-                    planning. Reimplementing any of this would be a year of work that adds no new capability.
-                </p>
-
-                <h3>4.2 Why VAMP as the backend</h3>
-                <p>
-                    OMPL was written before SIMD-aware collision checking was a standard tool. Its
+                    <a href="https://ompl.kavrakilab.org/" target="_blank">OMPL</a> [1] is the front end for
+                    the same reason nobody rewrites their own BLAS: 26 planners (RRT, RRT-Connect, RRT*, PRM,
+                    BIT*, AIT*, KPIECE, EST, SBL, ...), a well-factored C-space abstraction, goal regions,
+                    projections, and the <code class="language-cpp">ProjectedStateSpace</code> /
+                    <code class="language-cpp">AtlasStateSpace</code> machinery that manifold planning needs.
+                    What OMPL does not have is a SIMD-aware collision checker: its
                     <code class="language-cpp">StateValidityChecker</code> is called one state at a time, and
-                    under typical FCL/MoveIt plumbing a single check takes tens to hundreds of microseconds. For
-                    a 24-DoF robot, this single cost dominates everything else.
-                </p>
-                <p>
-                    <a href="https://github.com/KavrakiLab/vamp" target="_blank">VAMP</a> shrinks a single
-                    state-validity check to roughly 3 μs including Python-binding overhead, which is the number
-                    we measured on the Autolife stack. For batched checks (e.g., interpolated edges) we observe
-                    up to 8.5× speedups on all-valid workloads, because the cache behavior and SIMD utilization
-                    are both dramatically better. With that bottleneck removed, RRT-Connect returns a solution on
-                    a tabletop point-cloud scene in ~1.1 ms median across 7-, 14-, and 24-DoF configurations of
-                    Autolife.
+                    under typical FCL/MoveIt plumbing a single check runs tens to hundreds of microseconds,
+                    which dominates every other cost on a 24-DoF robot.
+                    <a href="https://github.com/KavrakiLab/vamp" target="_blank">VAMP</a> is what we plug in
+                    behind it: a single check drops to ~3 μs including the Python binding, batched checks hit
+                    8.5&times; on top of that, and with the bottleneck gone RRT-Connect returns whole-body
+                    paths in ~1.1 ms median across 7-, 14-, and 24-DoF configurations of Autolife. A thin
+                    bridge handles the practical glue &mdash; spherized URDF links so FK-then-collision stays
+                    vectorizable, direct point-cloud ingestion through VAMP's Collision-Affording Point Tree
+                    (no mesh-to-SDF round trip), and warm-start paths so the data-generation loop can
+                    amortize one hard query across many similar ones.
                 </p>
 
                 <div class="blog-callout">
@@ -452,16 +445,6 @@
                         algorithm.
                     </p>
                 </div>
-
-                <h3>4.3 Bridge: spherized geometry, CAPT pointclouds, and warm-start paths</h3>
-                <p>
-                    The front-end/backend bridge handles three practical issues: (i) each link is represented as
-                    a set of spheres so that FK-then-collision can be computed with vectorizable primitive
-                    tests; (ii) sensor point clouds are ingested directly through VAMP's Collision-Affording
-                    Point Tree, avoiding the mesh-to-SDF round trip that is usually the worst part of a ROS
-                    planning pipeline; (iii) the planner accepts warm-start paths so that the data-generation
-                    loop can amortize one hard query across many similar ones.
-                </p>
             </section>
 
             <!-- Section 5: Planning modes -->
@@ -814,137 +797,121 @@ path = planner.plan(start, goal, pointcloud=pc)
                 </figure>
                 </div>
 
-                <h3>5.4 Non-holonomic base: planning in a Reeds-Shepp subspace</h3>
+                <h3>5.4 Non-holonomic base: multi-level planning on a fiber bundle</h3>
                 <p>
-                    <strong>State space.</strong> We define the whole-body configuration as a compound space
+                    <strong>Why not just flatten base and arm into one vector.</strong> The obvious thing to
+                    try is a single RRT-Connect tree living in the product space
+                    \(SE(2) \times \mathbb{R}^{k}\) with a weighted compound metric and a per-component
+                    steering function (Reeds-Shepp on the base, linear on the arm). We implemented it, and
+                    for Fetch it is the wrong choice. With 8 arm DoFs against 3 base DoFs, nearest-neighbor
+                    lookup is dominated by the arm even after metric re-weighting, and uniform product
+                    sampling spends most of its budget wiggling the arm inside each \(SE(2)\) cell before
+                    the tree ever makes it across the room. The symptom is exactly the one the introduction
+                    warned about: <em>the arm waves while the base barely moves</em>.
+                </p>
+                <p>
+                    <strong>What we actually use: OMPL multilevel planning (fiber bundles).</strong> The
+                    Fetch stack decomposes the whole-body configuration into a two-level bundle
                 </p>
                 <div class="math-block" style="margin: 0.8rem 0;">
-                    $\mathcal{Q} = \underbrace{SE(2)}_{\text{base}} \;\times\; \underbrace{\mathbb{R}^{k}}_{\text{arm + torso}},
-                    \qquad q = (x, y, \theta,\, a_1, \ldots, a_k).$
+                    $\underbrace{SE(2)}_{\text{base level } \mathcal{B}_0}
+                    \;\hookrightarrow\;
+                    \underbrace{SE(2) \times \mathbb{R}^{k}}_{\text{total space } \mathcal{B}_1 = \mathcal{Q}}$
                 </div>
                 <p>
-                    The base subspace carries a Reeds-Shepp metric and steering function; the arm subspace
-                    carries a Euclidean metric and linear interpolation. The compound distance is a weighted
-                    sum,
+                    where the projection \(\pi : \mathcal{B}_1 \to \mathcal{B}_0\) drops the arm joints and
+                    the fiber \(\pi^{-1}(b)\) over each base pose \(b \in SE(2)\) is the
+                    \(k\)-dimensional arm joint space. Planning proceeds level by level:
+                    <strong>QRRT</strong> (Orthey &amp; Toussaint, bundle-space RRT) grows a tree on the
+                    base level \(SE(2)\) first, using Dubins (or Reeds-Shepp) steering and whole-body
+                    collision checks, then <em>lifts</em> base states into the total space by sampling
+                    arm configurations on the fiber. The upper-level tree inherits the lower-level
+                    base path as structure, so exploration spends its samples on the fiber (arm) rather
+                    than re-discovering base connectivity. OMPL calls this the
+                    <code class="language-cpp">XRN_X_SE2</code> projection; the two planners we expose are
+                    <code class="language-cpp">QRRT</code>/<code class="language-cpp">QRRT*</code> and
+                    <code class="language-cpp">QMP</code>/<code class="language-cpp">QMP*</code>.
                 </p>
-                <div class="math-block" style="margin: 0.8rem 0;">
-                    $d(q, q') = w_b\, d_{\mathrm{RS}}\!\left((x, y, \theta),\,(x', y', \theta')\right)
-                    + w_a \, \|a - a'\|_2.$
-                </div>
                 <p>
-                    <strong>Steering.</strong> To connect two compound states we compute a Reeds-Shepp curve
-                    on the base and a straight line on the arm, then re-parameterize both by a common
-                    arc-length so the two motions finish together:
+                    <strong>Base steering: Dubins by default, Reeds-Shepp on request.</strong> The base
+                    level uses <code class="language-cpp">DubinsStateSpace</code> by default: forward-only,
+                    6 curve families, asymmetric distance. Because Dubins curves structurally forbid
+                    reverse motion, no reverse-cost penalty is needed anywhere downstream: the planner
+                    simply cannot propose a back-up. Setting <code class="language-python">allow_reverse=True</code>
+                    swaps the base space for <code class="language-cpp">ReedsSheppStateSpace</code> with
+                    the shortest-of-48 curve families, for scenes that genuinely require reversing
+                    (tight re-orientations against a wall, etc.).
                 </p>
-<pre><code class="language-python">def steer(q1, q2, resolution):
-    # Reeds-Shepp on the base: shortest bounded-curvature path in SE(2)
-    base_path = reeds_shepp.shortest_path(q1.base, q2.base)
-    # Euclidean on the arm
-    arm_delta = q2.arm - q1.arm
+                <p>
+                    <strong>Lifting.</strong> Each base edge is a bounded-curvature Dubins/RS curve. When
+                    the upper level lifts a base vertex into the total space, it attaches arm
+                    configurations to samples along that curve; every interpolated \((x, y, \theta, a)\)
+                    on the lifted edge is handed to VAMP for whole-body collision checking. So the
+                    base motion the robot can actually execute is fixed by the lower level, and the upper
+                    level only decides how the arm is allowed to move along it.
+                </p>
+<pre><code class="language-python">planner = create_planner(
+    "fetch_whole_body",
+    config=PlannerConfig(planner_name="rrtc", time_limit=0.5),
+    pointcloud=cloud,
+)
+# Internally: Dubins base level  ->  Compound(Dubins + R^8) total space,
+# planned with QRRT (bundle-space RRT). Upper-level "rrtc" selects the
+# QRRT variant; "rrtstar" selects QRRT*.
+planner.set_base_bounds(-4.0, 4.0, -4.0, 4.0)
+path = planner.plan(start, goal)   # 11-DoF whole-body path</code></pre>
 
-    # Sample both at matched arc-length fractions s in [0, 1]
-    edge = []
-    for s in linspace(0.0, 1.0, ceil(base_path.length / resolution)):
-        base_s = base_path.interpolate(s)           # (x, y, theta)
-        arm_s  = q1.arm + s * arm_delta             # linear in joint space
-        edge.append(compound(base_s, arm_s))
-    return edge</code></pre>
-                <p>
-                    Every interpolated state is passed to VAMP for whole-body collision checking. The
-                    sampling-based algorithm (RRT-Connect, BIT*, ...) is untouched; only the per-component
-                    steering and metric carry the kinematic structure of the base.
-                </p>
-                <p>
-                    <strong>Are we really searching base and arm together, and how is it balanced?</strong>
-                    Yes: a single RRT tree lives in the full \(SE(2) \times \mathbb{R}^{k}\) space, and
-                    every node is a whole-body configuration. But naively concatenating base and arm into one
-                    \(\mathbb{R}^{3+k}\) vector with Euclidean distance gives the familiar bad behavior:
-                    <em>the arm waves while the base barely moves</em>. Three things break at once in that
-                    setup, and the compound space fixes one per issue:
-                </p>
+                <h4>Why multi-level, not flat compound</h4>
                 <ol>
                     <li>
-                        <strong>Metric.</strong> Euclidean distance on the flat vector treats 1 rad of joint
-                        motion the same as 1 m of base travel. With 7&ndash;14 arm DoFs against 3 base DoFs,
-                        nearest-neighbor lookup is dominated by the arm, so every extension is an
-                        arm-only extension.
-                        <br><em>Fix:</em> weighted compound metric
-                        \(d(q, q') = w_b\, d_{\mathrm{RS}}(\mathrm{base}) + w_a \|\mathrm{arm} - \mathrm{arm}'\|\),
-                        with \(w_b\) tuned so 1 m of base travel costs roughly one full-range arm
-                        reconfiguration.
+                        <strong>Sample budget goes to the right dimensions.</strong> On a flat
+                        \(SE(2) \times \mathbb{R}^{8}\) tree, nearly every extension perturbs the arm
+                        without moving the base. On the bundle, base connectivity is established on a
+                        3-dimensional lower level where samples are cheap and base-goal bias is effective;
+                        the arm is only explored once there is a base path to hang it on.
                     </li>
                     <li>
-                        <strong>Steering.</strong> Linear interpolation on \((x, y, \theta)\) produces edges
-                        the robot cannot execute; they require lateral base velocity a differential-drive
-                        base does not have.
-                        <br><em>Fix:</em> Reeds-Shepp steering on the base. Every edge is a shortest
-                        bounded-curvature path the base can actually drive, so infeasible &ldquo;slide
-                        sideways&rdquo; motions never enter the tree.
+                        <strong>Steering stays admissible.</strong> The Dubins/RS steering function is a
+                        <em>complete</em> local planner on \(SE(2)\) (Reeds &amp; Shepp, 1990;
+                        Laumond 1998): any two base poses are connected by a shortest bounded-curvature
+                        curve, with length continuous in the endpoints. Dropping it to the lower level
+                        means every base edge is something the differential-drive base can actually
+                        drive, and the upper level never has to reason about non-holonomic feasibility.
                     </li>
                     <li>
-                        <strong>Sampling.</strong> Uniform sampling in the concatenated vector spends most
-                        of its budget on the 7&ndash;14 dimensional arm slice of each \(SE(2)\) cell, so the
-                        base rarely gets explored.
-                        <br><em>Fix:</em> per-component sampling (uniform on bounded \(SE(2)\); uniform on
-                        joint limits), plus modest base-goal bias. Combined with the Reeds-Shepp metric,
-                        nearest-neighbor now prefers tree nodes whose <em>base</em> is close, and new
-                        extensions drive the base rather than re-animate the arm.
+                        <strong>Whole-body collision stays honest.</strong> Collision checks at both
+                        levels run on the <em>full</em> 11-DoF configuration, via VAMP. At the base level
+                        the arm is held at the current configuration (or a representative tuck); at the
+                        total-space level the arm is the lifted value. Nothing is ever checked against a
+                        disembodied footprint.
                     </li>
                 </ol>
-                <p>
-                    Each fix is a per-component choice, not a change to the algorithm. If you want an optimal
-                    path rather than just a feasible one, swap RRT-Connect for an AO planner (RRT*, BIT*)
-                    minimizing the same compound metric; completeness carries over and the solution
-                    converges to the optimum as the tree densifies.
-                </p>
 
-                <h4>Why this stays probabilistically complete</h4>
+                <h4>Probabilistic completeness on the bundle</h4>
                 <p>
-                    An RRT-style planner is probabilistically complete on \(\mathcal{C}_{\text{free}}\) when
-                    three conditions hold: (i) the sampler has positive density on every open set of
-                    \(\mathcal{C}_{\text{free}}\); (ii) the local steering function \(\sigma(q_a, q_b)\) is
-                    <em>admissible</em>: for every pair of configurations in the same path-connected
-                    component of \(\mathcal{C}_{\text{free}}\), \(\sigma\) produces a collision-free edge
-                    whenever \(q_a\) and \(q_b\) are within some \(\delta &gt; 0\); (iii) collision checks are
-                    exact on each edge. Our stack satisfies all three by construction:
-                </p>
-                <ul>
-                    <li>
-                        <strong>Sampling density.</strong> We sample \((x, y, \theta)\) uniformly over a
-                        bounded \(SE(2)\) region and the arm joints uniformly over their bounded joint
-                        limits. Every open ball in \(\mathcal{Q}_{\text{free}}\) has positive measure under
-                        this product distribution.
-                    </li>
-                    <li>
-                        <strong>Local-steering admissibility.</strong> Reeds-Shepp is a
-                        <em>complete</em> local planner on \(SE(2)\), a classical result
-                        (Reeds &amp; Shepp, 1990; Laumond 1998): any two \(SE(2)\) configurations are
-                        connected by a shortest path of bounded curvature, with length continuous in
-                        the endpoints. Euclidean interpolation is trivially complete on \(\mathbb{R}^k\).
-                        The compound steering is a product of two complete local planners, which is itself
-                        complete on \(\mathcal{Q}\) in the obstacle-free case. As the tree densifies, every
-                        \(\delta\)-neighbor pair becomes connectable, recovering the standard RRT-Connect
-                        completeness argument on the non-holonomic product space.
-                    </li>
-                    <li>
-                        <strong>Exact collision checks.</strong> The interpolation resolution is bounded by
-                        the swept-volume safety condition of the spherized URDF, and VAMP evaluates each
-                        interpolated state independently. No edge is accepted unless every sample on it
-                        passes.
-                    </li>
-                </ul>
-                <p>
-                    The important point is that the <em>algorithmic</em> completeness guarantee of RRT-Connect
-                    is preserved unchanged; we only swap in non-Euclidean components with their own
-                    complete local planners. A hierarchical base-then-arm decomposition, by contrast, is
-                    complete on the <em>base</em> subspace but not on the joint space: it can miss solutions
-                    that require coupled base-arm motion (&sect;&nbsp;3, REMANI discussion).
+                    QRRT is probabilistically complete on \(\mathcal{Q}_{\text{free}}\) under the usual
+                    bundle-space conditions (Orthey, Sucan &amp; Toussaint, 2018; Orthey &amp; Toussaint,
+                    2020): the projection \(\pi\) is continuous, both levels are sampled with positive
+                    density on open sets, and the per-level local planners are admissible. Our stack
+                    satisfies these by construction &mdash; Dubins/RS is a complete local planner on
+                    \(SE(2)\), Euclidean interpolation is complete on \(\mathbb{R}^{k}\), and VAMP
+                    performs exact discretized collision checks on each lifted edge.
                 </p>
                 <p>
-                    <strong>Holonomic fallback.</strong> For an omnidirectional base the same architecture
-                    degrades gracefully: we swap the Reeds-Shepp component for a standard \(SE(2)\)
-                    component with Euclidean metric and straight-line steering, and the rest of the stack is
-                    identical.
+                    This is not the same guarantee as a hierarchical base-then-arm decomposition like
+                    REMANI (&sect;&nbsp;3). A hierarchical planner commits to a base path and then asks
+                    whether an arm plan exists on top of it: if no feasible arm plan exists for that
+                    specific base path, the query is declared infeasible even when another base path
+                    would have worked. QRRT avoids this because the upper level can <em>backtrack</em>
+                    through the base tree: if lifting fails on one base vertex, the planner tries the
+                    next one, and the search is complete over the joint space, not just the base
+                    subspace.
+                </p>
+                <p>
+                    <strong>Holonomic fallback.</strong> For an omnidirectional base the same
+                    architecture degrades gracefully: we swap the Dubins/RS lower level for a standard
+                    \(SE(2)\) space with Euclidean metric and straight-line steering, and the bundle
+                    structure and QRRT planner above it are unchanged.
                 </p>
             </section>
 
@@ -966,9 +933,12 @@ path = planner.plan(start, goal, pointcloud=pc)
                         the speed of hand-written C. Adding a new task-space constraint is ~30 lines.
                     </li>
                     <li>
-                        <strong>Non-holonomic handling belongs in the state space, not the algorithm.</strong>
-                        Putting the Reeds-Shepp metric into an \(SE(2)\) component and keeping the arm Euclidean
-                        let us reuse the same RRT-Connect code for both robots.
+                        <strong>Non-holonomic handling belongs in the state-space hierarchy, not the algorithm.</strong>
+                        For Fetch, a flat RRT-Connect on \(SE(2) \times \mathbb{R}^{8}\) with a compound
+                        metric was the obvious first try, and it wastes its sample budget on the arm.
+                        Dropping to a two-level fiber bundle &mdash; Dubins on \(SE(2)\) at the lower level,
+                        arm as the fiber, QRRT across the two &mdash; recovered the whole-body coupling
+                        without any changes to the underlying algorithm.
                     </li>
                     <li>
                         <strong>Learned samplers remain valuable, but the value shifts.</strong> They used to
