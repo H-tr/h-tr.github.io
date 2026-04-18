@@ -84,6 +84,10 @@
                         node.parentElement.closest('.references-section')) {
                         return NodeFilter.FILTER_REJECT;
                     }
+                    // Skip code and pre elements so Python/array indexing like fk[2] isn't mistaken for a citation
+                    if (node.parentElement.closest('pre, code')) {
+                        return NodeFilter.FILTER_REJECT;
+                    }
                     // Only accept text nodes that contain citation patterns
                     if (/\[\d+(?:,\s*\d+)*\]/.test(node.textContent)) {
                         return NodeFilter.FILTER_ACCEPT;

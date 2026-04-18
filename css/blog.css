@@ -236,7 +236,7 @@ nav a:active {
 .blog-post-content code {
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   font-size: 0.85em;
-  background-color: rgba(175, 184, 193, 0.2);
+  background-color: rgba(130, 150, 170, 0.18);
   color: #24292f;
   padding: 0.2em 0.4em;
   border-radius: 6px;
@@ -781,15 +781,14 @@ nav a:active {
   padding-bottom: 56.25%;
   /* 16:9 */
   background: #111;
-  border-radius: 16px;
+  border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  transition: all 0.3s ease;
+  border: 1px solid #ece8d4;
+  transition: border-color 0.25s ease;
 }
 
 .video-embed:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+  border-color: #d9d2b8;
 }
 
 .video-embed iframe {
@@ -1058,7 +1057,7 @@ nav a:active {
   max-width: 100%;
   height: auto;
   border-radius: 6px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #ece8d4;
 }
 
 .blog-figure figcaption {
@@ -1103,5 +1102,400 @@ nav a:active {
   .blog-table thead th,
   .blog-table tbody td {
     padding: 0.5rem 0.6rem;
+  }
+}
+
+/* ============================================
+   BLOG POST VIDEO CORNER RADIUS
+   Match video corner radius to the image style used elsewhere on the blog
+   ============================================ */
+
+.blog-post-content .video-embed {
+  border-radius: 6px;
+}
+
+.blog-post-content .blog-figure video {
+  border-radius: 6px;
+}
+
+/* ============================================
+   LITERATURE REVIEW PRO/CON HIGHLIGHTS
+   ============================================ */
+
+.lit-pro,
+.lit-con {
+  padding: 0.08em 0.32em;
+  border-radius: 3px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.lit-pro {
+  background-color: rgba(120, 170, 100, 0.18);
+}
+
+.lit-con {
+  background-color: rgba(200, 120, 120, 0.18);
+}
+
+/* ============================================
+   ARCHITECTURE PIPELINE FIGURE
+   ============================================ */
+
+.arch-figure {
+  margin: 1.75rem auto 2.25rem;
+  max-width: 720px;
+}
+
+.arch-svg {
+  width: 100%;
+  height: auto;
+  font-family: et-book, Palatino, "Palatino Linotype", Georgia, serif;
+}
+
+.arch-svg .arch-title {
+  font-size: 17px;
+  font-weight: 500;
+  font-style: italic;
+  fill: #2c3e50;
+}
+
+.arch-svg .arch-sub-label {
+  font-size: 11px;
+  fill: #9a9486;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+
+.arch-svg .arch-sub {
+  font-size: 12.5px;
+  fill: #555;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+}
+
+.arch-svg .arch-bridge-label {
+  font-size: 13px;
+  font-style: italic;
+  fill: #2c3e50;
+  text-anchor: middle;
+  font-weight: 500;
+}
+
+.arch-svg .arch-bridge-sub {
+  font-size: 11px;
+  fill: #888;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  text-anchor: middle;
+}
+
+.arch-svg .arch-io-label {
+  font-size: 11.5px;
+  fill: #9a9486;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-anchor: middle;
+}
+
+.arch-svg .arch-item-accent {
+  font-size: 14px;
+  fill: #4682B4;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-weight: 600;
+  text-anchor: middle;
+}
+
+.arch-svg .arch-flow-label {
+  font-size: 11px;
+  fill: #888;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-style: italic;
+}
+
+/* ============================================
+   MANIFOLD / COST CASE LAYOUT
+   Each case is a centered column. A compact video sits at the top,
+   then a caption, then the equation, then the code — all sharing the
+   same width so the presentation reads as one balanced unit.
+   ============================================ */
+
+.manifold-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 3rem;
+  row-gap: 3rem;
+  margin: 2.5rem 0;
+}
+
+.manifold-case {
+  margin: 0;
+  min-width: 0;
+  position: relative;
+}
+
+/* Horizontal divider above each case (between rows) */
+.manifold-case::before {
+  content: "";
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: -1.5rem;
+  height: 1px;
+  background: linear-gradient(to right, transparent, #d9d2b8 30%, #d9d2b8 70%, transparent);
+  pointer-events: none;
+}
+
+/* Suppress the divider on the first row */
+.manifold-grid > .manifold-case:nth-child(-n+2)::before {
+  display: none;
+}
+
+/* Vertical divider between the two columns */
+.manifold-case:nth-child(odd):not(:last-child)::after {
+  content: "";
+  position: absolute;
+  right: -1.5rem;
+  top: 8%;
+  bottom: 8%;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, #e5dfc4 25%, #e5dfc4 75%, transparent);
+  pointer-events: none;
+}
+
+@media (max-width: 720px) {
+  .manifold-grid {
+    grid-template-columns: 1fr;
+    row-gap: 2.5rem;
+  }
+  .manifold-case:nth-child(odd):not(:last-child)::after {
+    display: none;
+  }
+  /* On single column, every case except the very first shows a top divider */
+  .manifold-grid > .manifold-case:nth-child(-n+2)::before {
+    display: block;
+  }
+  .manifold-grid > .manifold-case:first-child::before {
+    display: none;
+  }
+}
+
+.manifold-case__video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #111;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #ece8d4;
+}
+
+.manifold-case__video video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.manifold-case__caption {
+  font-size: 0.88rem;
+  color: #666;
+  font-style: italic;
+  text-align: center;
+  margin: 0.75rem 0 1.25rem;
+  line-height: 1.55;
+}
+
+.manifold-case__compare {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.manifold-case__label {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: #9a9486;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  margin-bottom: 0.3rem;
+}
+
+.manifold-case__compare .math-block {
+  margin: 0;
+  padding: 0.35rem 0;
+  text-align: center;
+  overflow-x: auto;
+  font-size: 0.88em;
+}
+
+.manifold-case__compare .math-block .katex {
+  font-size: 0.95em;
+}
+
+.manifold-case__compare pre {
+  margin: 0;
+}
+
+/* Compact, light code blocks inside the gallery tiles */
+.manifold-case__compare div.code-toolbar {
+  margin: 0;
+  border: 1px solid #ece8d4;
+  border-radius: 6px;
+  background: transparent;
+}
+
+.manifold-case__compare div.code-toolbar > pre,
+.manifold-case__compare pre[class*="language-"] {
+  padding: 0.55rem 0.8rem;
+  background: transparent;
+}
+
+.manifold-case__compare pre[class*="language-"],
+.manifold-case__compare code[class*="language-"] {
+  font-size: 0.78em;
+  line-height: 1.35;
+  color: #2c3e50;
+  text-shadow: none;
+}
+
+/* Re-tint syntax tokens for the light background */
+.manifold-case__compare .token.comment,
+.manifold-case__compare .token.prolog,
+.manifold-case__compare .token.doctype,
+.manifold-case__compare .token.cdata {
+  color: #9a9486;
+}
+
+.manifold-case__compare .token.punctuation,
+.manifold-case__compare .token.operator {
+  color: #6b7685;
+}
+
+.manifold-case__compare .token.keyword,
+.manifold-case__compare .token.boolean,
+.manifold-case__compare .token.constant,
+.manifold-case__compare .token.builtin {
+  color: #8a5a3b;
+}
+
+.manifold-case__compare .token.string,
+.manifold-case__compare .token.char,
+.manifold-case__compare .token.attr-value {
+  color: #5f7a3d;
+}
+
+.manifold-case__compare .token.number {
+  color: #a36d2a;
+}
+
+.manifold-case__compare .token.function,
+.manifold-case__compare .token.class-name {
+  color: #355a7a;
+}
+
+.manifold-case__compare .token.property,
+.manifold-case__compare .token.variable,
+.manifold-case__compare .token.parameter {
+  color: #2c3e50;
+}
+
+/* Smaller, lighter copy button for gallery code blocks */
+.manifold-case__compare div.code-toolbar > .toolbar {
+  top: 0.3rem;
+  right: 0.3rem;
+}
+
+.manifold-case__compare div.code-toolbar > .toolbar button {
+  font-size: 0.7em;
+  padding: 0.2rem 0.35rem;
+  background: rgba(255, 255, 255, 0.6);
+  color: #6b7685;
+  border: 1px solid #ece8d4;
+  box-shadow: none;
+  border-radius: 4px;
+  backdrop-filter: none;
+}
+
+.manifold-case__compare div.code-toolbar > .toolbar button:hover,
+.manifold-case__compare div.code-toolbar > .toolbar button:focus {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: #d9d2b8;
+  color: #2c3e50;
+  transform: none;
+  box-shadow: none;
+}
+
+.manifold-case__compare div.code-toolbar > .toolbar button.copy-success {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: #d9d2b8;
+}
+
+.manifold-case__compare div.code-toolbar > .toolbar button.copy-success:before {
+  color: #5f7a3d;
+}
+
+/* ============================================
+   Method comparison figure — reuses .bar-chart
+   ============================================ */
+
+.compare-figure {
+  margin: 2rem 0 1.5rem;
+}
+
+.compare-chart .bar-label {
+  width: 200px;
+  line-height: 1.3;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.compare-chart .bar-sub {
+  display: block;
+  font-weight: 400;
+  font-size: 0.72rem;
+  font-style: italic;
+  color: #9a9486;
+  margin-top: 0.15rem;
+}
+
+.hw-badge {
+  display: inline-block;
+  flex-shrink: 0;
+  margin-left: 0.6rem;
+  padding: 0.15rem 0.5rem;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  line-height: 1.4;
+}
+
+.hw-badge--cpu {
+  color: #2c3e50;
+  background: rgba(44, 62, 80, 0.08);
+  border-color: rgba(44, 62, 80, 0.25);
+}
+
+.hw-badge--gpu {
+  color: #7f8c8d;
+  background: rgba(127, 140, 141, 0.12);
+  border-color: rgba(127, 140, 141, 0.3);
+}
+
+@media (max-width: 720px) {
+  .compare-chart .bar-label {
+    width: 130px;
+    font-size: 0.78rem;
+  }
+  .compare-chart .bar-sub {
+    font-size: 0.65rem;
+  }
+  .hw-badge {
+    font-size: 0.6rem;
+    padding: 0.1rem 0.4rem;
+    margin-left: 0.35rem;
   }
 }

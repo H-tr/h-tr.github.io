@@ -9,7 +9,6 @@
 
   // Theme and base scripts
   const baseScripts = [
-    { type: 'css', path: `${PRISM_CDN}/themes/prism-solarizedlight.min.css` },
     { type: 'css', path: `${PRISM_CDN}/plugins/toolbar/prism-toolbar.min.css` },
     { type: 'css', path: '/css/prism-custom.css' },
     { type: 'js', path: `${PRISM_CDN}/prism.min.js` }

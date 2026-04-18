@@ -1,0 +1,1071 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>How to Plan Whole-Body Motion in ~1 ms</title>
+
+    <!-- Fonts -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+
+    <!-- Prism.js initialization -->
+    <script src="/js/prism-init.js"></script>
+
+    <!-- KaTeX Math Support -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css" rel="stylesheet" />
+
+    <!-- Site Assets -->
+    <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg" />
+    <link href="/css/blog.css" rel="stylesheet" />
+    <link href="/css/references.css" rel="stylesheet" />
+
+    <!-- KaTeX Scripts -->
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"></script>
+</head>
+
+<body>
+    <div class="blog-post">
+        <a href="../" class="back-button">
+            <i class="fas fa-arrow-left"></i>Back to Blog
+        </a>
+
+        <header class="blog-post-header">
+            <h1 class="blog-post-title">
+                How to Plan Whole-Body Motion in ~1 ms
+            </h1>
+            <div class="blog-post-date">April 17, 2026</div>
+        </header>
+
+        <article class="blog-post-content">
+
+            <figure class="blog-figure" style="margin-left: 0; margin-right: 0;">
+                <video controls muted playsinline preload="metadata"
+                    style="width: 100%; max-width: 100%; border-radius: 6px; display: block;">
+                    <source src="https://h-tr.github.io/Autolife-Planning/assets/rls_pick_place.mp4"
+                        type="video/mp4">
+                    Your browser does not support embedded video. See the
+                    <a href="https://h-tr.github.io/Autolife-Planning/" target="_blank">Autolife-Planning docs</a>.
+                </video>
+                <figcaption>
+                    Autolife (24 DoF) performing a pick-and-place under whole-body planning (5&times; preview).
+                    Full documentation and benchmarks on the
+                    <a href="https://h-tr.github.io/Autolife-Planning/" target="_blank">Autolife-Planning docs</a>.
+                </figcaption>
+            </figure>
+
+            <!-- Introduction -->
+            <section class="blog-section">
+                <p>
+                    A mobile manipulator is expected to cross a room, squeeze through a doorway, reach over a
+                    countertop, and place a cup on a shelf, all as a single coordinated motion. The planner
+                    that feeds this behavior has to reason about the base, the torso, and the arm
+                    <em>simultaneously</em>. Any navigate-then-reach decomposition leaks workspace, and
+                    whole-body data is what modern learned policies (VLAs, diffusion policies, world models)
+                    need to train on at scale.
+                </p>
+                <p>
+                    The problem is structurally hard for two reasons. A modest platform like Fetch already
+                    lives in \(\mathbb{R}^{11}\); a bimanual platform like
+                    <a href="https://github.com/H-tr/Autolife-Planning" target="_blank">Autolife</a> reaches
+                    24 DoF with head and torso, and in that regime sampling-based planners are dominated by
+                    collision-check cost. On top of the dimensionality, the subspaces are
+                    <em>heterogeneous</em>: the arm is a holonomic Euclidean space, but a non-holonomic base
+                    cannot slide sideways, and its local metric is Reeds-Shepp or Dubins rather than
+                    Euclidean. Dropping the two into a single RRT without accounting for this gives edges
+                    that are kinematically valid but dynamically infeasible, and a distance metric under which
+                    arm motion looks "free" relative to base motion (the planner waves the arm instead of
+                    driving).
+                </p>
+                <p>
+                    Despite the problem's importance, the community has not converged on a single answer.
+                    This post is a set of engineering notes from our exploration: the existing approaches,
+                    where the bottleneck actually sits, and the architecture we settled on: OMPL [1]
+                    as the front end, VAMP [2] as a vectorized FK and collision backend, with extensions for
+                    subgroup, manifold, cost-space, and non-holonomic planning. The same stack runs on
+                    <a href="https://github.com/H-tr/Autolife-Planning" target="_blank"><strong>Autolife
+                    (24 DoF)</strong></a> and <strong>Fetch (11 DoF)</strong> at millisecond-level query
+                    times that, to our knowledge, are faster than any other whole-body planner in the
+                    literature.
+                </p>
+            </section>
+
+            <!-- Results up front -->
+            <section class="blog-section">
+                <h2>What we measure</h2>
+                <p>
+                    All numbers below are single-search wall-clock times with path simplification and
+                    interpolation disabled, on a consumer CPU (no GPU). 20 runs per cell, tabletop point-cloud
+                    scene. Collision checking is VAMP with a spherized URDF; non-holonomic base uses
+                    Reeds-Shepp steering.
+                </p>
+
+                <table class="blog-table" style="margin: 1.5rem auto; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th style="padding: 0.5rem 1rem; border-bottom: 1px solid #aaa; text-align:left;">Configuration</th>
+                            <th style="padding: 0.5rem 1rem; border-bottom: 1px solid #aaa; text-align:left;">DoF</th>
+                            <th style="padding: 0.5rem 1rem; border-bottom: 1px solid #aaa; text-align:left;">RRT-Connect median</th>
+                            <th style="padding: 0.5rem 1rem; border-bottom: 1px solid #aaa; text-align:left;">P95</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding: 0.4rem 1rem;">Autolife left arm</td>
+                            <td style="padding: 0.4rem 1rem;">7</td>
+                            <td style="padding: 0.4rem 1rem;">1.1 ms</td>
+                            <td style="padding: 0.4rem 1rem;">1.1 ms</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 0.4rem 1rem;">Autolife dual arm</td>
+                            <td style="padding: 0.4rem 1rem;">14</td>
+                            <td style="padding: 0.4rem 1rem;">1.1 ms</td>
+                            <td style="padding: 0.4rem 1rem;">1.2 ms</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 0.4rem 1rem;">Autolife full body</td>
+                            <td style="padding: 0.4rem 1rem;">24</td>
+                            <td style="padding: 0.4rem 1rem;">1.1 ms</td>
+                            <td style="padding: 0.4rem 1rem;">1.1 ms</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 0.4rem 1rem;">Fetch whole body</td>
+                            <td style="padding: 0.4rem 1rem;">11</td>
+                            <td style="padding: 0.4rem 1rem;">2.1 ms</td>
+                            <td style="padding: 0.4rem 1rem;">&mdash;</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>
+                    The surprise is that a 24-DoF whole-body query is not noticeably slower than a 7-DoF arm
+                    query, because collision checking (not dimension) is what the wall-clock time was really
+                    measuring. Per-check cost sits at about 3.2&nbsp;&mu;s including the Python boundary, which
+                    yields ~0.31 million checks per second, and batched checks reach 8.5&times; on all-valid
+                    workloads.
+                </p>
+
+                <figure class="blog-figure compare-figure">
+                    <div class="blog-callout">
+                        <p>
+                            <strong>Read as an order-of-magnitude comparison, not a head-to-head benchmark.</strong>
+                            We did not reproduce any of the methods below, and we did not run them on the
+                            same queries we ran ourselves. Each bar for other methods is the number that
+                            paper itself reports on <em>its own</em> scenes, robots, and hardware. We only
+                            care about significant-figure differences, and the hardware each approach
+                            requires at inference time.
+                        </p>
+                    </div>
+
+                    <div class="bar-chart compare-chart">
+                        <!-- Ours: 1.1 / 300 ≈ 0.37%; bump to a visible sliver via min-width -->
+                        <div class="bar-row">
+                            <div class="bar-label">Ours<br><span class="bar-sub">Autolife 24 DoF · RRT-Connect + VAMP</span></div>
+                            <div class="bar-track">
+                                <div class="bar-fill bar-fill-primary" style="width: 0.37%; min-width: 12px;"></div>
+                            </div>
+                            <div class="bar-value">1.1 ms</div>
+                            <span class="hw-badge hw-badge--cpu">CPU</span>
+                        </div>
+
+                        <div class="bar-row">
+                            <div class="bar-label">REMANI<br><span class="bar-sub">hierarchical search + opt.</span></div>
+                            <div class="bar-track">
+                                <div class="bar-fill bar-fill-muted" style="width: 10%;"></div>
+                            </div>
+                            <div class="bar-value">~30 ms</div>
+                            <span class="hw-badge hw-badge--cpu">CPU</span>
+                        </div>
+
+                        <div class="bar-row">
+                            <div class="bar-label">cuRobo<br><span class="bar-sub">batched traj. optimization</span></div>
+                            <div class="bar-track">
+                                <div class="bar-fill bar-fill-muted" style="width: 17.7%;"></div>
+                            </div>
+                            <div class="bar-value">~53 ms</div>
+                            <span class="hw-badge hw-badge--gpu">GPU</span>
+                        </div>
+
+                        <div class="bar-row">
+                            <div class="bar-label">NRP<br><span class="bar-sub">neural sampler + SBMP</span></div>
+                            <div class="bar-track">
+                                <div class="bar-fill bar-fill-muted" style="width: 100%;"></div>
+                            </div>
+                            <div class="bar-value">~300 ms</div>
+                            <span class="hw-badge hw-badge--gpu">GPU</span>
+                        </div>
+                    </div>
+
+                    <figcaption>
+                        Our bar is the measured <em>1.1&nbsp;ms</em> median on Autolife 24&nbsp;DoF with a
+                        tabletop point-cloud scene. Other bars are approximate numbers from each paper's own
+                        reports: REMANI [7] on the order of tens of milliseconds, cuRobo [6] ~53&nbsp;ms on
+                        a workstation GPU, NRP [4] in the hundreds of milliseconds. Hardware badges on the
+                        right show what each method runs at inference time. Different scenes, different
+                        robots, different metrics &mdash; an order-of-magnitude sketch, not a benchmark.
+                    </figcaption>
+                </figure>
+
+                <p>
+                    Two things we want to point out with this chart. First, once collision checking is
+                    vectorized, a classical CPU-only sampling-based planner sits roughly one to two orders of
+                    magnitude below GPU-optimization and learned-sampler pipelines on the problems those
+                    papers report &mdash; the significant figures line up with the rest of this post's
+                    argument. Second, the hardware column matters for deployment: mobile manipulators often
+                    do not ship with a discrete GPU, so a planner that needs one is a constraint on the whole
+                    platform.
+                </p>
+            </section>
+
+            <!-- Section 3: Related work -->
+            <section class="blog-section">
+                <h2>How the community has attacked it</h2>
+                <p>
+                    <strong>The textbook answer: concatenate all DoFs into one vector and run a classical
+                    sampling-based planner.</strong> RRT, RRT-Connect, PRM, or BIT* on the product space [3].
+                    <span class="lit-pro">For a <em>holonomic</em> robot this is actually tractable,</span>
+                    but <span class="lit-con">without careful engineering it is slow, and the bottleneck is
+                    almost always collision checking</span> rather than sampling or nearest-neighbor search.
+                    For a <em>non-holonomic</em> base the story is worse: the base and the arm live under
+                    different metrics and steering functions, so a uniform sampler and an
+                    \(SE(2) \times \mathbb{R}^{n}\)-style Euclidean distance are both inappropriate, and
+                    <span class="lit-con">the planner produces long, oscillatory, non-optimal
+                    trajectories.</span>
+                </p>
+                <p>
+                    <strong>Learned samplers: keep the sampling-based skeleton, replace the uniform sampler
+                    with a neural one.</strong>
+                    <a href="https://arxiv.org/abs/2405.11317" target="_blank"><strong>Neural Randomized
+                    Planner (NRP)</strong></a> [4] by
+                    <a href="https://lyfkyle.github.io/" target="_blank">Yunfan Lu</a>,
+                    <a href="https://www.comp.nus.edu.sg/~dyhsu/" target="_blank">David Hsu</a>,
+                    <a href="https://cindycia.github.io/" target="_blank">Panpan Cai</a> and colleagues
+                    pioneered this for whole-body mobile manipulation: a local neural sampler proposes
+                    promising configurations, and the global sampling-based planner stitches these local
+                    distributions together by exploiting geometric similarity between neighborhoods.
+                    <span class="lit-pro">It transfers zero-shot to a real robot in novel household scenes, a
+                    genuinely strong result.</span> Xu, Wong,
+                    <a href="https://ecefeigao.wordpress.com/" target="_blank">Fei Gao</a> and colleagues at
+                    the <a href="http://zju-fast.com/" target="_blank">ZJU FAST Lab</a> pushed this further
+                    with a <a href="https://arxiv.org/abs/2604.04166" target="_blank"><em>primitive-based
+                    truncated diffusion</em> trajectory generator</a> [5] for differential-drive mobile
+                    manipulators, using the diffusion posterior as a distribution-aware sampler.
+                    <span class="lit-con">The catch for both is that the learned component is tied to a
+                    specific embodiment and environment distribution, so retargeting to a new robot
+                    requires new data and new training,</span> and
+                    <span class="lit-con">the speed gain at inference does not push below the
+                    collision-check-dominated floor of a well-engineered classical planner.</span> It also
+                    depends on how representative the training data is, a familiar failure mode when
+                    the deployment scene drifts from the training distribution.
+                </p>
+                <p>
+                    <strong>Trajectory optimization: give up sampling, cast planning as batched GPU
+                    optimization.</strong> NVIDIA's
+                    <a href="https://curobo.org/" target="_blank">cuRobo</a> [6] solves many-seed trajectory
+                    optimization with gradient descent, L-BFGS and MPPI on GPU, and
+                    <span class="lit-pro">reports 53 ms average planning times on a workstation: excellent
+                    for short-horizon, locally-smooth problems and a strong baseline for arm
+                    planning.</span> The limitation we care about here is long-horizon, room-scale whole-body
+                    queries:
+                    <span class="lit-con">MPPI-style samplers need reasonable initializations, and warm-started
+                    optimization does not recover well from deep local minima in cluttered environments;</span>
+                    and <span class="lit-con">the GPU requirement is a deployment constraint we often cannot
+                    accept on mobile platforms.</span>
+                </p>
+                <p>
+                    <strong>Hierarchical decomposition: split the problem. Plan the base in 2D, then plan
+                    the arm in 7D.</strong>
+                    <a href="https://robotics-star.com/REMANI-Planner/" target="_blank">REMANI</a> [7], by Wu,
+                    <a href="https://ecefeigao.wordpress.com/" target="_blank">Fei Gao</a>,
+                    <a href="https://boyuzhou.net/" target="_blank">Boyu Zhou</a> and colleagues, is a strong
+                    representative: an environment-adaptive search over the base plus spatial-temporal
+                    optimization over the arm,
+                    <span class="lit-pro">capable of generating high-quality trajectories in real time.</span>
+                    What we lose is
+                    <span class="lit-con">probabilistic completeness in the joint configuration space.</span>
+                    The decomposition implicitly assumes there exists a base path such that the arm can,
+                    afterwards, plan for the required end-effector trajectory. When that assumption breaks
+                    (narrow passages requiring simultaneous arm retraction and base rotation, or
+                    reachability-constrained grasps where the base has to tuck in a particular way),
+                    <span class="lit-con">a hierarchical planner can report infeasibility for problems that
+                    are in fact feasible in the joint space.</span>
+                </p>
+                <p>
+                    <strong>VAMP: the most important recent change is not an algorithm but a data
+                    structure. Rewrite FK and collision checking for SIMD.</strong>
+                    <a href="https://arxiv.org/abs/2309.14545" target="_blank"><strong>VAMP</strong></a> [2]
+                    (Vectorized Sampling-Based Motion Planning) by
+                    <a href="https://wbthomason.com/" target="_blank">Wil Thomason</a>, Zachary Kingston and
+                    <a href="https://www.cs.rice.edu/~kavraki/" target="_blank">Lydia Kavraki</a> rewrote
+                    forward kinematics and collision checking around a struct-of-arrays layout that maps
+                    cleanly onto SIMD lanes, and
+                    <span class="lit-pro">pushed motion planning for a Panda arm from milliseconds into the
+                    tens of microseconds on a single CPU core.</span> Their Collision-Affording Point Tree
+                    <span class="lit-pro">answers point-cloud collision queries in under 10 ns on
+                    average.</span> This is the development that changes the design space. Once collision
+                    checking is no longer the bottleneck,
+                    <span class="lit-pro">a classical sampling-based planner on the full configuration space
+                    can match or beat learned and GPU-optimization approaches, while keeping
+                    probabilistic-completeness and generality.</span> The question becomes an engineering one:
+                    how do you wire an OMPL-style planner front end to a VAMP-style backend, and how do you
+                    extend the combination to handle subgroups, constraint manifolds, and non-holonomic base
+                    motion?
+                </p>
+            </section>
+
+            <!-- Section 4: Our architecture -->
+            <section class="blog-section">
+                <h2>Our architecture: OMPL front end × VAMP backend</h2>
+                <p>
+                    The design decision that underlies the rest of this post is: <strong>keep the classical,
+                    general, probabilistically-complete sampling-based skeleton, and put the engineering effort
+                    into making its bottlenecks disappear.</strong>
+                </p>
+
+                <figure class="blog-figure arch-figure">
+                    <svg class="arch-svg" viewBox="0 0 760 340"
+                        xmlns="http://www.w3.org/2000/svg" role="img"
+                        aria-label="Architecture: OMPL front end on the left, VAMP backend on the right, exchanging query and validity through a thin bridge">
+                        <defs>
+                            <marker id="arch-arrow" viewBox="0 0 10 10" refX="9" refY="5"
+                                markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                                <path d="M0,0 L10,5 L0,10 z" fill="#4682B4" />
+                            </marker>
+                            <marker id="arch-arrow-dark" viewBox="0 0 10 10" refX="9" refY="5"
+                                markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                                <path d="M0,0 L10,5 L0,10 z" fill="#2c3e50" />
+                            </marker>
+                        </defs>
+
+                        <!-- Input label (top-left, feeds OMPL) -->
+                        <text x="160" y="32" class="arch-io-label">
+                            start · goal · F(q) · c(q)
+                        </text>
+                        <line x1="160" y1="44" x2="160" y2="78"
+                            stroke="#4682B4" stroke-width="1.8"
+                            marker-end="url(#arch-arrow)" />
+
+                        <!-- Point cloud input (top-right, feeds VAMP) -->
+                        <text x="600" y="32" class="arch-io-label">
+                            point cloud
+                        </text>
+                        <line x1="600" y1="44" x2="600" y2="78"
+                            stroke="#4682B4" stroke-width="1.8"
+                            marker-end="url(#arch-arrow)" />
+
+                        <!-- OMPL front end (left) -->
+                        <g>
+                            <rect x="40" y="80" width="240" height="180" rx="6"
+                                fill="#fffff8" stroke="#2c3e50" stroke-width="1.5" />
+                            <text x="60" y="108" class="arch-title">Front end</text>
+                            <text x="60" y="130" class="arch-sub-label">OMPL</text>
+                            <line x1="60" y1="142" x2="260" y2="142"
+                                stroke="#ece8d4" stroke-width="1" />
+                            <text x="60" y="165" class="arch-sub">RRT-Connect · BIT*</text>
+                            <text x="60" y="187" class="arch-sub">PRM · AIT*</text>
+                            <text x="60" y="215" class="arch-sub">CompoundStateSpace</text>
+                            <text x="60" y="237" class="arch-sub">ProjectedStateSpace</text>
+                        </g>
+
+                        <!-- VAMP backend (right) -->
+                        <g>
+                            <rect x="480" y="80" width="240" height="180" rx="6"
+                                fill="#fffff8" stroke="#2c3e50" stroke-width="1.5" />
+                            <text x="500" y="108" class="arch-title">Backend</text>
+                            <text x="500" y="130" class="arch-sub-label">VAMP</text>
+                            <line x1="500" y1="142" x2="700" y2="142"
+                                stroke="#ece8d4" stroke-width="1" />
+                            <text x="500" y="165" class="arch-sub">SIMD forward kinematics</text>
+                            <text x="500" y="187" class="arch-sub">vectorized collision</text>
+                            <text x="500" y="215" class="arch-sub">CAPT point-cloud</text>
+                            <text x="500" y="237" class="arch-sub">(&lt; 10 ns / query)</text>
+                        </g>
+
+                        <!-- Bridge label (between boxes) -->
+                        <text x="380" y="112" class="arch-bridge-label">Bridge</text>
+                        <text x="380" y="128" class="arch-bridge-sub">spherized URDF</text>
+                        <text x="380" y="144" class="arch-bridge-sub">CasADi code-gen</text>
+
+                        <!-- Arrows between front end and backend -->
+                        <g>
+                            <!-- OMPL -> VAMP: q -->
+                            <line x1="280" y1="175" x2="478" y2="175"
+                                stroke="#2c3e50" stroke-width="1.4"
+                                marker-end="url(#arch-arrow-dark)" />
+                            <text x="380" y="170" class="arch-flow-label" text-anchor="middle">q</text>
+
+                            <!-- VAMP -> OMPL: valid? -->
+                            <line x1="480" y1="215" x2="282" y2="215"
+                                stroke="#2c3e50" stroke-width="1.4"
+                                marker-end="url(#arch-arrow-dark)" />
+                            <text x="380" y="232" class="arch-flow-label" text-anchor="middle">valid?</text>
+                        </g>
+
+                        <!-- Output arrow (bottom-left, from OMPL) -->
+                        <line x1="160" y1="262" x2="160" y2="298"
+                            stroke="#4682B4" stroke-width="1.8"
+                            marker-end="url(#arch-arrow)" />
+                        <text x="160" y="320" class="arch-item-accent">whole-body path  ·  ~ 1 ms</text>
+                    </svg>
+                    <figcaption>
+                        A thin bridge (spherized URDF, CasADi code-gen for residuals and costs) lets the OMPL
+                        front end delegate every state-validity query to VAMP's vectorized backend. The planner
+                        proposes a configuration \(q\); VAMP answers <em>valid?</em> in microseconds.
+                    </figcaption>
+                </figure>
+
+                <h3>4.1 Why OMPL as the front end</h3>
+                <p>
+                    <a href="https://ompl.kavrakilab.org/" target="_blank">OMPL</a> [1] gives us 26 planners for
+                    free (RRT, RRT-Connect, RRT*, PRM, PRM*, BIT*, ABIT*, AIT*, KPIECE, EST, SBL, and more), a
+                    well-factored C-space abstraction, goal regions, projections, and the
+                    <code class="language-cpp">ProjectedStateSpace</code> and
+                    <code class="language-cpp">AtlasStateSpace</code> machinery that is essential for manifold
+                    planning. Reimplementing any of this would be a year of work that adds no new capability.
+                </p>
+
+                <h3>4.2 Why VAMP as the backend</h3>
+                <p>
+                    OMPL was written before SIMD-aware collision checking was a standard tool. Its
+                    <code class="language-cpp">StateValidityChecker</code> is called one state at a time, and
+                    under typical FCL/MoveIt plumbing a single check takes tens to hundreds of microseconds. For
+                    a 24-DoF robot, this single cost dominates everything else.
+                </p>
+                <p>
+                    <a href="https://github.com/KavrakiLab/vamp" target="_blank">VAMP</a> shrinks a single
+                    state-validity check to roughly 3 μs including Python-binding overhead, which is the number
+                    we measured on the Autolife stack. For batched checks (e.g., interpolated edges) we observe
+                    up to 8.5× speedups on all-valid workloads, because the cache behavior and SIMD utilization
+                    are both dramatically better. With that bottleneck removed, RRT-Connect returns a solution on
+                    a tabletop point-cloud scene in ~1.1 ms median across 7-, 14-, and 24-DoF configurations of
+                    Autolife.
+                </p>
+
+                <div class="blog-callout">
+                    <p>
+                        <strong>Engineering takeaway.</strong> Most whole-body planning papers compare algorithms
+                        at a fixed backend. Switching the backend is a far larger lever than switching the
+                        algorithm.
+                    </p>
+                </div>
+
+                <h3>4.3 Bridge: spherized geometry, CAPT pointclouds, and warm-start paths</h3>
+                <p>
+                    The front-end/backend bridge handles three practical issues: (i) each link is represented as
+                    a set of spheres so that FK-then-collision can be computed with vectorizable primitive
+                    tests; (ii) sensor point clouds are ingested directly through VAMP's Collision-Affording
+                    Point Tree, avoiding the mesh-to-SDF round trip that is usually the worst part of a ROS
+                    planning pipeline; (iii) the planner accepts warm-start paths so that the data-generation
+                    loop can amortize one hard query across many similar ones.
+                </p>
+            </section>
+
+            <!-- Section 5: Planning modes -->
+            <section class="blog-section">
+                <h2>Planning modes we found we needed</h2>
+
+                <h3>5.1 Subgroup planning</h3>
+                <p>
+                    In practice very few queries actually need all 24 DoFs. A tabletop pick with the left arm
+                    needs 7; a dual-arm handover needs 14; a whole-body reach that shifts the base and torso
+                    needs the full 24. Running a 24-DoF planner on a problem that really lives in 7 DoFs is
+                    exactly the "probability of sampling the useful subspace" trap.
+                </p>
+                <p>
+                    We expose this as subgroups: a <code class="language-python">subgroup</code> is a named
+                    subset of joint indices that the planner varies, while the remaining joints are frozen at
+                    their current values. Crucially, collision checking still runs over the <em>full</em> body,
+                    so a frozen arm still avoids collisions. We measure roughly 2 to 5&times; speedup on 7-DoF
+                    queries compared to running them on the full 24-DoF state.
+                </p>
+                <pre><code class="language-python">planner = create_planner(
+    robot="autolife",
+    subgroup="autolife_left_arm",   # 7 DoF, full-body collision
+    backend="vamp",
+)
+path = planner.plan(start, goal, pointcloud=pc)
+</code></pre>
+
+                <div class="video-single" style="max-width: 100%;">
+                    <div class="video-embed">
+                        <video controls muted playsinline preload="metadata" loop
+                            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
+                            <source
+                                src="https://h-tr.github.io/Autolife-Planning/assets/subgroup_planning.mp4"
+                                type="video/mp4">
+                        </video>
+                    </div>
+                    <p class="video-embed-caption">
+                        Subgroup planning on Autolife. The active subgroup (here the left arm, 7 DoF) is the
+                        only thing the planner varies; the full 24-DoF body still participates in collision
+                        checking.
+                    </p>
+                </div>
+
+                <h3>5.2 Manifold planning</h3>
+                <p>
+                    A lot of real tasks live on constraint manifolds: keep the end-effector on a plane while
+                    wiping a table, pin it to a rail while drawing a line, lock the orientation while carrying
+                    a glass of water. All three ask the planner to stay on the zero-set of some residual map
+                    \(F(q) = 0\), an implicitly-defined submanifold \(\mathcal{M} \subset \mathcal{C}\)
+                    of the ambient configuration space.
+                </p>
+                <p>
+                    <strong>How the projection works.</strong> A uniform sample \(\hat{q}\) from the ambient
+                    space will almost never satisfy \(F(\hat{q}) = 0\). We pull it onto the manifold with a
+                    damped Newton iteration on the residual:
+                </p>
+                <div class="math-block" style="margin: 0.8rem 0;">
+                    $q_{k+1} = q_k - J(q_k)^{+}\, F(q_k), \qquad J(q_k) = \frac{\partial F}{\partial q}\bigg|_{q_k}$
+                </div>
+                <p>
+                    where \(J^{+}\) is the Moore-Penrose pseudoinverse. We iterate until
+                    \(\|F(q)\|_\infty &lt; \varepsilon\) or a retry budget is exhausted; success returns the
+                    projected point, failure rejects the sample. Both \(F\) and \(J\) are CasADi symbolic
+                    expressions that we code-generate to a shared object at start-up, so each Newton step costs
+                    a few hundred nanoseconds instead of the tens of microseconds a Python/autograd evaluation
+                    would take. OMPL's <code class="language-cpp">ProjectedStateSpace</code> calls this
+                    projection on every extend and every interpolated edge point, so the tree only ever
+                    contains states that satisfy \(F(q) = 0\) to tolerance.
+                </p>
+                <p>
+                    In the snippets below <code class="language-python">p_x, p_y, p_z, R = forward_kinematics(q)</code>
+                    are the end-effector position components and rotation, and starred quantities
+                    (\(R^{*}\), \(x^{*}\), \(y^{*}\), \(z^{*}\)) are reference values captured at the start
+                    pose.
+                </p>
+
+                <div class="manifold-grid">
+                <figure class="manifold-case">
+                    <div class="manifold-case__video">
+                        <video controls muted playsinline preload="metadata" loop>
+                            <source src="https://h-tr.github.io/Autolife-Planning/assets/constrained_plane.mp4"
+                                type="video/mp4">
+                        </video>
+                    </div>
+                    <figcaption class="manifold-case__caption">
+                        <strong>Plane constraint.</strong> End-effector \(z\) pinned at 0.8&nbsp;m; the rest of
+                        the body moves freely on the manifold.
+                    </figcaption>
+                    <div class="manifold-case__compare">
+                        <div class="manifold-case__pane">
+                            <div class="manifold-case__label">Residual</div>
+                            <div class="math-block">$F(q) = p_z(q) - 0.8$</div>
+                        </div>
+                        <div class="manifold-case__pane">
+                            <div class="manifold-case__label">Code</div>
+<pre><code class="language-python">residual = p_z - 0.8</code></pre>
+                        </div>
+                    </div>
+                </figure>
+
+                <figure class="manifold-case">
+                    <div class="manifold-case__video">
+                        <video controls muted playsinline preload="metadata" loop>
+                            <source
+                                src="https://h-tr.github.io/Autolife-Planning/assets/constrained_plane_obstacle.mp4"
+                                type="video/mp4">
+                        </video>
+                    </div>
+                    <figcaption class="manifold-case__caption">
+                        <strong>Plane + obstacle.</strong> Same residual as above, but a sphere obstacle forces
+                        the tree to route around it while staying on the manifold.
+                    </figcaption>
+                    <div class="manifold-case__compare">
+                        <div class="manifold-case__pane">
+                            <div class="manifold-case__label">Residual</div>
+                            <div class="math-block">$F(q) = p_z(q) - 0.8$</div>
+                        </div>
+                        <div class="manifold-case__pane">
+                            <div class="manifold-case__label">Code</div>
+<pre><code class="language-python">residual = p_z - 0.8</code></pre>
+                        </div>
+                    </div>
+                </figure>
+
+                <figure class="manifold-case">
+                    <div class="manifold-case__video">
+                        <video controls muted playsinline preload="metadata" loop>
+                            <source
+                                src="https://h-tr.github.io/Autolife-Planning/assets/constrained_orientation_lock.mp4"
+                                type="video/mp4">
+                        </video>
+                    </div>
+                    <figcaption class="manifold-case__caption">
+                        <strong>Orientation lock.</strong> Two rotation columns are pinned, fixing the full
+                        gripper orientation (the carrying-a-glass-of-water case).
+                    </figcaption>
+                    <div class="manifold-case__compare">
+                        <div class="manifold-case__pane">
+                            <div class="manifold-case__label">Residual</div>
+                            <div class="math-block">
+                                $F(q) = \begin{bmatrix} R_{:,1} - R^{*}_{:,1} \\ R_{:,2} - R^{*}_{:,2} \end{bmatrix} \in \mathbb{R}^{6}$
+                            </div>
+                        </div>
+                        <div class="manifold-case__pane">
+                            <div class="manifold-case__label">Code</div>
+<pre><code class="language-python">residual = ca.vertcat(
+    R[:, 0] - R_ref[:, 0],
+    R[:, 1] - R_ref[:, 1],
+)</code></pre>
+                        </div>
+                    </div>
+                </figure>
+
+                <figure class="manifold-case">
+                    <div class="manifold-case__video">
+                        <video controls muted playsinline preload="metadata" loop>
+                            <source
+                                src="https://h-tr.github.io/Autolife-Planning/assets/constrained_line_horizontal.mp4"
+                                type="video/mp4">
+                        </video>
+                    </div>
+                    <figcaption class="manifold-case__caption">
+                        <strong>Horizontal rail.</strong> \(y\) and \(z\) pinned plus orientation locked; the
+                        gripper slides along a horizontal line.
+                    </figcaption>
+                    <div class="manifold-case__compare">
+                        <div class="manifold-case__pane">
+                            <div class="manifold-case__label">Residual</div>
+                            <div class="math-block">
+                                $F(q) = \begin{bmatrix} p_y - y^{*} \\ p_z - z^{*} \\ R_{:,1} - R^{*}_{:,1} \\ R_{:,2} - R^{*}_{:,2} \end{bmatrix} \in \mathbb{R}^{8}$
+                            </div>
+                        </div>
+                        <div class="manifold-case__pane">
+                            <div class="manifold-case__label">Code</div>
+<pre><code class="language-python">residual = ca.vertcat(
+    p_y - y_ref,
+    p_z - z_ref,
+    R[:, 0] - R_ref[:, 0],
+    R[:, 1] - R_ref[:, 1],
+)</code></pre>
+                        </div>
+                    </div>
+                </figure>
+
+                <figure class="manifold-case">
+                    <div class="manifold-case__video">
+                        <video controls muted playsinline preload="metadata" loop>
+                            <source
+                                src="https://h-tr.github.io/Autolife-Planning/assets/constrained_line_vertical.mp4"
+                                type="video/mp4">
+                        </video>
+                    </div>
+                    <figcaption class="manifold-case__caption">
+                        <strong>Vertical rail.</strong> \(x\) and \(y\) pinned plus orientation locked; the
+                        gripper slides along a vertical line (the drawing-on-a-wall case).
+                    </figcaption>
+                    <div class="manifold-case__compare">
+                        <div class="manifold-case__pane">
+                            <div class="manifold-case__label">Residual</div>
+                            <div class="math-block">
+                                $F(q) = \begin{bmatrix} p_x - x^{*} \\ p_y - y^{*} \\ R_{:,1} - R^{*}_{:,1} \\ R_{:,2} - R^{*}_{:,2} \end{bmatrix} \in \mathbb{R}^{8}$
+                            </div>
+                        </div>
+                        <div class="manifold-case__pane">
+                            <div class="manifold-case__label">Code</div>
+<pre><code class="language-python">residual = ca.vertcat(
+    p_x - x_ref,
+    p_y - y_ref,
+    R[:, 0] - R_ref[:, 0],
+    R[:, 1] - R_ref[:, 1],
+)</code></pre>
+                        </div>
+                    </div>
+                </figure>
+                </div>
+
+                <h3>5.3 Cost-space planning</h3>
+                <p>
+                    Sometimes we want a preference, not a hard constraint: "prefer the end-effector near its
+                    home height", "prefer small base rotations". We attach scalar CasADi cost functions that
+                    get integrated along edges (trapezoidally), and let OMPL's AO planners (RRT*, BIT*)
+                    minimize a line-integral objective combining path length and state cost:
+                </p>
+                <div class="math-block" style="margin: 1rem 0;">
+                    $J(\gamma) = \int_\gamma \|\dot{\gamma}(s)\|_2\, ds + \lambda \int_\gamma c(\gamma(s))\, ds$
+                </div>
+                <p>
+                    This is the same infrastructure as manifold planning (CasADi, code-gen, shared objects),
+                    with "residual = 0" replaced by "minimize \(\int c(q)\,ds\)". In practice we use manifold
+                    planning when physics demands it and cost-space when we have strong preferences that
+                    should nonetheless be violated if necessary to remain feasible. The snippets below reuse
+                    <code class="language-python">p_x, p_y, p_z, R = forward_kinematics(q)</code> from the
+                    previous section.
+                </p>
+
+                <div class="manifold-grid">
+                <figure class="manifold-case">
+                    <div class="manifold-case__video">
+                        <video controls muted playsinline preload="metadata" loop>
+                            <source src="https://h-tr.github.io/Autolife-Planning/assets/cost_plane.mp4"
+                                type="video/mp4">
+                        </video>
+                    </div>
+                    <figcaption class="manifold-case__caption">
+                        <strong>Cost plane.</strong> Quadratic penalty pulls the end-effector toward home height,
+                        but the planner is free to deviate when geometry demands it.
+                    </figcaption>
+                    <div class="manifold-case__compare">
+                        <div class="manifold-case__pane">
+                            <div class="manifold-case__label">Cost</div>
+                            <div class="math-block">$c(q) = (p_z(q) - 0.8)^2$</div>
+                        </div>
+                        <div class="manifold-case__pane">
+                            <div class="manifold-case__label">Code</div>
+<pre><code class="language-python">expr = (p_z - 0.8) ** 2</code></pre>
+                        </div>
+                    </div>
+                </figure>
+
+                <figure class="manifold-case">
+                    <div class="manifold-case__video">
+                        <video controls muted playsinline preload="metadata" loop>
+                            <source
+                                src="https://h-tr.github.io/Autolife-Planning/assets/cost_orientation_lock.mp4"
+                                type="video/mp4">
+                        </video>
+                    </div>
+                    <figcaption class="manifold-case__caption">
+                        <strong>Soft orientation preference.</strong> Encourages home orientation while allowing
+                        free translation and orientation violation when needed.
+                    </figcaption>
+                    <div class="manifold-case__compare">
+                        <div class="manifold-case__pane">
+                            <div class="manifold-case__label">Cost</div>
+                            <div class="math-block">
+                                $c(q) = \|R_{:,1} - R^{*}_{:,1}\|^2 + \|R_{:,2} - R^{*}_{:,2}\|^2$
+                            </div>
+                        </div>
+                        <div class="manifold-case__pane">
+                            <div class="manifold-case__label">Code</div>
+<pre><code class="language-python">expr = (
+    ca.sumsqr(R[:, 0] - R_ref[:, 0])
+    + ca.sumsqr(R[:, 1] - R_ref[:, 1])
+)</code></pre>
+                        </div>
+                    </div>
+                </figure>
+
+                <figure class="manifold-case">
+                    <div class="manifold-case__video">
+                        <video controls muted playsinline preload="metadata" loop>
+                            <source
+                                src="https://h-tr.github.io/Autolife-Planning/assets/cost_line_horizontal.mp4"
+                                type="video/mp4">
+                        </video>
+                    </div>
+                    <figcaption class="manifold-case__caption">
+                        <strong>Soft horizontal rail.</strong> Multi-component residual as a cost rather than a
+                        hard constraint; the path prefers the rail but can leave it.
+                    </figcaption>
+                    <div class="manifold-case__compare">
+                        <div class="manifold-case__pane">
+                            <div class="manifold-case__label">Cost</div>
+                            <div class="math-block">
+                                $c(q) = (p_y - y^{*})^2 + (p_z - z^{*})^2 + \|R_{:,1} - R^{*}_{:,1}\|^2 + \|R_{:,2} - R^{*}_{:,2}\|^2$
+                            </div>
+                        </div>
+                        <div class="manifold-case__pane">
+                            <div class="manifold-case__label">Code</div>
+<pre><code class="language-python">expr = (
+    (p_y - y_ref) ** 2
+    + (p_z - z_ref) ** 2
+    + ca.sumsqr(R[:, 0] - R_ref[:, 0])
+    + ca.sumsqr(R[:, 1] - R_ref[:, 1])
+)</code></pre>
+                        </div>
+                    </div>
+                </figure>
+
+                <figure class="manifold-case">
+                    <div class="manifold-case__video">
+                        <video controls muted playsinline preload="metadata" loop>
+                            <source
+                                src="https://h-tr.github.io/Autolife-Planning/assets/cost_line_vertical.mp4"
+                                type="video/mp4">
+                        </video>
+                    </div>
+                    <figcaption class="manifold-case__caption">
+                        <strong>Soft vertical rail.</strong> Same idea, different axis; useful when the
+                        "rail" is a preference about surface contact rather than a rigid constraint.
+                    </figcaption>
+                    <div class="manifold-case__compare">
+                        <div class="manifold-case__pane">
+                            <div class="manifold-case__label">Cost</div>
+                            <div class="math-block">
+                                $c(q) = (p_x - x^{*})^2 + (p_y - y^{*})^2 + \|R_{:,1} - R^{*}_{:,1}\|^2 + \|R_{:,2} - R^{*}_{:,2}\|^2$
+                            </div>
+                        </div>
+                        <div class="manifold-case__pane">
+                            <div class="manifold-case__label">Code</div>
+<pre><code class="language-python">expr = (
+    (p_x - x_ref) ** 2
+    + (p_y - y_ref) ** 2
+    + ca.sumsqr(R[:, 0] - R_ref[:, 0])
+    + ca.sumsqr(R[:, 1] - R_ref[:, 1])
+)</code></pre>
+                        </div>
+                    </div>
+                </figure>
+                </div>
+
+                <h3>5.4 Non-holonomic base: planning in a Reeds-Shepp subspace</h3>
+                <p>
+                    <strong>State space.</strong> We define the whole-body configuration as a compound space
+                </p>
+                <div class="math-block" style="margin: 0.8rem 0;">
+                    $\mathcal{Q} = \underbrace{SE(2)}_{\text{base}} \;\times\; \underbrace{\mathbb{R}^{k}}_{\text{arm + torso}},
+                    \qquad q = (x, y, \theta,\, a_1, \ldots, a_k).$
+                </div>
+                <p>
+                    The base subspace carries a Reeds-Shepp metric and steering function; the arm subspace
+                    carries a Euclidean metric and linear interpolation. The compound distance is a weighted
+                    sum,
+                </p>
+                <div class="math-block" style="margin: 0.8rem 0;">
+                    $d(q, q') = w_b\, d_{\mathrm{RS}}\!\left((x, y, \theta),\,(x', y', \theta')\right)
+                    + w_a \, \|a - a'\|_2.$
+                </div>
+                <p>
+                    <strong>Steering.</strong> To connect two compound states we compute a Reeds-Shepp curve
+                    on the base and a straight line on the arm, then re-parameterize both by a common
+                    arc-length so the two motions finish together:
+                </p>
+<pre><code class="language-python">def steer(q1, q2, resolution):
+    # Reeds-Shepp on the base: shortest bounded-curvature path in SE(2)
+    base_path = reeds_shepp.shortest_path(q1.base, q2.base)
+    # Euclidean on the arm
+    arm_delta = q2.arm - q1.arm
+
+    # Sample both at matched arc-length fractions s in [0, 1]
+    edge = []
+    for s in linspace(0.0, 1.0, ceil(base_path.length / resolution)):
+        base_s = base_path.interpolate(s)           # (x, y, theta)
+        arm_s  = q1.arm + s * arm_delta             # linear in joint space
+        edge.append(compound(base_s, arm_s))
+    return edge</code></pre>
+                <p>
+                    Every interpolated state is passed to VAMP for whole-body collision checking. The
+                    sampling-based algorithm (RRT-Connect, BIT*, ...) is untouched; only the per-component
+                    steering and metric carry the kinematic structure of the base.
+                </p>
+                <p>
+                    <strong>Are we really searching base and arm together, and how is it balanced?</strong>
+                    Yes: a single RRT tree lives in the full \(SE(2) \times \mathbb{R}^{k}\) space, and
+                    every node is a whole-body configuration. But naively concatenating base and arm into one
+                    \(\mathbb{R}^{3+k}\) vector with Euclidean distance gives the familiar bad behavior:
+                    <em>the arm waves while the base barely moves</em>. Three things break at once in that
+                    setup, and the compound space fixes one per issue:
+                </p>
+                <ol>
+                    <li>
+                        <strong>Metric.</strong> Euclidean distance on the flat vector treats 1 rad of joint
+                        motion the same as 1 m of base travel. With 7&ndash;14 arm DoFs against 3 base DoFs,
+                        nearest-neighbor lookup is dominated by the arm, so every extension is an
+                        arm-only extension.
+                        <br><em>Fix:</em> weighted compound metric
+                        \(d(q, q') = w_b\, d_{\mathrm{RS}}(\mathrm{base}) + w_a \|\mathrm{arm} - \mathrm{arm}'\|\),
+                        with \(w_b\) tuned so 1 m of base travel costs roughly one full-range arm
+                        reconfiguration.
+                    </li>
+                    <li>
+                        <strong>Steering.</strong> Linear interpolation on \((x, y, \theta)\) produces edges
+                        the robot cannot execute; they require lateral base velocity a differential-drive
+                        base does not have.
+                        <br><em>Fix:</em> Reeds-Shepp steering on the base. Every edge is a shortest
+                        bounded-curvature path the base can actually drive, so infeasible &ldquo;slide
+                        sideways&rdquo; motions never enter the tree.
+                    </li>
+                    <li>
+                        <strong>Sampling.</strong> Uniform sampling in the concatenated vector spends most
+                        of its budget on the 7&ndash;14 dimensional arm slice of each \(SE(2)\) cell, so the
+                        base rarely gets explored.
+                        <br><em>Fix:</em> per-component sampling (uniform on bounded \(SE(2)\); uniform on
+                        joint limits), plus modest base-goal bias. Combined with the Reeds-Shepp metric,
+                        nearest-neighbor now prefers tree nodes whose <em>base</em> is close, and new
+                        extensions drive the base rather than re-animate the arm.
+                    </li>
+                </ol>
+                <p>
+                    Each fix is a per-component choice, not a change to the algorithm. If you want an optimal
+                    path rather than just a feasible one, swap RRT-Connect for an AO planner (RRT*, BIT*)
+                    minimizing the same compound metric; completeness carries over and the solution
+                    converges to the optimum as the tree densifies.
+                </p>
+
+                <h4>Why this stays probabilistically complete</h4>
+                <p>
+                    An RRT-style planner is probabilistically complete on \(\mathcal{C}_{\text{free}}\) when
+                    three conditions hold: (i) the sampler has positive density on every open set of
+                    \(\mathcal{C}_{\text{free}}\); (ii) the local steering function \(\sigma(q_a, q_b)\) is
+                    <em>admissible</em>: for every pair of configurations in the same path-connected
+                    component of \(\mathcal{C}_{\text{free}}\), \(\sigma\) produces a collision-free edge
+                    whenever \(q_a\) and \(q_b\) are within some \(\delta &gt; 0\); (iii) collision checks are
+                    exact on each edge. Our stack satisfies all three by construction:
+                </p>
+                <ul>
+                    <li>
+                        <strong>Sampling density.</strong> We sample \((x, y, \theta)\) uniformly over a
+                        bounded \(SE(2)\) region and the arm joints uniformly over their bounded joint
+                        limits. Every open ball in \(\mathcal{Q}_{\text{free}}\) has positive measure under
+                        this product distribution.
+                    </li>
+                    <li>
+                        <strong>Local-steering admissibility.</strong> Reeds-Shepp is a
+                        <em>complete</em> local planner on \(SE(2)\), a classical result
+                        (Reeds &amp; Shepp, 1990; Laumond 1998): any two \(SE(2)\) configurations are
+                        connected by a shortest path of bounded curvature, with length continuous in
+                        the endpoints. Euclidean interpolation is trivially complete on \(\mathbb{R}^k\).
+                        The compound steering is a product of two complete local planners, which is itself
+                        complete on \(\mathcal{Q}\) in the obstacle-free case. As the tree densifies, every
+                        \(\delta\)-neighbor pair becomes connectable, recovering the standard RRT-Connect
+                        completeness argument on the non-holonomic product space.
+                    </li>
+                    <li>
+                        <strong>Exact collision checks.</strong> The interpolation resolution is bounded by
+                        the swept-volume safety condition of the spherized URDF, and VAMP evaluates each
+                        interpolated state independently. No edge is accepted unless every sample on it
+                        passes.
+                    </li>
+                </ul>
+                <p>
+                    The important point is that the <em>algorithmic</em> completeness guarantee of RRT-Connect
+                    is preserved unchanged; we only swap in non-Euclidean components with their own
+                    complete local planners. A hierarchical base-then-arm decomposition, by contrast, is
+                    complete on the <em>base</em> subspace but not on the joint space: it can miss solutions
+                    that require coupled base-arm motion (&sect;&nbsp;3, REMANI discussion).
+                </p>
+                <p>
+                    <strong>Holonomic fallback.</strong> For an omnidirectional base the same architecture
+                    degrades gracefully: we swap the Reeds-Shepp component for a standard \(SE(2)\)
+                    component with Euclidean metric and straight-line steering, and the rest of the stack is
+                    identical.
+                </p>
+            </section>
+
+
+            <!-- Section 7: Reflections -->
+            <section class="blog-section">
+                <h2>Reflections</h2>
+                <p>
+                    A few things we did <em>not</em> expect going in:
+                </p>
+                <ul>
+                    <li>
+                        <strong>Dimensionality is a red herring once collision checking is fast.</strong> We
+                        expected a 24-DoF plan to be meaningfully slower than a 7-DoF plan; it is not.
+                    </li>
+                    <li>
+                        <strong>The right abstraction for constraints is a compiler, not a class hierarchy.</strong>
+                        CasADi plus code-gen for residuals and costs gave us the flexibility of a framework with
+                        the speed of hand-written C. Adding a new task-space constraint is ~30 lines.
+                    </li>
+                    <li>
+                        <strong>Non-holonomic handling belongs in the state space, not the algorithm.</strong>
+                        Putting the Reeds-Shepp metric into an \(SE(2)\) component and keeping the arm Euclidean
+                        let us reuse the same RRT-Connect code for both robots.
+                    </li>
+                    <li>
+                        <strong>Learned samplers remain valuable, but the value shifts.</strong> They used to
+                        close a 10 to 100&times; gap against classical planners. With VAMP, that gap is much
+                        smaller, and the interesting use of learned samplers is no longer "be faster than RRT"
+                        but "propose globally-informed initial seeds for AO planners or for warm-starting a
+                        batch of similar queries".
+                    </li>
+                </ul>
+                <p>
+                    We release both stacks as reference implementations:
+                    <a href="https://github.com/H-tr/Autolife-Planning" target="_blank">Autolife-Planning</a> for
+                    the 24-DoF bimanual platform, and our VAMP fork in
+                    <a href="https://github.com/AdaCompNUS/vamp" target="_blank">AdaCompNUS/vamp</a> with the
+                    <a href="https://github.com/AdaCompNUS/rls-digital-twin" target="_blank">rls-digital-twin</a>
+                    companion for Fetch. We hope they are useful as starting points.
+                </p>
+                <p>
+                    The bigger meta-point is that there is still a lot of performance left on the table in
+                    classical planning, and a lot of it is unlocked by the SIMD and memory-layout work that
+                    VAMP pioneered. If you are designing a whole-body planner today, we think the right first
+                    question is not "which algorithm" but "how many microseconds does my collision check cost".
+                </p>
+            </section>
+
+            <!-- Citation -->
+            <div class="citation-section">
+                <h2 class="citation-header">
+                    Citation
+                </h2>
+                <p class="citation-text">
+                    If you found this perspective useful, please cite:
+                </p>
+                <pre class="citation-pre">
+@misc{whole-body-motion-planning-blog,
+  author    = {Hu Tianrun},
+  title     = {How to Plan Whole-Body Motion in ~1 ms},
+  year      = {2026},
+  publisher = {GitHub},
+  url       = {https://h-tr.github.io/blog/posts/whole-body-motion-planning.html}
+}</pre>
+            </div>
+
+            <!-- References -->
+            <div class="references-section">
+                <h2 class="references-header">References</h2>
+                <ol class="references-list">
+                    <li id="ref-1">
+                        S&#x15F;ucan, I. A., Moll, M., &amp; Kavraki, L. E. (2012). The Open Motion Planning
+                        Library. <em>IEEE Robotics &amp; Automation Magazine</em>, 19(4), 72&ndash;82.
+                        <a href="https://ompl.kavrakilab.org/" target="_blank">[Website]</a>
+                    </li>
+                    <li id="ref-2">
+                        Thomason, W., Kingston, Z., &amp; Kavraki, L. E. (2024). Motions in Microseconds via
+                        Vectorized Sampling-Based Planning. In <em>IEEE International Conference on Robotics
+                        and Automation (ICRA)</em> (pp. 8749&ndash;8756).
+                        <a href="https://arxiv.org/abs/2309.14545" target="_blank">[arXiv]</a>
+                    </li>
+                    <li id="ref-3">
+                        LaValle, S. M. (2006). <em>Planning Algorithms</em>. Cambridge University Press.
+                    </li>
+                    <li id="ref-4">
+                        Lu, Y., Ma, Y., Hsu, D., &amp; Cai, P. (2024). Neural Randomized Planning for Whole-Body
+                        Robot Motion. <em>arXiv:2405.11317</em>.
+                        <a href="https://arxiv.org/abs/2405.11317" target="_blank">[arXiv]</a>
+                    </li>
+                    <li id="ref-5">
+                        Xu, L., Wong, C., Zhong, Y., Lin, J., Hou, J., &amp; Gao, F. (2026).
+                        Primitive-based Truncated Diffusion for Efficient Trajectory Generation of
+                        Differential-Drive Mobile Manipulators. <em>arXiv:2604.04166</em>.
+                        <a href="https://arxiv.org/abs/2604.04166" target="_blank">[arXiv]</a>
+                    </li>
+                    <li id="ref-6">
+                        Sundaralingam, B., Hari, S. K. S., Fishman, A., Garrett, C., Van Wyk, K., Blukis, V.,
+                        Millane, A., Oleynikova, H., Handa, A., Ramos, F., Ratliff, N., &amp; Fox, D. (2023).
+                        CuRobo: Parallelized Collision-Free Minimum-Jerk Robot Motion Generation.
+                        <em>NVIDIA Technical Report</em>.
+                        <a href="https://curobo.org/" target="_blank">[Website]</a>
+                    </li>
+                    <li id="ref-7">
+                        Wu, C., Wang, R., Song, M., Gao, F., Mei, J., &amp; Zhou, B. (2024). Real-time
+                        Whole-body Motion Planning for Mobile Manipulators Using Environment-adaptive Search
+                        and Spatial-temporal Optimization. In <em>IEEE International Conference on Robotics
+                        and Automation (ICRA)</em> (pp. 1369&ndash;1375).
+                        <a href="https://robotics-star.com/REMANI-Planner/" target="_blank">[Website]</a>
+                    </li>
+                </ol>
+            </div>
+
+        </article>
+    </div>
+
+    <!-- Blog styling and spacing script -->
+    <script defer src="/js/blog.js"></script>
+    <script defer src="/js/katex-init.js"></script>
+    <script defer src="/js/copy-button.js"></script>
+    <script defer src="/js/references.js"></script>
+</body>
+
+</html>

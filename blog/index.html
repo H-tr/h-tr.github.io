@@ -51,6 +51,36 @@
       <div class="blog-content">
         <div class="blog-header">
           <div class="blog-title">
+            How to Plan Whole-Body Motion in ~1 ms
+          </div>
+          <div class="blog-date">April 17, 2026</div>
+        </div>
+        <div class="blog-summary">
+          Room-scale mobile manipulation demands a planner that reasons over the base, torso, and arm at once, yet
+          the field has not converged on how to do it fast. This post walks through the prior art (neural samplers,
+          cuRobo-style GPU optimization, hierarchical decoupling), argues that vectorized collision checking changes
+          the design space, and presents our OMPL front end &times; VAMP backend architecture with subgroup,
+          manifold, cost-space, and non-holonomic extensions &mdash; deployed on Autolife (24 DoF) and Fetch (11 DoF)
+          at millisecond planning times.
+        </div>
+        <div class="blog-links">
+          <a href="posts/whole-body-motion-planning.html" class="blog-link">
+            <i class="fas fa-book-open"></i>Full Text
+          </a>
+          <a href="https://github.com/H-tr/Autolife-Planning" class="blog-link" target="_blank">
+            <i class="fas fa-code"></i>Autolife
+          </a>
+          <a href="https://github.com/AdaCompNUS/vamp" class="blog-link" target="_blank">
+            <i class="fas fa-code"></i>Fetch
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="blog-item">
+      <div class="blog-content">
+        <div class="blog-header">
+          <div class="blog-title">
             The Grasping Gap in the Wild
           </div>
           <div class="blog-date">March 28, 2026</div>
