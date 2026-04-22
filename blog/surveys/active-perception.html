@@ -1,0 +1,1316 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Active Perception in Mobile Manipulation</title>
+
+    <!-- Fonts -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Prism.js initialization -->
+    <script src="/js/prism-init.js"></script>
+
+    <!-- KaTeX Math Support -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Site Assets -->
+    <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg" />
+    <link href="/css/blog.css" rel="stylesheet" />
+    <link href="/css/references.css" rel="stylesheet" />
+
+    <!-- KaTeX Scripts -->
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"
+    ></script>
+  </head>
+  <body>
+    <div class="blog-post">
+      <a href="../?tab=survey" class="back-button">
+        <i class="fas fa-arrow-left"></i>Back
+      </a>
+
+      <header class="blog-post-header">
+        <h1 class="blog-post-title">Active Perception in Mobile Manipulation</h1>
+        <div class="blog-post-date">April 22, 2026</div>
+      </header>
+
+      <article class="blog-post-content">
+        <section class="blog-section">
+
+        <h2>1. Introduction</h2>
+
+        <p>
+          Mobile manipulation robots must perceive their environments to act effectively, yet perception is
+          not a passive process. The quality of sensory information depends critically on where the robot is,
+          where it looks, and how it physically engages with the world. This bidirectional coupling between
+          action and perception has been recognized since the foundational work on active perception
+          [7, 4], but the past decade has witnessed a dramatic expansion in both the
+          scope and sophistication of action-for-perception strategies. Driven by advances in deep learning,
+          high-fidelity simulation, and hardware capable of rich physical interaction, the field has moved
+          from geometric viewpoint optimization to learned policies that reason jointly over locomotion,
+          manipulation, and perceptual reward.
+        </p>
+
+        <p>
+          The classical engineering response to perceptual difficulty is to deploy higher-resolution sensors
+          and more sophisticated recognition pipelines, treating perception as a feed-forward computation that
+          precedes action. An alternative paradigm, rooted in Bajcsy's formulation of active perception
+          [7, 8], holds that perception is itself an action-selection problem. The
+          robot should move, look, push, and probe in order to see better, choosing physical actions
+          specifically for their epistemic value. This inversion of the traditional sense-then-act pipeline
+          has become increasingly central to mobile manipulation research as capable platforms become
+          experimentally accessible [41, 47, 97] and expressive learned
+          representations replace hand-designed geometric models [37, 45]. Broad
+          surveys of robotic active vision [23] and early demonstrations of active stereo for
+          mobile manipulation [80] established the foundational pattern that the work of the past
+          decade extends.
+        </p>
+
+        <p>
+          The central research question motivating this survey is the following. How can mobile manipulation
+          robots leverage deliberate physical actions, including locomotion, viewpoint changes, and object
+          interactions, to actively improve perceptual understanding, and what are the dominant paradigms,
+          representations, and learning frameworks that enable such action-for-perception strategies? This
+          question sits at the intersection of robotics, computer vision, and embodied artificial
+          intelligence, drawing on traditions ranging from information-theoretic sensor planning to
+          end-to-end reinforcement learning.
+        </p>
+
+        <p>
+          The need for such a synthesis is pressing. Excellent reviews exist for individual subfields,
+          including next-best-view planning [83], interactive perception [13],
+          tactile sensing [60, 76], active vision in robotic systems
+          [23], active SLAM [75], and active mapping [59]. But no
+          existing work synthesizes these threads into a unified treatment of action-for-perception in mobile
+          manipulation. The rapid integration of foundation models, neural implicit representations, and
+          sim-to-real transfer has further blurred traditional boundaries, making a cross-cutting review both
+          timely and necessary.
+        </p>
+
+        <p>
+          This scoping review covers the period 2016 to 2026, spanning the emergence of deep learning methods
+          for active perception through the current era of foundation models. We adopt a thematic
+          organization, identifying five major paradigms. Section 3 covers next-best-view and viewpoint
+          planning, which optimizes sensor placement to reduce perceptual uncertainty. Section 4 covers
+          active exploration and scene mapping, which extends viewpoint selection to whole-environment
+          coverage and navigation. Section 5 covers interactive and manipulative perception, where robots
+          physically alter scenes to improve observability. Section 6 covers active tactile and multimodal
+          sensing, which plans exploratory touch and fuses contact-rich information with vision. Section 7
+          covers learned perception-action policies, encompassing end-to-end and modular learning frameworks
+          that jointly optimize actions for perceptual and task objectives. Sections 8 through 10 examine
+          cross-cutting themes, open problems, and conclusions.
+        </p>
+
+        <div class="blog-callout">
+          <p>
+            <strong>The single most important takeaway.</strong> The convergence of foundation models, neural
+            implicit representations, and high-fidelity simulation is creating the conditions for a unified
+            treatment of active perception in mobile manipulation. A single system can reason fluidly across
+            viewpoint selection, exploration, physical interaction, and tactile sensing, guided by both task
+            objectives and general world knowledge. The next generation of mobile manipulation systems will
+            not merely perceive to act or act to perceive. It will seamlessly interleave the two.
+          </p>
+        </div>
+
+        <h2>2. Background and Definitions</h2>
+
+        <p>
+          <strong>Active perception</strong> refers to the intelligent control of sensing parameters and
+          sensor-carrying actuators to improve the quality of perceptual information
+          [7, 8]. Unlike passive perception, which processes whatever data happens
+          to be available, active perception treats the sensor configuration as a decision variable to be
+          optimized. In the context of mobile manipulation, the action space encompasses the full kinematic
+          and dynamic capabilities of the robot, including base locomotion, arm configuration, gripper
+          state, and sensor pointing.
+        </p>
+
+        <p>
+          <strong>Mobile manipulation</strong> denotes robotic systems that combine mobility (typically
+          wheeled or legged locomotion) with one or more manipulator arms, enabling both navigation through
+          and physical interaction with the environment [46]. This distinguishes the setting from
+          fixed-base manipulation, where active perception is limited to viewpoint changes, and from pure
+          navigation, where physical object interaction is unavailable.
+        </p>
+
+        <p>
+          We use <strong>action-for-perception</strong> to denote any deliberate physical action whose
+          primary purpose is to improve some aspect of the robot's perceptual state, including geometric
+          understanding, semantic knowledge, or uncertainty about object properties. This is distinct from
+          perception-for-action (the standard pipeline where perception serves downstream manipulation or
+          navigation goals), though in practice the two are deeply intertwined and often co-optimized.
+        </p>
+
+        <p>
+          Several related concepts require disambiguation. <strong>Next-best-view (NBV) planning</strong>
+          refers specifically to selecting the next sensor pose to maximize information gain about a target
+          scene or object [83]. <strong>Interactive perception</strong> is the broader practice
+          of using motor actions to change the perceptual scene itself, not just the viewpoint
+          [13]. <strong>Active exploration</strong> concerns the problem of efficiently visiting
+          informative locations in a partially known or unknown environment [75].
+          <strong>Embodied AI</strong> refers to AI systems that learn through interaction with simulated or
+          real environments, emphasizing the role of embodiment in perception and cognition
+          [32].
+        </p>
+
+        <p>
+          This review focuses on work that involves at least one form of deliberate physical action for
+          perceptual improvement in the context of mobile manipulation or closely related settings. We
+          exclude purely passive perception methods, static sensor placement optimization, and active
+          learning in non-embodied domains such as active learning for annotation. We include
+          simulation-based work when it explicitly targets mobile manipulation scenarios or transferable
+          action-for-perception strategies.
+        </p>
+
+        <h2>3. Next-Best-View and Viewpoint Planning</h2>
+
+        <p>
+          The most classical form of active perception involves selecting optimal sensor poses to reduce
+          uncertainty about a scene or object. Over the past decade, this subfield has evolved from
+          hand-crafted utility functions operating over volumetric representations to learning-based methods
+          that leverage neural scene representations, and most recently to foundation-model approaches that
+          condition viewpoint prediction on natural language task descriptions.
+        </p>
+
+        <h3>3.1 Information-Theoretic Foundations</h3>
+
+        <p>
+          The core formulation of NBV planning poses viewpoint selection as the maximization of an
+          information-theoretic objective over a set of candidate sensor poses [83, 25].
+          The objective typically measures expected information gain, meaning the reduction in entropy, the
+          volume of unseen space revealed, or the decrease in reconstruction uncertainty. A systematic
+          comparison of volumetric information gain formulations by Delmerico et al. [29] revealed
+          that different utility metrics (occlusion-aware, rear-side voxel, proximity count, and variants of
+          Shannon entropy) lead to substantially different exploration trajectories, with no single metric
+          dominating across all scenarios. This finding underscored that the choice of information criterion
+          is itself a design decision with significant practical implications, not merely a mathematical
+          convenience.
+        </p>
+
+        <p>
+          Volumetric approaches represent the scene using occupancy grids or truncated signed distance
+          functions (TSDFs), with candidate views evaluated by ray-casting through the volumetric model
+          [40, 91]. These methods offer principled uncertainty quantification and have
+          been successfully applied to autonomous 3D object reconstruction, where the robot must determine a
+          sequence of viewpoints that efficiently covers the surface of an unknown object. However, they
+          suffer from computational scaling challenges. Evaluating many candidate views by ray-casting
+          through high-resolution volumes becomes prohibitive as scene complexity or resolution increases
+          [29, 82]. Sampling-based approaches that maintain informative path planning
+          objectives have partially addressed this limitation by operating in continuous space rather than
+          over discrete candidate sets [82].
+        </p>
+
+        <h3>3.2 Learning-Based Next-Best-View</h3>
+
+        <p>
+          The limitations of hand-crafted utility functions and the computational burden of volumetric
+          ray-casting have motivated a shift toward learned NBV policies. Early learning-based approaches
+          trained neural networks to predict information gain directly from partial point clouds or depth
+          images, avoiding explicit volumetric computation [62, 104]. PC-NBV
+          [104] proposed predicting the next-best-view from a partial point cloud representation
+          using a reinforcement learning agent, demonstrating that learned policies can match or exceed
+          classical baselines while running at interactive rates. The key advantage is amortization. After
+          training, the policy requires only a single forward pass, compared to the many ray-casting
+          evaluations needed by classical methods. More recent work has continued this trajectory with
+          end-to-end deep reinforcement learning agents that close the loop between observation and
+          viewpoint selection in autonomous 3D reconstruction settings [11], confirming that
+          learned policies generalize across object geometries the hand-crafted utility functions struggle
+          with.
+        </p>
+
+        <p>
+          The emergence of neural implicit representations, particularly Neural Radiance Fields (NeRFs)
+          [64], has opened new avenues for NBV planning. ActiveNeRF [71] and related
+          approaches [51] leverage the rendered uncertainty of a NeRF model to guide viewpoint
+          selection, choosing views that are expected to most reduce the rendering uncertainty of the
+          implicit model. This coupling of neural scene representation with active view planning is
+          attractive because the same representation that guides viewpoint selection also serves as the
+          scene reconstruction, eliminating the need for separate volumetric occupancy models. However,
+          NeRF-based NBV methods inherit the computational cost of NeRF training and rendering, and their
+          applicability to real-time robotic systems remains an active area of development
+          [71, 79].
+        </p>
+
+        <h3>3.3 Task-Driven Viewpoint Selection</h3>
+
+        <p>
+          A critical evolution in viewpoint planning has been the shift from reconstruction-centric
+          objectives (maximize surface coverage) to task-driven objectives (maximize downstream task
+          performance). For manipulation tasks, the optimal viewpoint is not the one that reveals the most
+          geometry, but the one that best supports grasp planning, object recognition, or state estimation.
+          This insight has driven a line of work connecting NBV planning to manipulation success.
+        </p>
+
+        <p>
+          Viewpoint optimization for robotic grasping exemplifies this trend. Rather than maximizing
+          geometric coverage, these methods select viewpoints that maximize the expected quality or
+          reliability of planned grasps [66, 15]. The Volumetric Grasping Network
+          [14] integrated grasp quality prediction directly into a volumetric scene
+          representation, and subsequent active perception extensions demonstrated that selecting views based
+          on grasp-relevant uncertainty outperforms reconstruction-based NBV criteria for manipulation tasks
+          [15]. ACE-NBV [105] pushes the same idea further by conditioning viewpoint
+          selection on predicted affordances for the specific target, allowing the policy to seek views that
+          expose feasible grasps on occluded objects rather than geometrically informative views that may not
+          help with the grasp at all. Similarly, work on active object recognition has moved beyond
+          maximizing classification entropy to consider the cost and feasibility of viewpoint changes in the
+          context of the robot's kinematic constraints [30, 73].
+        </p>
+
+        <p>
+          Fine-grained pose estimation presents yet another task-specific objective. Knobbe et al.
+          [47] demonstrated that achieving high positional accuracy requires precise object
+          centering, while achieving high rotational accuracy requires compensating for lateral and rotational
+          offsets. Optimal camera positioning depends on which pose component is most critical, rather than
+          on a single unified viewpoint objective [47, 63]. Industrial metrology introduces
+          yet another specialized objective. NBV-HRR [70] learns viewpoint sequences that
+          recover high-dynamic-range geometry from highly reflective surfaces that defeat single-view
+          scanning, demonstrating that the sensor-physics of the scene (not just its geometry) can constitute
+          a task-specific utility in its own right.
+        </p>
+
+        <p>
+          Multi-step lookahead represents a significant methodological advance over myopic (single-step) NBV
+          planning. Classical NBV selects the single next best view, whereas multi-step approaches plan a
+          sequence of viewpoints by reasoning about the cumulative information gained over multiple
+          observations [73, 91]. This is typically formulated as a partially
+          observable Markov decision process or a tree search, with the computational challenge of
+          exponentially growing action sequences addressed through Monte Carlo methods or learned value
+          functions. Multi-step planning is particularly important for mobile manipulation, where the cost
+          of locomotion makes viewpoint ordering significant. A suboptimal sequence may require unnecessary
+          base repositioning.
+        </p>
+
+        <p>
+          The most recent turn in viewpoint planning has been the incorporation of foundation models that
+          fuse semantic and geometric understanding to enable open-vocabulary, language-conditioned
+          viewpoint prediction. I-Perceive [37] represents this direction. The system accepts a
+          natural language instruction specifying the perceptual task, uses a vision-language model to ground
+          the instruction in the scene, and predicts a viewpoint that maximizes expected task-relevant
+          information without requiring task-specific training. This scales beyond fixed-objective local
+          settings toward large-scale indoor environments, and it sidesteps the need to hand-engineer
+          utility functions for each new task. Foundation-model viewpoint planning inherits the limitations
+          of the underlying vision-language models, including hallucination and sensitivity to prompt
+          phrasing, but it provides a path to zero-shot generalization that classical NBV methods lack.
+        </p>
+
+        <h3>3.4 From Single Objects to Complex Scenes</h3>
+
+        <p>
+          The extension of NBV methods from isolated object reconstruction to cluttered, multi-object scenes
+          has presented substantial challenges. In dense clutter, objects occlude each other, and the
+          information value of a viewpoint depends on the configuration of all objects in the scene, not
+          just the target [68]. Multi-object NBV planning must reason about which objects to
+          prioritize, how to resolve inter-object occlusions, and when to switch attention between targets, a
+          combinatorial problem that single-object methods do not face.
+        </p>
+
+        <p>
+          Scene-level NBV planning for manipulation tasks has converged on approaches that maintain
+          uncertainty estimates over both geometry and semantics, selecting viewpoints that resolve the most
+          task-relevant ambiguities [15, 68]. Outdoor and agricultural settings
+          introduce qualitatively different challenges. In fruit harvesting, the primary perceptual obstacle
+          is natural foliage clutter rather than geometric uncertainty, and viewpoint planning must cope with
+          unstructured dynamic occlusion by leaves and branches [61]. Receding-horizon path
+          sampling, where candidate robot trajectories rather than discrete poses are scored and selected,
+          extends NBV to full trajectory planning for mobile manipulators [41, 61]. This is
+          especially relevant when the robot base must move to achieve the desired viewpoint, and when the
+          cost of locomotion becomes part of the information-utility trade-off.
+        </p>
+
+        <p>
+          A distinctive mobile-manipulation twist on complex-scene NBV is that the robot's own body and
+          locomotion become part of the action space. Monica and Aleotti [65] demonstrated
+          humanoid NBV planning that exploits full-body motions to observe objects occluded by obstacles,
+          treating leaning, stepping, and torso rotation as viewpoint actions rather than privileging a
+          head-mounted camera alone. OA-NBV [36] generalizes this idea with an occlusion-aware
+          policy for human-centered mobile robots, where the planner models the human obstacle explicitly
+          and reasons about sideways or leaning motions that recover informative observations without
+          interrupting the human's activity. Both lines confirm that in mobile manipulation, next-best-view
+          is really next-best whole-body pose, and decoupling the sensor pose from the base and torso pose
+          leaves substantial information gain on the table.
+        </p>
+
+        <h2>4. Active Exploration and Scene Mapping</h2>
+
+        <p>
+          While NBV planning typically operates at the scale of individual objects or local scenes, active
+          exploration addresses the complementary problem of efficiently mapping and understanding entire
+          environments. For mobile manipulation robots deployed in homes, warehouses, or unstructured
+          settings, building a useful environmental model requires strategic navigation that balances
+          spatial coverage with task-directed information gathering.
+        </p>
+
+        <h3>4.1 Classical and Frontier-Based Exploration</h3>
+
+        <p>
+          Frontier-based exploration, originally proposed by Yamauchi [98], remains a
+          foundational strategy. The robot maintains a map of known space and navigates toward the boundary
+          (frontier) between explored and unexplored regions. Extensions within the review period have
+          incorporated information-theoretic criteria to prioritize among multiple frontiers, selecting
+          those expected to yield the greatest reduction in map uncertainty [75, 59]. The
+          TSDF-based volumetric exploration approach of Schmid et al. [82] demonstrated that
+          sampling-based informative path planning could scale to large 3D environments while maintaining
+          near-optimal information gain guarantees.
+        </p>
+
+        <p>
+          Active SLAM represents the intersection of exploration with simultaneous localization and mapping,
+          where the robot must balance the competing objectives of exploring new areas and revisiting known
+          landmarks to reduce localization uncertainty [75]. This trade-off is particularly
+          acute for mobile manipulators, which often operate in confined spaces where small localization
+          errors can cause manipulation failures. A comprehensive survey by Placed et al. [75]
+          organized the field along dimensions of planning horizon (myopic vs. non-myopic), objective
+          function (entropy-based, Fisher information, optimality criteria), and representation (pose
+          graphs, occupancy grids, continuous fields), finding that despite decades of work, no method
+          reliably balances exploration and exploitation across diverse environments.
+        </p>
+
+        <h3>4.2 Learning-Based Exploration</h3>
+
+        <p>
+          The application of deep learning to exploration has produced a generation of methods that learn
+          exploration policies from data, often in simulation, rather than relying on hand-crafted frontier
+          heuristics. The Active Neural SLAM framework [20] introduced a modular architecture
+          that combines a learned spatial memory (a top-down neural map) with a learned exploration policy
+          trained via reinforcement learning. The key innovation was decomposing the problem into a
+          differentiable mapping module and a hierarchical navigation policy, allowing each component to be
+          trained with appropriate supervision. This modularity, in contrast to fully end-to-end approaches,
+          provided interpretability and transferability, with the learned policy significantly
+          outperforming classical frontier-based exploration in unfamiliar environments.
+        </p>
+
+        <p>
+          Curiosity-driven and intrinsically motivated exploration methods offer an alternative learning
+          paradigm, rewarding the agent for visiting states that are surprising or informative according to
+          a learned world model [72]. In embodied settings, curiosity-driven exploration has
+          shown promise for building environmental models without task-specific reward signals, though its
+          effectiveness can degrade in environments with stochastic elements (the &ldquo;noisy TV
+          problem&rdquo;), where unpredictable dynamics attract the agent's curiosity without providing
+          useful information [72, 18]. Semantic curiosity [21] was proposed as a
+          more focused alternative that rewards the agent for discovering semantically meaningful elements
+          rather than any novel stimulus, mitigating this failure mode.
+        </p>
+
+        <h3>4.3 Object-Goal and Semantic Navigation</h3>
+
+        <p>
+          The task of navigating to a specified object in an unseen environment (ObjectGoal navigation
+          [9, 5]) exemplifies the intersection of active exploration with
+          task-driven perception. Success requires the robot to efficiently explore the environment while
+          maintaining a model of where target objects are likely to be found, leveraging semantic priors
+          (kitchens contain refrigerators, bedrooms contain beds) to guide search.
+        </p>
+
+        <p>
+          Semantic exploration methods build explicit maps augmented with semantic predictions to guide
+          frontier selection toward regions likely to contain the target [22, 78]. The
+          SemExp framework [22] used a semantic goal policy trained in simulation to select
+          long-range navigation goals on a top-down semantic map, achieving state-of-the-art results on the
+          ObjectNav benchmark by combining learned semantic priors with classical planning for local
+          navigation. PONI [78] further refined this approach by learning potential functions
+          that predict the likelihood of finding objects in different map locations, avoiding the need for
+          explicit goal selection and instead guiding the policy through a continuous value landscape over
+          the map.
+        </p>
+
+        <p>
+          The integration of vision-language models has more recently transformed semantic navigation.
+          Vision-language frontier maps [100] leveraged pre-trained vision-language models
+          (specifically CLIP [77]) to score frontier regions by their semantic relevance to a
+          natural language object description, enabling zero-shot navigation to objects described in open
+          vocabulary without environment-specific training. This zero-shot capability represents a
+          significant departure from prior methods that required training separate policies for each target
+          object category, and it suggests that foundation models can provide the semantic priors that
+          active exploration policies need to be efficient.
+        </p>
+
+        <p>
+          Semantic mapping for mobile manipulators extends these ideas beyond indoor benchmarks. Cuaran et
+          al. [26] introduced efficient, scalable active semantic mapping for horticultural
+          environments, where the mobile manipulator must navigate through rows of plants while building
+          semantic maps that support downstream phenotyping and yield prediction. Targets are small,
+          densely clustered, and partially occluded by their own foliage, and the mobile base must trade off
+          coverage of the planting row against the density of observations per plant. The lesson is that
+          task-driven semantic exploration outperforms generic information-gain exploration when the
+          downstream task is well specified.
+        </p>
+
+        <h3>4.4 Simulation Platforms and Benchmarks</h3>
+
+        <p>
+          The rapid progress in learning-based exploration has been enabled by high-fidelity simulation
+          platforms that provide photorealistic rendering and physics-based interaction. Habitat
+          [81, 90], AI2-THOR [48, 28], and iGibson
+          [95, 55] have become standard platforms for training and evaluating embodied
+          exploration agents. Habitat 2.0 [90] is particularly relevant to mobile manipulation
+          because it introduced support for articulated object interaction (opening drawers, cabinets)
+          within a high-speed simulation loop, enabling the study of exploration strategies that combine
+          navigation with physical interaction.
+        </p>
+
+        <p>
+          Standardized benchmarks have driven methodological progress but also revealed biases. The
+          ObjectNav benchmark [9], evaluated primarily in simulated indoor environments, has
+          been criticized for rewarding policies that exploit dataset-specific regularities rather than
+          genuinely general exploration strategies [34]. The sim-to-real gap remains a significant
+          challenge. Policies trained in simulation often fail to transfer directly to physical robots due to
+          differences in visual appearance, dynamics, and sensor noise [34, 6]. Recent work
+          has begun to address this through domain randomization, pre-trained visual encoders, and direct
+          real-world evaluation, with Gervet et al. [34] demonstrating successful real-world
+          ObjectNav by combining learned semantic policies with robust classical planning. This bridging of
+          simulation and reality connects directly to the interactive perception strategies discussed next,
+          where the gap between simulated and real physics becomes even more consequential.
+        </p>
+
+        <h2>5. Interactive and Manipulative Perception</h2>
+
+        <p>
+          When passive observation, even from optimized viewpoints, is insufficient, robots can physically
+          alter the scene to improve perceptual conditions. Interactive perception encompasses strategies
+          where the robot pushes, pokes, rearranges, or otherwise manipulates objects to reveal occluded
+          regions, disambiguate identities, or estimate physical properties that are invisible to passive
+          sensing.
+        </p>
+
+        <h3>5.1 Foundations of Interactive Perception</h3>
+
+        <p>
+          The concept of interactive perception was formalized in a landmark survey by Bohg et al.
+          [13], who defined it as a process by which an agent uses actions to change the state
+          of the world in order to extract information that would otherwise be unavailable. This definition
+          encompasses a broad spectrum of behaviours, including pushing objects apart to segment them
+          (singulation), lifting objects to weigh them, shaking containers to estimate contents, and
+          rearranging clutter to expose hidden targets. The survey identified a general interactive
+          perception loop. The agent perceives the current state, selects an action predicted to generate
+          informative sensory change, executes the action, and integrates the resulting observations into
+          its world model.
+        </p>
+
+        <p>
+          The crucial insight distinguishing interactive from merely active perception is that the agent
+          modifies the world, not just its viewpoint. A viewpoint change does not alter the physical scene,
+          but a push does. This has profound implications for planning, since actions are generally
+          irreversible or at least costly to reverse. The agent must reason about the consequences of
+          physical interventions on both the perceptual state and the task state
+          [13, 35]. The irreversibility constraint makes interactive perception
+          fundamentally more complex than viewpoint planning. The cost of a bad push may be a disarranged
+          scene, while the cost of a bad viewpoint is merely wasted time.
+        </p>
+
+        <h3>5.2 Pushing and Singulation</h3>
+
+        <p>
+          Pushing actions have emerged as the prototypical interactive perception primitive, valued for
+          their relative safety, reversibility, and rich perceptual informativeness. When a robot pushes an
+          object in a cluttered pile, the resulting motion provides segmentation cues (objects that move
+          together are likely the same entity), reveals occluded surfaces, and can separate objects for
+          easier grasping [13, 103].
+        </p>
+
+        <p>
+          Learning-based pushing policies have largely supplanted hand-crafted heuristics for singulation
+          tasks. The Visual Pushing and Grasping (VPG) framework [103] demonstrated that a deep
+          Q-network could learn complementary pushing and grasping primitives, with pushing actions serving
+          to singulate objects and expose better grasp opportunities. The key finding was that joint
+          training of pushing and grasping policies yields synergistic behaviours. The push policy learns to
+          create conditions favourable for grasping, while the grasp policy provides reward signal that
+          shapes the push policy's behaviour. This synergy between interactive perception and manipulation
+          action has become a central theme in the field, illustrating that the line between acting to
+          perceive and acting to manipulate dissolves when both are jointly optimized.
+        </p>
+
+        <p>
+          Subsequent work has refined this paradigm along several axes. Singulation-specific policies have
+          explored more sophisticated action parameterizations, including directional and toppling pushes
+          [12], while target-conditioned approaches focus pushing on exposing a specific object
+          of interest rather than generally decluttering [49]. The challenge of predicting push
+          outcomes in clutter, where contact interactions between multiple objects create complex dynamics,
+          has been addressed through both physics-based simulation [103] and learned forward
+          models [2, 74].
+        </p>
+
+        <h3>5.3 Mechanical Search and Object Retrieval</h3>
+
+        <p>
+          The problem of finding and retrieving a target object from dense clutter, termed <strong>mechanical
+          search</strong> by Danielczuk et al. [27], crystallizes the challenge of interactive
+          perception for mobile manipulation. The target may be partially or completely occluded, requiring
+          the robot to systematically rearrange clutter until the target is detected and accessible. This
+          problem demands tight integration of perception (detecting the target when partially visible),
+          planning (choosing which objects to move and where to move them), and manipulation (executing
+          rearrangement actions reliably).
+        </p>
+
+        <p>
+          Formulating mechanical search as a POMDP where the robot's belief state includes uncertainty about
+          the target's location and the occluding objects' properties has proven a productive approach
+          [27]. Results from this formulation demonstrated that policies combining learned
+          perception with planned rearrangement significantly outperform random or heuristic search
+          strategies. Visuomotor mechanical search [49] extended this framework with end-to-end
+          visuomotor policies that directly map depth images to push actions, avoiding the need for explicit
+          object models. More recent work has explored lateral-access mechanical search, where the robot
+          reaches into a shelf or bin from the side rather than from above [38], requiring
+          qualitatively different interaction strategies that account for constrained workspace geometry.
+        </p>
+
+        <p>
+          The progression from open-space singulation to shelf-constrained search illustrates a broader
+          trend toward increasingly realistic task settings. Early interactive perception work assumed
+          tabletop scenarios with unobstructed overhead access [103, 12], but practical
+          mobile manipulation requires interaction in confined, cluttered spaces where the robot's own body
+          and the environment constrain available actions [38, 27].
+        </p>
+
+        <h3>5.4 Learning Physical Properties Through Interaction</h3>
+
+        <p>
+          Beyond improving geometric understanding, interaction enables the estimation of physical object
+          properties that are invisible to passive vision. Object mass, friction, rigidity, contents, and
+          material composition can often be inferred only through physical manipulation such as lifting,
+          shaking, pressing, or sliding [13].
+        </p>
+
+        <p>
+          Self-supervised learning frameworks have proven effective for acquiring such physical
+          understanding. The &ldquo;learning to poke&rdquo; paradigm [2] demonstrated that a
+          robot could learn forward and inverse dynamics models by poking objects and observing the results,
+          building an implicit physical model through interaction rather than explicit physics programming.
+          The self-supervised nature of this approach, where the robot generates its own training data
+          through exploratory interaction, is particularly attractive for mobile manipulation systems that
+          encounter diverse, unfamiliar objects in the real world. Similarly, large-scale self-supervised
+          grasping [74, 54] showed that extensive physical trial-and-error could teach a
+          robot to infer grasp-relevant physical properties (shape, friction, deformability) from visual
+          input alone, but only after thousands of hours of real-world interaction experience.
+        </p>
+
+        <p>
+          The estimation of articulated object properties (hinge axis, range of motion, friction of drawers
+          and doors) is particularly relevant for mobile manipulation in domestic environments. Interactive
+          approaches that probe articulated objects with small exploratory motions and fit kinematic models
+          to the observed response have demonstrated robust estimation across diverse furniture types
+          [87, 35, 1, 44]. Katz [44]'s
+          sustained programme on articulated-object interactive perception shows that even objects with
+          genuinely novel kinematic structure can be discovered through short exploratory motions, provided
+          the perception system maintains a principled prior over possible degrees of freedom. These methods
+          illustrate a broader principle. The optimal action for property estimation is often a carefully
+          chosen small perturbation, not a large manipulation, reflecting the information-theoretic insight
+          that maximal information gain may come from minimal physical intervention.
+        </p>
+
+        <h3>5.5 Non-Prehensile Manipulation for Perception</h3>
+
+        <p>
+          The repertoire of interactive perception extends beyond pushing and grasping to include a variety
+          of non-prehensile actions. These include sliding, toppling, rolling, and tool use. These actions
+          are important because they access manipulation modes that grasping alone cannot achieve, and they
+          often require less precise control than grasping while still providing rich perceptual information
+          [13, 12].
+        </p>
+
+        <p>
+          A distinctive challenge in mobile manipulation with onboard sensing is that the manipulated object
+          itself occludes the sensor's field of view, creating occluded regions that can lead to collisions.
+          Hwang et al. [39] formulated this as a reinforcement learning problem where
+          uncertainty in predicted collision distributions is treated as an intrinsic reward. The robot
+          chooses push trajectories that simultaneously advance the task and gather information about
+          occluded regions. Confidence maps encoding spatially-varying observation reliability are combined
+          with distributional uncertainty estimates to guide manipulation under partial observability,
+          enabling safe navigation in cluttered environments without external sensing infrastructure
+          [39]. This represents a fundamentally different regime from the tabletop settings of
+          earlier interactive perception work, because self-occlusion from the robot's own manipulation
+          creates an inescapable perceptual deficit that only action can resolve.
+        </p>
+
+        <p>
+          Most interactive perception work targets rigid objects, where a push or poke produces a
+          well-defined rigid motion that feeds back to segmentation or kinematic estimation. Deformable
+          objects (cloth, cables, plants, food) break this assumption. A push may deform the object without
+          moving it as a whole, and the perceptual change is coupled to a configuration-space response with
+          far more degrees of freedom than a rigid body. Weng et al. [94] formalized this
+          setting and proposed interactive perception policies that manipulate deformable objects
+          specifically to bring them into configurations that are easier to perceive, for example flattening
+          a folded cloth to expose its contour before grasping. The key difficulty is that the reward signal
+          for a useful perceptual change is much less local than in the rigid case, and the planner must
+          reason about this coupling. This subfield remains underdeveloped relative to rigid interactive
+          perception, but it is gaining urgency as mobile manipulators are asked to handle laundry, cables,
+          soft fruits, and other deformable objects that dominate real-world unstructured environments.
+        </p>
+
+        <p>
+          Non-prehensile interactions have been leveraged for tasks including pile characterization, where
+          tumbling and poking reveal the distribution and sizes of objects in a heap, and container content
+          estimation, where tilting and shaking provide auditory and dynamic cues about concealed contents.
+          The diversity of available non-prehensile actions creates a large action space for interactive
+          perception, and selecting the most informative interaction from this space remains an open
+          challenge [13]. Recent work has begun to address this through learned action selection
+          policies that choose among multiple interaction types based on the current perceptual uncertainty
+          and task requirements [103, 12], though the combinatorial space of possible
+          interactions (what action, applied where, with what force) remains far larger than current methods
+          can search exhaustively. This challenge of efficiently selecting from a rich action repertoire
+          connects naturally to the tactile domain, where the space of possible exploratory contacts is
+          similarly vast.
+        </p>
+
+        <h2>6. Active Tactile and Multimodal Sensing</h2>
+
+        <p>
+          Vision is the dominant sensing modality for mobile manipulation, but touch provides complementary
+          information that is essential for contact-rich tasks. Active tactile perception, the deliberate
+          planning of exploratory touch to acquire information, has undergone a transformation driven by
+          high-resolution tactile sensors and learning-based methods. The broader motivation for treating
+          touch as a purposive, information-seeking process was articulated in the active touch sensing
+          literature [76], which frames contact not as a passive by-product of manipulation but
+          as a decision variable controlled by the agent in service of perceptual objectives.
+        </p>
+
+        <h3>6.1 The Tactile Sensing Revolution</h3>
+
+        <p>
+          The development of high-resolution, vision-based tactile sensors has been a key enabler of active
+          tactile perception. GelSight [102] and its descendants, including DIGIT
+          [50], use a deformable elastomeric surface and an embedded camera to produce rich
+          tactile images with sub-millimeter geometric resolution and the ability to sense texture, contact
+          geometry, and force distribution. These sensors have dramatically lowered the barrier to tactile
+          research, providing dense, information-rich signals comparable in dimensionality to visual images
+          [102, 50].
+        </p>
+
+        <p>
+          The richness of modern tactile signals has motivated a reconceptualization of touch as a local
+          visual modality, enabling the application of computer vision and deep learning techniques to
+          tactile processing. Convolutional networks trained on tactile images can estimate local surface
+          geometry, material properties, and contact forces with accuracy rivalling purpose-built
+          transducers [102, 56]. This reframing has been critical for active tactile
+          perception, as it enables the same learning frameworks used for visual active perception to be
+          applied to the tactile domain. A comprehensive review of earlier robotic tactile perception
+          approaches [60] documented the transition from sparse, low-dimensional force
+          measurements to the rich, image-like signals that now dominate the field.
+        </p>
+
+        <h3>6.2 Active Tactile Exploration</h3>
+
+        <p>
+          Active tactile exploration addresses the question of where and how to touch in order to maximize
+          information about an object's shape, material, or state. Unlike vision, which provides global but
+          coarse information, touch provides local but precise information, requiring sequential exploration
+          strategies that efficiently cover the object surface.
+        </p>
+
+        <p>
+          Bayesian approaches to active touch planning select contact locations that maximize expected
+          information gain about the object's identity or shape, mirroring the information-theoretic
+          formulations of visual NBV planning [99]. This parallel is not coincidental. The
+          mathematical structure of choosing the next informative observation is identical whether the
+          observation is a camera image or a tactile contact. Shape reconstruction from touch requires the
+          robot to plan a sequence of contacts that efficiently resolves the object's 3D geometry, a problem
+          that has been addressed through both model-based approaches (fitting a shape prior to accumulated
+          touch observations) and model-free approaches (using learned encoders to map touch sequences to
+          shape representations) [86, 89].
+        </p>
+
+        <p>
+          The planning of exploratory touch trajectories introduces unique challenges absent from visual
+          viewpoint planning. The robot must maintain stable contact while moving along the object surface,
+          avoid damaging the object or sensor, and reason about the reachability and safety of contact
+          poses given the robot's kinematic constraints [99, 60]. Additionally, tactile
+          exploration is inherently sequential, since the robot can only touch one point at a time. This
+          makes the selection of the next contact location more consequential than in vision, where a
+          single image captures information about the entire visible scene. A related but often overlooked
+          dimension of this sequential problem is deciding when to stop touching. Niemann et al.
+          [67] learn explicit termination policies via deep reinforcement learning, trading
+          additional contacts for reduced residual uncertainty and showing that budget-aware active tactile
+          perception can significantly reduce the number of exploratory contacts without sacrificing
+          accuracy.
+        </p>
+
+        <h3>6.3 Visuo-Tactile Fusion</h3>
+
+        <p>
+          The complementarity of vision and touch (global vs. local, pre-contact vs. contact-time,
+          geometric vs. physical) makes their fusion a natural strategy for rich object understanding.
+          Active multimodal perception selects actions (viewpoints, touches) across both modalities to build
+          a unified object model.
+        </p>
+
+        <p>
+          Self-supervised learning of visuo-tactile representations has emerged as a dominant paradigm for
+          bridging these modalities. Training a multimodal representation by predicting whether vision and
+          touch observations correspond to the same contact event enables the learning of a shared
+          embedding space without manual labels [52]. Cross-modal prediction, generating expected
+          tactile output from visual input and vice versa, offers a complementary self-supervised objective
+          that learns representations encoding both visual appearance and tactile properties
+          [56]. These learned representations enable tactile prediction from vision (anticipating
+          how an object will feel before touching it) and visual prediction from touch (imagining what an
+          object looks like from touch alone), supporting more efficient active perception by allowing the
+          robot to decide which modality will be most informative for a given query [52, 56].
+        </p>
+
+        <p>
+          The fusion of vision and touch for grasp optimization represents a high-impact application of
+          multimodal active perception. Combining visual pre-grasp assessment with tactile in-grasp feedback
+          substantially improves grasp success rates, with the tactile signal providing information about
+          grasp stability and contact quality that vision cannot supply [19]. The active component
+          of this system lies in the re-grasp policy. When tactile feedback indicates an unstable grasp, the
+          robot adjusts its grip, using touch-driven actions to improve the perceptual (and physical) state.
+          This closed-loop integration of tactile sensing with corrective manipulation exemplifies the
+          action-for-perception paradigm at the contact level.
+        </p>
+
+        <p>
+          Multimodal active perception also scales to environmental questions that no single modality can
+          answer on its own. See-Touch-Predict [58] addresses this for legged robots, combining
+          a visual prediction head with active tactile probing of terrain patches. The robot uses vision to
+          hypothesize local physical properties such as traction, softness, and compliance, selects
+          exploratory touches that are most informative given those hypotheses, and updates its predictions
+          from the resulting contact signals. The key insight transferring from object-level active tactile
+          work is that the same information-theoretic machinery applies at environmental scale, and the key
+          divergence is that the sensor is now an entire leg or body rather than a dedicated fingertip. This
+          points toward a broader direction in which the mobile manipulator treats its whole body, not just
+          its arm and camera, as an array of potential active perceivers.
+        </p>
+
+        <h3>6.4 Tactile Mapping and Localization</h3>
+
+        <p>
+          Extending tactile perception from individual contacts to spatial maps, recent work has explored
+          tactile SLAM and object-level tactile mapping. Monte Carlo inference over contact distributions
+          accumulated during sliding touch enables probabilistic mapping of the object surface from
+          sequential tactile readings [89]. Complementary methods use tactile observations to
+          localize a known object in the gripper, estimating 6-DOF pose from touch alone [10].
+          Contact SLAM [92] takes this further by framing contact-rich manipulation without
+          vision as a full SLAM problem, where an active tactile exploration policy driven by physical
+          reasoning builds the scene model from a sequence of contacts alone. These methods represent an
+          evolution from treating each touch as an independent observation to integrating touch over time
+          and space, paralleling the historical development of visual SLAM from feature matching to dense
+          reconstruction.
+        </p>
+
+        <p>
+          For mobile manipulation, tactile mapping is particularly relevant when visual perception is
+          degraded, in confined spaces, under poor lighting, or when handling transparent or reflective
+          objects that defeat standard visual sensors [89, 10]. Active tactile mapping
+          policies that strategically plan contact sequences to build environmental models in visually
+          challenging conditions remain an emerging area with significant potential. The challenge of
+          tactile simulation, accurately modelling the deformation of soft sensor surfaces during contact,
+          has been partially addressed by dedicated simulators [93], but the fidelity gap between
+          simulated and real tactile signals remains wider than for vision, limiting the applicability of
+          sim-to-real transfer strategies that have proven so effective for visual active perception
+          [84].
+        </p>
+
+        <h2>7. Learned Perception-Action Policies</h2>
+
+        <p>
+          The preceding sections have examined specific paradigms for action-for-perception including
+          viewpoint planning, exploration, interaction, and touch. A unifying development of the past decade
+          has been the application of deep learning to jointly reason over actions and perceptual outcomes,
+          producing policies that learn when and how to act for perceptual gain from data rather than
+          hand-designed heuristics.
+        </p>
+
+        <h3>7.1 Reinforcement Learning for Active Perception</h3>
+
+        <p>
+          Reinforcement learning provides a natural framework for active perception. The agent selects
+          actions to maximize a cumulative reward that includes perceptual objectives such as uncertainty
+          reduction, detection confidence, and reconstruction quality. Deep RL, combining RL with neural
+          network function approximation, has enabled active perception in high-dimensional observation
+          spaces.
+        </p>
+
+        <p>
+          Training an RL agent to select viewpoints in unfamiliar environments to build representations
+          useful for downstream visual recognition tasks demonstrated that learned policies can discover
+          non-trivial active perception strategies [42]. The agent received reward based on the
+          quality of its learned scene representation rather than explicit information gain, allowing it to
+          discover task-relevant viewing strategies without hand-designed utility functions such as
+          preferring views that contain contextual cues or avoiding redundant observations. These strategies
+          would be difficult to specify manually.
+        </p>
+
+        <p>
+          In manipulation settings, the integration of active perception with task execution has been
+          approached through multi-task RL formulations where the agent must jointly learn when to look,
+          when to interact, and when to commit to a grasp or placement [103, 43]. Large-scale
+          deep RL for vision-based grasping, trained on over 580,000 real-world grasp attempts, demonstrated
+          that learned policies implicitly develop active perception behaviours. The policies approached
+          objects from informative angles and adjusted viewpoints to resolve ambiguous configurations as a
+          byproduct of end-to-end training [43]. The emergence of such perception-aware
+          behaviours without explicit design suggests that tight coupling between perception and action may
+          be most effectively achieved through learning at sufficient scale.
+        </p>
+
+        <h3>7.2 Imitation Learning and Behavior Cloning</h3>
+
+        <p>
+          Imitation learning offers an alternative to RL, training policies on expert demonstrations rather
+          than through trial-and-error interaction. For active perception, this approach has the advantage
+          of leveraging human perceptual strategies. People naturally look at informative features, adjust
+          their viewpoint for clarity, and interact with objects to understand them, and this provides
+          useful training signal.
+        </p>
+
+        <p>
+          Recent advances in imitation learning architectures have significantly expanded the capability of
+          learned manipulation policies. Diffusion-based action generation [24] applied denoising
+          diffusion models to visuomotor policy learning, capturing multimodal action distributions that
+          represent the multiple valid strategies a human demonstrator might use for a given perceptual
+          situation. Action chunking with transformers [106] enabled precise bimanual
+          manipulation requiring fine-grained perceptual discrimination. While these methods are primarily
+          framed as manipulation policies, their effectiveness depends on learned perceptual competencies.
+          The policies must implicitly determine what visual features matter, how to resolve perceptual
+          ambiguity, and when the current observation is sufficient for action.
+        </p>
+
+        <p>
+          A promising recent direction treats head or camera orientation as an explicit learned action
+          dimension alongside manipulation and navigation in a unified imitation-learned policy
+          [97]. Perceptual gain becomes a policy output rather than a fixed sensor placement.
+          HoMMI [97] further demonstrates that robot-free human demonstration collection for
+          mobile manipulation requires co-designing observation and action spaces to bridge the
+          cross-embodiment gap introduced by active sensing, using embodiment-agnostic visual
+          representations and relaxed head action representations. Energy-based models for behaviour
+          cloning [33] take another approach, defining the policy as an energy function over
+          state-action pairs rather than a direct state-to-action mapping. This formulation naturally
+          handles multimodal demonstrations and has shown strong performance on tasks requiring precise
+          perceptual understanding such as insertion and alignment.
+        </p>
+
+        <h3>7.3 Foundation Models for Robotic Perception-Action</h3>
+
+        <p>
+          The emergence of large-scale foundation models pre-trained on internet-scale data has opened new
+          possibilities for action-for-perception in mobile manipulation. Vision-language models such as
+          CLIP [77] provide rich semantic features that can guide active perception without
+          task-specific training, while large language models offer high-level planning capabilities that
+          can sequence perceptual actions.
+        </p>
+
+        <p>
+          Robotics Transformer (RT) models [16, 17] represent a direct scaling
+          approach, training transformer-based policies on large multi-task robotic datasets. RT-1
+          [16] trained on 130,000 real-world demonstrations across over 700 tasks, learning a
+          single policy that generalizes across diverse manipulation skills. RT-2 [17]
+          demonstrated that co-training on robotic data and web-scale vision-language data transfers
+          semantic understanding to robotic control, enabling the execution of novel instructions that were
+          never seen during robotic training. For active perception, these models are significant because
+          they encode broad visual understanding that supports perception-aware manipulation. The policy
+          implicitly captures knowledge that transparent objects are hard to see, that occluded targets
+          must be found, and that certain viewpoints are more informative than others, all inherited from
+          pre-training rather than explicit design.
+        </p>
+
+        <p>
+          Language-grounded planning frameworks have demonstrated that large language models can provide
+          high-level task planning for mobile manipulation robots, grounding language knowledge in physical
+          affordances [3]. Embodied multimodal models that integrate visual inputs directly into
+          large language models create systems capable of reasoning about both visual observations and
+          physical actions [31]. For active perception, these models provide a planning layer
+          that can reason about information-gathering actions, recognizing that the system needs to look
+          behind an obstacle, open a drawer to find a target object, or reposition for a better view.
+          Programmatic policy generation through LLMs [57] offers yet another paradigm, where
+          the language model generates explicit code that composes perception and action primitives.
+        </p>
+
+        <p>
+          The Open X-Embodiment collaboration [69] consolidated robotic learning datasets across
+          multiple institutions and robot platforms, training RT-X models that demonstrate positive transfer
+          across embodiments. This cross-embodiment generalization is relevant to active perception because
+          it suggests that perception-action strategies learned on one robot can transfer to another, even
+          with different sensor configurations and kinematic capabilities. However, the extent to which
+          active perceptual behaviours (as opposed to manipulation skills) transfer across embodiments
+          remains an open question.
+        </p>
+
+        <h3>7.4 Modular vs. End-to-End Architectures</h3>
+
+        <p>
+          A persistent architectural debate in learned perception-action systems concerns the degree of
+          modularity. End-to-end systems train a single neural network from raw sensory input to motor
+          output, potentially capturing perception-action dependencies that modular systems miss
+          [53]. Modular systems decompose the pipeline into perception, planning, and control
+          components, offering interpretability, reusability, and easier debugging [20].
+        </p>
+
+        <p>
+          For active perception in mobile manipulation, the evidence suggests that moderate modularity,
+          separating learned perception from learned policy while allowing gradient flow between them, often
+          outperforms both extremes. The Active Neural SLAM architecture [20] exemplifies this
+          approach. Separately designed but jointly optimized mapping and navigation modules outperform both
+          classical baselines and monolithic end-to-end policies. Similarly, combining pre-trained visual
+          features with learned manipulation primitives [85] achieved strong generalization by
+          modularizing visual understanding and physical skill. MANIP [101] proposes an
+          explicit modular systems architecture for interactive perception that composes learned
+          subpolicies with well-established procedural components, arguing that the engineering benefits of
+          modularity (interpretability, reusability, easier debugging) are especially valuable for
+          interactive perception because of its mixed discrete-continuous action structure and the rarity of
+          correctly-labeled interaction data.
+        </p>
+
+        <p>
+          The foundation model era has introduced a new variant of this debate. Vision-language-action
+          models like RT-2 [17] are technically end-to-end but encode enormous modularity
+          implicitly through pre-training. The visual encoder, language model, and action head capture
+          distinct competencies learned from different data sources. Programmatic policies [57]
+          take the opposite approach, using LLMs to generate explicit modular programs that compose
+          perception and action primitives. Both approaches achieve strong generalization, suggesting that
+          the key factor is not architectural modularity per se, but how effectively prior knowledge is
+          incorporated, whether through pre-training, modular design, or a combination of both. Which
+          architectural philosophy best serves active perception specifically, as opposed to manipulation in
+          general, remains underexplored and is an important direction for future work.
+        </p>
+
+        <h2>8. Cross-Cutting Analysis</h2>
+
+        <p>
+          The five paradigms examined above are not isolated subfields but deeply interconnected aspects of
+          a unified challenge. Several cross-cutting themes emerge from their joint analysis.
+        </p>
+
+        <h3>8.1 The Convergence of Representations</h3>
+
+        <p>
+          A striking trend across all five paradigms is the convergence toward neural implicit
+          representations, particularly NeRFs and their variants, as the scene model that guides active
+          perception decisions. In viewpoint planning, NeRF-based methods use rendered uncertainty to select
+          views [71]. In exploration, neural implicit maps are beginning to replace occupancy
+          grids as the spatial representation [88]. In interactive perception, neural
+          representations can model the effects of physical interactions on scene appearance. In tactile
+          sensing, implicit representations encode object shape from sparse contact observations
+          [89]. And in learned policies, neural scene representations serve as the latent state
+          that policies condition on.
+        </p>
+
+        <p>
+          This representational convergence is significant because it suggests a possible unifying framework.
+          A single neural scene model could accumulate information from all sensing modalities (vision,
+          touch, proprioception) and its predictive uncertainty would naturally guide active perception
+          across all action types (viewpoint changes, exploration, interaction, touch). While no existing
+          system fully realizes this vision, the trajectories of each subfield point toward it.
+          Language-embedded neural fields [45] and similar semantic neural representations
+          provide the additional layer of semantic grounding that such unified representations would
+          require, enabling active perception decisions to be guided by both geometric uncertainty and
+          semantic relevance.
+        </p>
+
+        <h3>8.2 The Information-Theoretic Thread</h3>
+
+        <p>
+          Across paradigms, information-theoretic principles provide a common mathematical language for
+          quantifying the value of perceptual actions. The expected information gain criterion motivates
+          NBV planning [29], frontier selection in exploration [75], interaction
+          selection in interactive perception [13], and touch point selection in active tactile
+          sensing [99]. The deep connection is that all forms of active perception can be framed
+          as selecting actions to maximally reduce uncertainty about a belief state, whether that state
+          describes object shape, scene layout, physical properties, or semantic identity.
+        </p>
+
+        <p>
+          However, there is a growing tension between information-theoretic approaches, which require
+          explicit uncertainty models, and end-to-end learned approaches, which bypass explicit uncertainty
+          computation entirely. Learned policies trained with task-level reward may develop implicitly
+          information-seeking behaviours [43] without ever computing entropy or information
+          gain. Whether these implicit strategies are as efficient as principled information-theoretic
+          planning, or merely sufficient for the tasks at hand, remains an important open question. The
+          answer likely depends on the complexity of the uncertainty landscape. In simple settings,
+          end-to-end learning may suffice. In complex, multi-modal uncertainty environments, explicit
+          reasoning may be necessary.
+        </p>
+
+        <h3>8.3 Sim-to-Real Transfer and the Role of Simulation</h3>
+
+        <p>
+          The role of simulation as a bridge between learning-based approaches and real-world deployment
+          constitutes a major cross-cutting methodological concern. Viewpoint planning methods are
+          increasingly trained in simulation and transferred to real robots [104]. Exploration
+          policies are almost universally trained in simulated environments [20, 78].
+          Interactive perception benefits from simulated physics for predicting push outcomes
+          [103]. Tactile simulation is rapidly maturing [93]. And large-scale policy
+          training relies on both simulation and real-world data collection [16].
+        </p>
+
+        <p>
+          The fidelity requirements for simulation differ across paradigms, creating a hierarchy of
+          difficulty. Visual fidelity matters most for viewpoint planning and exploration, where the agent
+          must reason about what it will see from candidate poses. Physical fidelity is most critical for
+          interactive perception and tactile sensing, where the consequences of physical interaction must be
+          accurately predicted. The convergence of visual and physical fidelity in modern simulation
+          platforms [90, 95] is a positive trend, but gaps remain. Tactile simulation is
+          particularly difficult, because the deformation of soft sensor surfaces is computationally
+          expensive and difficult to calibrate [93]. Foundation models partially sidestep the
+          sim-to-real problem by pre-training on web-scale real-world data [17, 77], but
+          they introduce their own transfer challenges when fine-tuned on simulation data.
+        </p>
+
+        <h3>8.4 Bridging Perception and Task Execution</h3>
+
+        <p>
+          A fundamental tension across all paradigms is the trade-off between perceptual improvement and
+          task progress. Time spent actively perceiving is time not spent executing the task, and in many
+          applications, the robot must balance information gathering against task completion. This trade-off
+          manifests differently across paradigms, as the exploration-exploitation dilemma in active SLAM
+          [75], as the cost of rearrangement in mechanical search [27], and as the
+          decision of when to stop looking and start grasping [15]. But the underlying structure
+          is shared.
+        </p>
+
+        <p>
+          Integrated approaches that jointly optimize perception and task objectives represent the frontier
+          of the field. Task-conditioned viewpoint planning that simultaneously optimizes visual information
+          gain (scene reconstruction quality) and task-specific utility such as grasp reachability
+          [41, 37, 61] treats perception and task planning as a
+          single objective rather than as separate stages. The coupled active perception and manipulation
+          (CAPM) formulation [96] makes this coupling explicit for mobile manipulators, modelling
+          the uncertainty contributed by both the perception module and the manipulation module and planning
+          a close-up view whose information gain is measured relative to manipulation success, not
+          reconstruction quality. Foundation model-based systems [17, 31] implicitly
+          learn this trade-off from data, but their decisions are opaque. Information-theoretic approaches
+          can explicitly model the cost of perception actions versus their information benefit
+          [73], but they require tractable uncertainty models. Developing principled,
+          computationally tractable methods for balancing perception and action in complex mobile
+          manipulation tasks remains a central challenge that connects all five paradigms examined in this
+          survey.
+        </p>
+
+        <h2>9. Open Problems and Future Directions</h2>
+
+        <p>
+          Despite remarkable progress, several specific open problems and methodological gaps define the
+          frontier of action-for-perception in mobile manipulation.
+        </p>
+
+        <p>
+          <strong>Unified active perception across modalities.</strong> Current systems typically plan
+          active perception within a single modality, choosing a viewpoint or a touch point or a physical
+          interaction. Optimal perception-action strategies should reason across modalities simultaneously.
+          Developing a unified framework for cross-modal active perception planning, one that can evaluate
+          and compare the information value of a glance, a touch, and a push on a common scale, is a
+          foundational open problem. Information-theoretic formulations offer a possible unifying language,
+          but computing mutual information across heterogeneous observation models (images, tactile arrays,
+          force signals) remains technically challenging [99, 29].
+        </p>
+
+        <p>
+          <strong>Long-horizon active perception planning.</strong> Most existing methods plan perception
+          actions myopically (one step) or over short horizons (a few steps). Mobile manipulation tasks in
+          unstructured environments may require dozens of perception actions spanning minutes of
+          exploration, interaction, and observation before the robot has sufficient understanding to act
+          effectively. Scaling active perception planning to these long horizons, with the combinatorial
+          explosion of possible action sequences, requires new planning and learning paradigms. Hierarchical
+          approaches that plan at multiple levels of abstraction, combined with foundation model-based
+          heuristics [3, 31], offer a promising direction.
+        </p>
+
+        <p>
+          <strong>Active perception under safety and physical constraints.</strong> Interactive perception
+          actions can damage objects, the robot, or the environment. Current methods rarely account for
+          physical safety constraints in their planning formulations [13]. A principled framework
+          for safe active perception, one that balances information gain against the risk of physical harm,
+          is needed for deployment in unstructured, human-inhabited environments. The approach of Hwang et
+          al. [39], which uses uncertainty in predicted collision distributions as an intrinsic
+          reward, offers one partial answer by encouraging the robot to gather information about potentially
+          unsafe regions before committing to contact. Generalizing this to broader interaction types is an
+          open challenge.
+        </p>
+
+        <p>
+          <strong>Generalization across objects, environments, and embodiments.</strong> While foundation
+          models have dramatically improved generalization in manipulation [17, 69],
+          the generalization of active perception strategies, whether robots learn to look, explore, and
+          interact in transferable ways, is less well studied. Systematic studies of when and how active
+          perception strategies generalize would inform both algorithm design and data collection
+          priorities.
+        </p>
+
+        <p>
+          <strong>Evaluation methodology.</strong> The field lacks standardized metrics for evaluating
+          active perception in isolation. Success is typically measured by downstream task performance
+          (grasp success, navigation efficiency, reconstruction quality), which conflates perceptual
+          improvement with task execution skill. Developing metrics that isolate the contribution of active
+          perception, meaning how much the robot's deliberate information-gathering actions improved its
+          perceptual state compared to a passive baseline, would enable more targeted methodological
+          progress and fairer comparisons across approaches.
+        </p>
+
+        <p>
+          <strong>Language-guided active perception.</strong> The integration of natural language
+          instructions with active perception is nascent. A user might say &ldquo;check if the mug is behind
+          the cereal box&rdquo; or &ldquo;feel whether this surface is smooth enough&rdquo;, specifying both
+          a perceptual query and an implied action strategy. Grounding such instructions in active
+          perception plans, selecting the right actions to answer the specified query, requires combining
+          language understanding, physical reasoning, and active perception planning in ways that current
+          systems do not fully support [3, 100]. The emergence of language-conditioned
+          viewpoint prediction [37] is an early step in this direction, but it is currently
+          limited to viewpoint selection and has not been extended to the full space of perceptual actions.
+        </p>
+
+        <h2>10. Conclusion</h2>
+
+        <p>
+          The field of action-for-perception in mobile manipulation has matured from isolated subproblems
+          (viewpoint optimization, tactile exploration, push-for-segmentation) into an increasingly
+          integrated research area where learning-based methods, neural scene representations, and
+          foundation models are dissolving traditional boundaries between paradigms. The common thread
+          uniting all five examined paradigms is the recognition that perception is not a passive
+          preprocessing step but an active, embodied process shaped by the robot's decisions about where to
+          go, where to look, what to touch, and how to interact. Information-theoretic principles provide a
+          durable mathematical foundation across paradigms, while deep learning has transformed the
+          practical realization of these principles from hand-crafted heuristics to learned policies that
+          discover effective perceptual strategies from experience.
+        </p>
+
+        <p>
+          The next generation of mobile manipulation systems will not merely perceive to act or act to
+          perceive. It will seamlessly interleave the two in service of increasingly complex tasks in
+          unstructured human environments. Realizing this vision will require bridging the remaining gaps
+          in cross-modal information valuation, long-horizon planning under physical constraints, and
+          systematic evaluation methodology. The recent emergence of foundation-model active perception
+          [37], uncertainty-aware non-prehensile policies [39], and unified
+          imitation-learned whole-body policies [97] suggests the integration is already underway.
+        </p>
+
+        </section>
+
+        <div class="references-section">
+          <h2 class="references-header">References</h2>
+          <ol class="references-list">
+            <li id="ref-1">Abbatematteo, B., Tellex, S., &amp; Konidaris, G. (2019). &ldquo;Learning to Generalize Kinematic Models to Novel Objects.&rdquo; <em>CoRL 2019</em>.</li>
+            <li id="ref-2">Agrawal, P., Nair, A., Abbeel, P., Malik, J., &amp; Levine, S. (2016). &ldquo;Learning to Poke by Poking. Experiential Learning of Intuitive Physics.&rdquo; <em>NeurIPS 2016</em>.</li>
+            <li id="ref-3">Ahn, M., Brohan, A., Brown, N., et al. (2022). &ldquo;Do As I Can, Not As I Say. Grounding Language in Robotic Affordances.&rdquo; <em>arXiv:2204.01691</em>.</li>
+            <li id="ref-4">Aloimonos, J., Weiss, I., &amp; Bandyopadhyay, A. (1988). &ldquo;Active Vision.&rdquo; <em>International Journal of Computer Vision</em>, 1(4), 333&ndash;356.</li>
+            <li id="ref-5">Anderson, P., Wu, Q., Teney, D., et al. (2018). &ldquo;Vision-and-Language Navigation. Interpreting Visually-Grounded Navigation Instructions in Real Environments.&rdquo; <em>CVPR 2018</em>.</li>
+            <li id="ref-6">Anderson, P., Shrivastava, A., Truong, J., et al. (2020). &ldquo;Sim-to-Real Transfer for Vision-and-Language Navigation.&rdquo; <em>CoRL 2020</em>.</li>
+            <li id="ref-7">Bajcsy, R. (1988). &ldquo;Active Perception.&rdquo; <em>Proceedings of the IEEE</em>, 76(8), 966&ndash;1005.</li>
+            <li id="ref-8">Bajcsy, R., Aloimonos, Y., &amp; Tsotsos, J. K. (2018). &ldquo;Revisiting Active Perception.&rdquo; <em>Autonomous Robots</em>, 42(2), 177&ndash;196.</li>
+            <li id="ref-9">Batra, D., Gokaslan, A., Kembhavi, A., et al. (2020). &ldquo;ObjectNav Revisited. On Evaluation of Embodied Agents Navigating to Objects.&rdquo; <em>arXiv:2006.13171</em>.</li>
+            <li id="ref-10">Bauza, M., Bronars, A., &amp; Rodriguez, A. (2023). &ldquo;Tac2Pose. Tactile Object Pose Estimation from the First Touch.&rdquo; <em>IJRR</em>, 42(13), 1185&ndash;1209.</li>
+            <li id="ref-11">Beiki, H. O., Kavousian, B., Belke, M., Petrovi&cacute;, O., &amp; Brecher, C. (2025). &ldquo;Deep Reinforcement Learning for Next Best View Planning in Autonomous Robot-Based 3D Reconstruction.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-12">Berscheid, L., Mei&szlig;ner, P., &amp; Kr&ouml;ger, T. (2019). &ldquo;Robot Learning of Shifting Objects for Grasping in Cluttered Environments.&rdquo; <em>IROS 2019</em>.</li>
+            <li id="ref-13">Bohg, J., Hausman, K., Sankaran, B., et al. (2017). &ldquo;Interactive Perception. Leveraging Action in Perception and Perception in Action.&rdquo; <em>IEEE Transactions on Robotics</em>, 33(6), 1273&ndash;1291.</li>
+            <li id="ref-14">Breyer, M., Chung, J. J., Ott, L., Siegwart, R., &amp; Nieto, J. (2021). &ldquo;Volumetric Grasping Network. Real-time 6 DOF Grasp Detection in Clutter.&rdquo; <em>CoRL 2021</em>.</li>
+            <li id="ref-15">Breyer, M., Furrer, F., Novkovic, T., et al. (2022). &ldquo;Closed-Loop Next-Best-View Planning for Target-Driven Grasping.&rdquo; <em>IROS 2022</em>.</li>
+            <li id="ref-16">Brohan, A., Brown, N., Carbajal, J., et al. (2022). &ldquo;RT-1. Robotics Transformer for Real-World Control at Scale.&rdquo; <em>arXiv:2212.06817</em>.</li>
+            <li id="ref-17">Brohan, A., Brown, N., Carbajal, J., et al. (2023). &ldquo;RT-2. Vision-Language-Action Models Transfer Web Knowledge to Robotic Control.&rdquo; <em>arXiv:2307.15818</em>.</li>
+            <li id="ref-18">Burda, Y., Edwards, H., Storkey, A., &amp; Klimov, O. (2019). &ldquo;Exploration by Random Network Distillation.&rdquo; <em>ICLR 2019</em>.</li>
+            <li id="ref-19">Calandra, R., Owens, A., Jayaraman, D., et al. (2018). &ldquo;More Than a Feeling. Learning to Grasp and Regrasp using Vision and Touch.&rdquo; <em>IEEE RA-L</em>, 3(4), 3300&ndash;3307.</li>
+            <li id="ref-20">Chaplot, D. S., Gandhi, D., Gupta, S., Gupta, A., &amp; Salakhutdinov, R. (2020). &ldquo;Learning to Explore using Active Neural SLAM.&rdquo; <em>ICLR 2020</em>.</li>
+            <li id="ref-21">Chaplot, D. S., Gandhi, D., Gupta, A., &amp; Salakhutdinov, R. (2020). &ldquo;Semantic Curiosity for Active Visual Learning.&rdquo; <em>ECCV 2020</em>.</li>
+            <li id="ref-22">Chaplot, D. S., Gandhi, D., Gupta, A., &amp; Salakhutdinov, R. (2020). &ldquo;Object Goal Navigation using Goal-Oriented Semantic Exploration.&rdquo; <em>NeurIPS 2020</em>.</li>
+            <li id="ref-23">Chen, S. Y., Li, Y. F., &amp; Kwok, N. M. (2011). &ldquo;Active Vision in Robotic Systems. A Survey of Recent Developments.&rdquo; <em>IJRR</em>, 30(11), 1343&ndash;1377.</li>
+            <li id="ref-24">Chi, C., Feng, S., Du, Y., et al. (2023). &ldquo;Diffusion Policy. Visuomotor Policy Learning via Action Diffusion.&rdquo; <em>RSS 2023</em>.</li>
+            <li id="ref-25">Connolly, C. (1985). &ldquo;The Determination of Next Best Views.&rdquo; <em>ICRA 1985</em>.</li>
+            <li id="ref-26">Cuaran, J., et al. (2024). &ldquo;Active Semantic Mapping with Mobile Manipulator in Horticultural Environments.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-27">Danielczuk, M., Kurenkov, A., Balakrishna, A., et al. (2019). &ldquo;Mechanical Search. Multi-Step Retrieval of a Target Object Occluded by Clutter.&rdquo; <em>ICRA 2019</em>.</li>
+            <li id="ref-28">Deitke, M., VanderBilt, E., Herrasti, A., et al. (2022). &ldquo;ProcTHOR. Large-Scale Embodied AI Using Procedural Generation.&rdquo; <em>NeurIPS 2022</em>.</li>
+            <li id="ref-29">Delmerico, J., Isler, S., Sabzevari, R., &amp; Scaramuzza, D. (2018). &ldquo;A Comparison of Volumetric Information Gain Metrics for Active 3D Object Reconstruction.&rdquo; <em>Autonomous Robots</em>, 42(2), 197&ndash;214.</li>
+            <li id="ref-30">Doumanoglou, A., Kouskouridas, R., Malassiotis, S., &amp; Kim, T.-K. (2016). &ldquo;Recovering 6D Object Pose and Predicting Next-Best-View in the Crowd.&rdquo; <em>CVPR 2016</em>.</li>
+            <li id="ref-31">Driess, D., Xia, F., Sajjadi, M. S. M., et al. (2023). &ldquo;PaLM-E. An Embodied Multimodal Language Model.&rdquo; <em>ICML 2023</em>.</li>
+            <li id="ref-32">Duan, J., Yu, S., Tan, H. L., Zhu, H., &amp; Tan, C. (2022). &ldquo;A Survey of Embodied AI. From Simulators to Research Tasks.&rdquo; <em>IEEE Transactions on Emerging Topics in Computational Intelligence</em>, 6(2), 230&ndash;244.</li>
+            <li id="ref-33">Florence, P., Lynch, C., Zeng, A., et al. (2022). &ldquo;Implicit Behavioral Cloning.&rdquo; <em>CoRL 2022</em>.</li>
+            <li id="ref-34">Gervet, T., Chintala, S., Batra, D., Malik, J., &amp; Chaplot, D. S. (2023). &ldquo;Navigating to Objects in the Real World.&rdquo; <em>Science Robotics</em>, 8(79).</li>
+            <li id="ref-35">Hausman, K., Niekum, S., Osentoski, S., &amp; Sukhatme, G. S. (2015). &ldquo;Active Articulation Model Estimation through Interactive Perception.&rdquo; <em>ICRA 2015</em>.</li>
+            <li id="ref-36">Hu, B., Chang, C., Ge, J., Namgung, M., Lin, X., Krieger, A., &amp; Mohsenin, T. (2026). &ldquo;OA-NBV. Occlusion-Aware Next-Best-View Planning for Human-Centered Active Perception on Mobile Robots.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-37">Huang, Y., Wang, Z., Tang, W., Lu, C., &amp; Cai, P. (2026). &ldquo;I-Perceive. A Foundation Model for Active Perception with Language Instructions.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-38">Huang, Z., Danielczuk, M., Balakrishna, A., et al. (2021). &ldquo;Mechanical Search on Shelves using Lateral-Access X-Ray.&rdquo; <em>IROS 2021</em>.</li>
+            <li id="ref-39">Hwang, J., Yang, T., Jeong, J., Yoon, M., &amp; Yoon, S.-E. (2026). &ldquo;Uncertainty-Aware Non-Prehensile Manipulation with Mobile Manipulators under Object-Induced Occlusion (CURA-PPO).&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-40">Isler, S., Sabzevari, R., Delmerico, J., &amp; Scaramuzza, D. (2016). &ldquo;An Information Gain Formulation for Active Volumetric 3D Reconstruction.&rdquo; <em>ICRA 2016</em>.</li>
+            <li id="ref-41">Jauhri, S., Peters, J., &amp; Chalvatzaki, G. (2023). &ldquo;Active-Perceptive Motion Generation for Mobile Manipulation.&rdquo; <em>ICRA 2023</em>.</li>
+            <li id="ref-42">Jayaraman, D., &amp; Grauman, K. (2018). &ldquo;Learning to Look Around. Intelligently Exploring Unseen Environments for Unknown Tasks.&rdquo; <em>CVPR 2018</em>.</li>
+            <li id="ref-43">Kalashnikov, D., Irpan, A., Pastor, P., et al. (2018). &ldquo;QT-Opt. Scalable Deep Reinforcement Learning for Vision-Based Robotic Manipulation.&rdquo; <em>CoRL 2018</em>.</li>
+            <li id="ref-44">Katz, D. (2022). &ldquo;Interactive Perception of Articulated Objects for Autonomous Manipulation.&rdquo; <em>PhD Thesis</em>.</li>
+            <li id="ref-45">Kerr, J., Kim, C. M., Goldberg, K., Kanazawa, A., &amp; Tancik, M. (2023). &ldquo;LERF. Language Embedded Radiance Fields.&rdquo; <em>ICCV 2023</em>.</li>
+            <li id="ref-46">Khatib, O., Yokoi, K., Chang, K., et al. (1999). &ldquo;Force Strategies for Cooperative Tasks in Multiple Mobile Manipulation Systems.&rdquo; <em>Robotics and Autonomous Systems</em>, 30, 43&ndash;64.</li>
+            <li id="ref-47">Knobbe, D., Standke, J. J. W., &amp; Haddadin, S. (2025). &ldquo;Enhancing Robotic Perception with Low-Cost Fast Active Vision Achieving Sub-Millimeter Accurate Marker-Based Pose Estimation.&rdquo; <em>ICRA 2025</em>.</li>
+            <li id="ref-48">Kolve, E., Mottaghi, R., Han, W., et al. (2017). &ldquo;AI2-THOR. An Interactive 3D Environment for Visual AI.&rdquo; <em>arXiv:1712.05474</em>.</li>
+            <li id="ref-49">Kurenkov, A., Taglic, J., Kulkarni, R., et al. (2020). &ldquo;Visuomotor Mechanical Search. Learning to Retrieve Target Objects in Clutter.&rdquo; <em>IROS 2020</em>.</li>
+            <li id="ref-50">Lambeta, M., Chou, P.-W., Tian, S., et al. (2020). &ldquo;DIGIT. A Novel Design for a Low-Cost Compact High-Resolution Tactile Sensor with Application to In-Hand Manipulation.&rdquo; <em>IEEE RA-L</em>, 5(3), 3838&ndash;3845.</li>
+            <li id="ref-51">Lee, J., Szot, A., et al. (2022). &ldquo;Uncertainty Guided Policy for Active Robotic 3D Reconstruction using Neural Radiance Fields.&rdquo; <em>IEEE RA-L</em>, 7(4).</li>
+            <li id="ref-52">Lee, M. A., Zhu, Y., Srinivasan, K., et al. (2019). &ldquo;Making Sense of Vision and Touch. Self-Supervised Learning of Multimodal Representations for Contact-Rich Tasks.&rdquo; <em>ICRA 2019</em>.</li>
+            <li id="ref-53">Levine, S., Finn, C., Darrell, T., &amp; Abbeel, P. (2016). &ldquo;End-to-End Training of Deep Visuomotor Policies.&rdquo; <em>JMLR</em>, 17(39), 1&ndash;40.</li>
+            <li id="ref-54">Levine, S., Pastor, P., Krizhevsky, A., Ibarz, J., &amp; Quillen, D. (2018). &ldquo;Learning Hand-Eye Coordination for Robotic Grasping with Deep Learning and Large-Scale Data Collection.&rdquo; <em>IJRR</em>, 37(4&ndash;5), 421&ndash;436.</li>
+            <li id="ref-55">Li, C., Xia, F., Mart&iacute;n-Mart&iacute;n, R., et al. (2021). &ldquo;iGibson 2.0. Object-Centric Simulation for Robot Learning of Everyday Household Tasks.&rdquo; <em>CoRL 2021</em>.</li>
+            <li id="ref-56">Li, J., Dong, S., &amp; Adelson, E. (2019). &ldquo;Connecting Touch and Vision via Cross-Modal Prediction.&rdquo; <em>CVPR 2019</em>.</li>
+            <li id="ref-57">Liang, J., Huang, W., Xia, F., et al. (2023). &ldquo;Code as Policies. Language Model Programs for Embodied Control.&rdquo; <em>ICRA 2023</em>.</li>
+            <li id="ref-58">Lin, H., Li, H., &amp; Gao, Y. (2025). &ldquo;See-Touch-Predict. Active Exploration and Online Perception of Terrain Physics With Legged Robots.&rdquo; <em>IEEE RA-L</em>.</li>
+            <li id="ref-59">Lluvia, I., Lazkano, E., &amp; Ansuategi, A. (2021). &ldquo;Active Mapping and Robot Exploration. A Survey.&rdquo; <em>Sensors</em>, 21(7), 2445.</li>
+            <li id="ref-60">Luo, S., Bimbo, J., Dahiya, R., &amp; Liu, H. (2017). &ldquo;Robotic Tactile Perception of Object Properties. A Review.&rdquo; <em>Mechatronics</em>, 48, 54&ndash;67.</li>
+            <li id="ref-61">Magalh&atilde;es, S., et al. (2022). &ldquo;Active Perception Fruit Harvesting Robots. A Systematic Review.&rdquo; <em>Journal of Intelligent and Robotic Systems</em>.</li>
+            <li id="ref-62">Mendoza, M., Vasquez-Gomez, J. I., Taud, H., Sucar, L. E., &amp; Reta, C. (2020). &ldquo;Supervised Learning of the Next-Best-View for 3D Object Reconstruction.&rdquo; <em>Pattern Recognition Letters</em>, 133, 224&ndash;231.</li>
+            <li id="ref-63">Mezei, A.-D., et al. (2016). &ldquo;Active Perception for Object Manipulation.&rdquo; <em>International Conference on Computational Photography</em>.</li>
+            <li id="ref-64">Mildenhall, B., Srinivasan, P. P., Tancik, M., et al. (2020). &ldquo;NeRF. Representing Scenes as Neural Radiance Fields for View Synthesis.&rdquo; <em>ECCV 2020</em>.</li>
+            <li id="ref-65">Monica, R., &amp; Aleotti, J. (2019). &ldquo;Humanoid Robot Next Best View Planning Under Occlusions Using Body Movement Primitives.&rdquo; <em>IROS 2019</em>.</li>
+            <li id="ref-66">Morrison, D., Corke, P., &amp; Leitner, J. (2019). &ldquo;Multi-View Picking. Next-Best-View Reaching for Improved Grasping in Clutter.&rdquo; <em>ICRA 2019</em>.</li>
+            <li id="ref-67">Niemann, C., et al. (2024). &ldquo;Learning When to Stop. Efficient Active Tactile Perception with Deep Reinforcement Learning.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-68">Novkovic, T., Pautrat, R., Furrer, F., et al. (2020). &ldquo;Object Finding in Cluttered Scenes Using Interactive Perception.&rdquo; <em>ICRA 2020</em>.</li>
+            <li id="ref-69">Open X-Embodiment Collaboration. (2024). &ldquo;Open X-Embodiment. Robotic Learning Datasets and RT-X Models.&rdquo; <em>ICRA 2024</em>.</li>
+            <li id="ref-70">Ouyang, J., Liu, D., Jia, P., Liu, X., Liu, X., &amp; Sun, Y. (2024). &ldquo;NBV-HRR. Next Best View Planning Network for Highly Reflective Region Restoration in Robotic 3-D Scanning.&rdquo; <em>IEEE/ASME Transactions on Mechatronics</em>.</li>
+            <li id="ref-71">Pan, X., Lai, Z., Song, S., &amp; Huang, G. (2022). &ldquo;ActiveNeRF. Learning Where to See with Uncertainty Estimation.&rdquo; <em>ECCV 2022</em>.</li>
+            <li id="ref-72">Pathak, D., Agrawal, P., Efros, A. A., &amp; Darrell, T. (2017). &ldquo;Curiosity-driven Exploration by Self-Predictive Forward Dynamics Model.&rdquo; <em>ICML 2017</em>.</li>
+            <li id="ref-73">Patten, T., Zillich, M., Fitch, R., Vincze, M., &amp; Sukkarieh, S. (2018). &ldquo;Viewpoint Evaluation for Online 3-D Active Object Recognition.&rdquo; <em>IEEE RA-L</em>, 3(3), 1489&ndash;1496.</li>
+            <li id="ref-74">Pinto, L., &amp; Gupta, A. (2016). &ldquo;Supersizing Self-Supervision. Learning to Grasp from 50K Tries and 700 Robot Hours.&rdquo; <em>ICRA 2016</em>.</li>
+            <li id="ref-75">Placed, J. A., Strader, J., Carrillo, H., et al. (2023). &ldquo;A Survey on Active Simultaneous Localization and Mapping. State of the Art and New Frontiers.&rdquo; <em>IEEE Transactions on Robotics</em>, 39(3), 1686&ndash;1705.</li>
+            <li id="ref-76">Prescott, T. J., Diamond, M. E., &amp; Wing, A. M. (2011). &ldquo;Active Touch Sensing.&rdquo; <em>Philosophical Transactions of the Royal Society B</em>, 366(1581), 2989&ndash;2995.</li>
+            <li id="ref-77">Radford, A., Kim, J. W., Hallacy, C., et al. (2021). &ldquo;Learning Transferable Visual Models From Natural Language Supervision (CLIP).&rdquo; <em>ICML 2021</em>.</li>
+            <li id="ref-78">Ramakrishnan, S. K., Chaplot, D. S., Al-Halah, Z., Malik, J., &amp; Grauman, K. (2022). &ldquo;PONI. Potential Functions for ObjectGoal Navigation with Interaction-Free Learning.&rdquo; <em>CVPR 2022</em>.</li>
+            <li id="ref-79">Ran, Y., Zeng, J., He, S., et al. (2023). &ldquo;NeU-NBV. Next Best View Planning Using Uncertainty Estimation in Image-Based Neural Rendering.&rdquo; <em>IROS 2023</em>.</li>
+            <li id="ref-80">Rusu, R. B., Holzbach, A., Beetz, M., &amp; Bradski, G. (2009). &ldquo;Perception for Mobile Manipulation and Grasping using Active Stereo.&rdquo; <em>Humanoids 2009</em>.</li>
+            <li id="ref-81">Savva, M., Kadian, A., Maksymets, O., et al. (2019). &ldquo;Habitat. A Platform for Embodied AI Research.&rdquo; <em>ICCV 2019</em>.</li>
+            <li id="ref-82">Schmid, L., Reijgwart, V., Ott, L., et al. (2020). &ldquo;An Efficient Sampling-Based Method for Online Informative Path Planning in Unknown Environments.&rdquo; <em>IEEE RA-L</em>, 5(2), 1500&ndash;1507.</li>
+            <li id="ref-83">Scott, W. R., Roth, G., &amp; Rivest, J.-F. (2003). &ldquo;View Planning for Automated Three-Dimensional Object Reconstruction and Inspection.&rdquo; <em>ACM Computing Surveys</em>, 35(1), 64&ndash;96.</li>
+            <li id="ref-84">She, Y., Wang, S., Dong, S., et al. (2021). &ldquo;Cable Manipulation with a Tactile-Reactive Gripper.&rdquo; <em>IJRR</em>, 40(12&ndash;14), 1385&ndash;1401.</li>
+            <li id="ref-85">Shridhar, M., Manuelli, L., &amp; Fox, D. (2022). &ldquo;CLIPort. What and Where Pathways for Robotic Manipulation.&rdquo; <em>CoRL 2022</em>.</li>
+            <li id="ref-86">Smith, B., Agarwal, P., Kaelbling, L. P., &amp; Lozano-Perez, T. (2021). &ldquo;Active 3D Shape Reconstruction from Vision and Touch.&rdquo; <em>NeurIPS 2021</em>.</li>
+            <li id="ref-87">Sturm, J., Stachniss, C., &amp; Burgard, W. (2011). &ldquo;A Probabilistic Framework for Learning Kinematic Models of Articulated Objects.&rdquo; <em>JAIR</em>, 41, 477&ndash;526.</li>
+            <li id="ref-88">Sucar, E., Liu, S., Ortiz, J., &amp; Davison, A. J. (2021). &ldquo;iMAP. Implicit Mapping and Positioning in Real-Time.&rdquo; <em>ICCV 2021</em>.</li>
+            <li id="ref-89">Suresh, S., Si, Z., Anderson, S., Kaess, M., &amp; Mukadam, M. (2022). &ldquo;MidasTouch. Monte-Carlo Inference over Distributions Across Sliding Touch.&rdquo; <em>CoRL 2022</em>.</li>
+            <li id="ref-90">Szot, A., Clegg, A., Undersander, E., et al. (2021). &ldquo;Habitat 2.0. Training Home Assistants to Rearrange their Habitat.&rdquo; <em>NeurIPS 2021</em>.</li>
+            <li id="ref-91">Vasquez-Gomez, J. I., Sucar, L. E., &amp; Lopez-Damian, E. (2017). &ldquo;View/State Planning for Three-Dimensional Object Reconstruction Under Uncertainty.&rdquo; <em>Autonomous Robots</em>, 41, 89&ndash;109.</li>
+            <li id="ref-92">Wang, G., Liu, X., Ye, Z., Liu, Z., &amp; Huang, P. (2025). &ldquo;Contact SLAM. An Active Tactile Exploration Policy Based on Physical Reasoning.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-93">Wang, S., Lambeta, M., Chou, P.-W., &amp; Calandra, R. (2022). &ldquo;TACTO. A Fast, Flexible, and Open-Source Simulator for High-Resolution Vision-Based Tactile Sensors.&rdquo; <em>IEEE RA-L</em>, 7(2), 3930&ndash;3937.</li>
+            <li id="ref-94">Weng, Z., et al. (2024). &ldquo;Interactive Perception for Deformable Object Manipulation.&rdquo; <em>IEEE RA-L</em>.</li>
+            <li id="ref-95">Xia, F., Shen, W. B., Li, C., et al. (2020). &ldquo;Interactive Gibson Benchmark. A Benchmark for Interactive Navigation in Cluttered Environments.&rdquo; <em>IEEE RA-L</em>, 5(2), 713&ndash;720.</li>
+            <li id="ref-96">Xie, S., Hu, C., Wang, D., Johnson, J., Bagavathiannan, M., &amp; Song, D. (2024). &ldquo;Coupled Active Perception and Manipulation Planning for a Mobile Manipulator in Precision Agriculture.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-97">Xu, X., Park, J., Zhang, H., Cousineau, E., &amp; Bhat, A. (2026). &ldquo;HoMMI. Learning Whole-Body Mobile Manipulation from Human Demonstrations.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-98">Yamauchi, B. (1997). &ldquo;A Frontier-Based Approach for Autonomous Exploration.&rdquo; <em>CIRA 1997</em>.</li>
+            <li id="ref-99">Yi, Z., Calandra, R., Veiga, F., et al. (2016). &ldquo;Active Tactile Object Exploration with Gaussian Processes.&rdquo; <em>IROS 2016</em>.</li>
+            <li id="ref-100">Yokoyama, N., Batra, D., Truong, J., &amp; Ha, S. (2024). &ldquo;VLFM. Vision-Language Frontier Maps for Zero-Shot Semantic Navigation.&rdquo; <em>ICRA 2024</em>.</li>
+            <li id="ref-101">Yu, J., et al. (2024). &ldquo;MANIP. A Modular Architecture for Integrating Interactive Perception for Robot Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-102">Yuan, W., Dong, S., &amp; Adelson, E. H. (2017). &ldquo;GelSight. High-Resolution Robot Tactile Sensors for Estimating Geometry and Force.&rdquo; <em>Sensors</em>, 17(12), 2762.</li>
+            <li id="ref-103">Zeng, A., Song, S., Yu, K.-T., et al. (2018). &ldquo;Learning Synergies between Pushing and Grasping with Self-Supervised Deep Reinforcement Learning.&rdquo; <em>IROS 2018</em>.</li>
+            <li id="ref-104">Zeng, R., Zhao, Y., Liu, Y., et al. (2020). &ldquo;PC-NBV. A Point Cloud Based Deep Network for Efficient Next Best View Planning.&rdquo; <em>IROS 2020</em>.</li>
+            <li id="ref-105">Zhang, X., et al. (2023). &ldquo;ACE-NBV. Affordance-Driven Next-Best-View Planning for Robotic Grasping.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-106">Zhao, T. Z., Kumar, V., Levine, S., &amp; Finn, C. (2023). &ldquo;Learning Fine-Grained Bimanual Manipulation with Low-Cost Hardware (ACT).&rdquo; <em>RSS 2023</em>.</li>
+          </ol>
+        </div>
+      </article>
+    </div>
+
+    <!-- Blog styling and spacing script -->
+    <script defer src="/js/blog.js"></script>
+    <script defer src="/js/katex-init.js"></script>
+    <script defer src="/js/references.js"></script>
+  </body>
+</html>

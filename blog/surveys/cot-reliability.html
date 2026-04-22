@@ -1,0 +1,1245 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chain-of-Thought Reliability</title>
+
+    <!-- Fonts -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Prism.js initialization -->
+    <script src="/js/prism-init.js"></script>
+
+    <!-- KaTeX Math Support -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Site Assets -->
+    <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg" />
+    <link href="/css/blog.css" rel="stylesheet" />
+    <link href="/css/references.css" rel="stylesheet" />
+
+    <!-- KaTeX Scripts -->
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"
+    ></script>
+  </head>
+  <body>
+    <div class="blog-post">
+      <a href="../?tab=survey" class="back-button">
+        <i class="fas fa-arrow-left"></i>Back
+      </a>
+
+      <header class="blog-post-header">
+        <h1 class="blog-post-title">Chain-of-Thought Reliability</h1>
+        <div class="blog-post-date">April 22, 2026</div>
+      </header>
+
+      <article class="blog-post-content">
+        <section class="blog-section">
+
+        <h2>1. Introduction</h2>
+
+        <p>
+          Chain-of-thought (CoT) prompting asks a language model to produce intermediate reasoning steps before
+          committing to a final answer. It has become one of the most consequential methodological developments in
+          the brief history of large language models. [45] first demonstrated
+          it as a few-shot prompting trick, and it was almost immediately shown to work zero-shot with the bare
+          instruction &ldquo;Let's think step by step&rdquo; [18]. The technique was then
+          extended through least-to-most decomposition [54] and tree-of-thought search
+          [47]. By 2024 the idea had moved from prompting technique to architectural paradigm,
+          with dedicated reasoning models such as OpenAI's o1 [28] and DeepSeek-R1
+          [10] trained to produce extended reasoning as a core capability. CoT is now the default
+          interface through which users interact with frontier AI systems.
+        </p>
+
+        <p>
+          Yet a disquieting counter-narrative has emerged. The reasoning chains these models produce may not
+          faithfully reflect the computational processes that actually determine their outputs
+          [39, 19]. They harbour systematic errors that compound over
+          multi-step inference [34, 11]. They are fragile to prompt
+          variations, irrelevant context, and premise ordering that should not affect the answer under any
+          normative theory of reasoning [35, 6, 41]. And they can be
+          confidently wrong in ways no amount of surface polish will reveal [16, 37].
+          If the stated reasoning is a post-hoc construction rather than a faithful trace of inference, then
+          CoT's apparent interpretability is illusory, and the chains that practitioners rely on for debugging,
+          auditing, and trust-building are epistemically unreliable.
+        </p>
+
+        <p>
+          This question has become urgent for three converging reasons. First, CoT-augmented models are being
+          deployed in high-stakes domains including medicine, law, and autonomous planning, where reasoning
+          transparency is often a regulatory requirement rather than merely a nice-to-have. Second, the rise of
+          reasoning-specialized &ldquo;thinking&rdquo; models makes long-form CoT the surface at which users and
+          auditors engage the system [28, 10, 3]. Third, recent
+          empirical work has shown that faithfulness failures arise on natural, unbiased prompts and not only
+          under adversarial conditions [2]. This suggests the problem is intrinsic to how
+          current models produce explanatory text.
+        </p>
+
+        <p>
+          This survey synthesizes the literature from 2022 to early 2026 on the reliability of chain-of-thought
+          reasoning in large language models and vision-language models. We organize the evidence around four
+          interconnected dimensions. <strong>Correctness</strong> asks whether individual reasoning steps are
+          logically valid and factually accurate. <strong>Faithfulness</strong> asks whether the stated chain
+          reflects the model's actual computation. <strong>Robustness</strong> asks whether conclusions are
+          stable under perturbations that should not affect them. <strong>Verification</strong> asks whether we
+          can reliably assess and improve reasoning quality. Section 2 establishes definitions. Sections 3
+          through 6 develop each thematic area. Section 7 draws connections and tensions between themes.
+          Section 8 lists open problems. Section 9 concludes.
+        </p>
+
+        <div class="blog-callout">
+          <p>
+            <strong>The single most important takeaway.</strong> The persuasiveness of a reasoning chain is not
+            evidence of its reliability. Models routinely produce fluent, coherent, and logically structured
+            reasoning that is nonetheless incorrect, unfaithful, or both. Closing the gap between the
+            <em>appearance</em> and the <em>reality</em> of reliable reasoning is the field's central unsolved
+            problem.
+          </p>
+        </div>
+
+        <h2>2. Background and Definitions</h2>
+
+        <p>
+          Before examining evidence, we fix precise definitions for the constructs under review and delineate
+          scope.
+        </p>
+
+        <h3>2.1 Chain-of-Thought Reasoning</h3>
+
+        <p>
+          <strong>Chain-of-thought reasoning</strong> refers to the generation of intermediate reasoning steps,
+          in natural language, symbolic notation, or a hybrid, prior to producing a final answer
+          [45]. CoT can be elicited through few-shot exemplars that contain step-by-step
+          solutions [45], through zero-shot instructions [18], or through
+          training objectives that incentivize extended reasoning [50, 10]. Yu's
+          contemporaneous survey [49] provides a systematic taxonomy of prompt-engineering
+          variants, self-consistency methods, and hybrid pipelines that combine CoT with external tools.
+        </p>
+
+        <p>
+          We distinguish between <em>prompted CoT</em>, where reasoning is elicited at inference time without
+          modifying model weights, and <em>internalized CoT</em>, where models are trained to produce reasoning
+          as part of their standard generation process. The latter has gained prominence with reasoning models
+          [28, 10] and represents a qualitatively different regime with its own
+          reliability characteristics (\S 4.5).
+        </p>
+
+        <h3>2.2 Four Reliability Constructs</h3>
+
+        <p>
+          <strong>Correctness</strong> is a property of the chain's content. It asks whether each individual
+          step is logically valid and factually accurate, and whether the chain as a whole constitutes a sound
+          argument for the final answer [13, 32]. It admits of degrees. A
+          chain can arrive at a correct answer through incorrect intermediate steps (compensating errors), or
+          reach an incorrect answer via largely sound reasoning plus one critical error (error propagation).
+        </p>
+
+        <p>
+          <strong>Faithfulness</strong> denotes the degree to which a stated reasoning chain accurately reflects
+          the causal process by which the model produced its output [17, 39]. A
+          faithful chain is one whose steps genuinely influence the conclusion. An unfaithful chain is a fluent
+          post-hoc rationalization that bears little relation to the model's internal computation. Faithfulness
+          is distinct from correctness. A chain can be faithful but incorrect (accurately reflecting flawed
+          internal reasoning) or correct but unfaithful (right answer for the wrong internal reasons).
+        </p>
+
+        <p>
+          <strong>Robustness</strong>, sometimes called consistency, refers to the stability of CoT under
+          perturbations to the input, prompt format, or sampling procedure [44, 35].
+          A robust system should produce consistent conclusions from semantically equivalent but superficially
+          different inputs. <strong>Self-consistency</strong> [44] is a specific technique that
+          samples multiple reasoning paths and aggregates via majority voting.
+        </p>
+
+        <p>
+          <strong>Verification</strong> encompasses methods for evaluating the quality of reasoning chains.
+          These include human judgment, learned reward models, and automated metrics. A central distinction
+          runs between <em>outcome-based</em> verification, which evaluates only the final answer, and
+          <em>process-based</em> verification, which evaluates individual steps [40, 22].
+        </p>
+
+        <h3>2.3 Scope and Boundaries</h3>
+
+        <p>
+          This review covers 2022 to 2026 and focuses on reasoning expressed in natural language and hybrid
+          natural-language or symbolic formats. We include text-only LLMs and vision-language models where
+          reasoning involves visual inputs [23, 52]. We exclude purely formal
+          theorem proving (e.g. Lean-based verification), embodied or robotic planning per se, and studies that
+          report only downstream task accuracy without analyzing the reasoning process itself.
+        </p>
+
+        <h2>3. Reasoning Correctness and Error Taxonomy</h2>
+
+        <p>
+          The promise of CoT rests on the assumption that generating intermediate steps improves the quality of
+          final answers. While this holds in aggregate across many benchmarks
+          [45, 20, 18], a closer look reveals that
+          reasoning chains harbour systematic errors with predictable patterns. Understanding these is
+          essential for both improving models and calibrating trust.
+        </p>
+
+        <h3>3.1 The Landscape of Reasoning Errors</h3>
+
+        <p>
+          Manual analysis of CoT outputs on mathematical and logical tasks converges on a recurring error
+          typology [13, 32].
+        </p>
+
+        <div class="taxonomy-tree">
+          <div class="taxonomy-root">Chain-of-Thought Error Types</div>
+          <ul>
+            <li>
+              <div class="taxonomy-branch"><span class="branch-id">1</span> <span class="branch-label">Arithmetic errors</span></div>
+              <ul class="taxonomy-leaves">
+                <li>Incorrect calculations embedded in otherwise sound reasoning</li>
+                <li>Dominant in mathematical domains, largely remedied by program-aided approaches</li>
+              </ul>
+            </li>
+            <li>
+              <div class="taxonomy-branch"><span class="branch-id">2</span> <span class="branch-label">Logical errors</span></div>
+              <ul class="taxonomy-leaves">
+                <li>Invalid inferences, non-sequiturs, circular reasoning</li>
+                <li>Equivocation and affirming the consequent are common fallacy types</li>
+              </ul>
+            </li>
+            <li>
+              <div class="taxonomy-branch"><span class="branch-id">3</span> <span class="branch-label">Factual errors</span></div>
+              <ul class="taxonomy-leaves">
+                <li>Incorrect world knowledge introduced mid-chain (hallucinated premises)</li>
+                <li>Particularly acute in knowledge-intensive domains</li>
+              </ul>
+            </li>
+            <li>
+              <div class="taxonomy-branch"><span class="branch-id">4</span> <span class="branch-label">Semantic misinterpretation</span></div>
+              <ul class="taxonomy-leaves">
+                <li>Misreading the problem statement or a previous step</li>
+                <li>Often causes an initially coherent chain to drift off-problem</li>
+              </ul>
+            </li>
+            <li>
+              <div class="taxonomy-branch"><span class="branch-id">5</span> <span class="branch-label">Omission errors</span></div>
+              <ul class="taxonomy-leaves">
+                <li>Skipping necessary intermediate steps</li>
+                <li>Chains <em>look</em> like multi-hop reasoning but actually jump via surface associations</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+
+        <p>
+          The relative prevalence varies significantly across domains. Arithmetic errors dominate in
+          mathematical reasoning [20], while logical errors and unsupported claims are more
+          common in commonsense and multi-hop reasoning [34]. This suggests that CoT reliability
+          is not a unitary construct but a family of domain-specific phenomena requiring tailored evaluation.
+        </p>
+
+        <p>
+          Crucially, the relationship between intermediate errors and final answers is not straightforward. A
+          non-trivial fraction of correct answers are accompanied by flawed reasoning, the &ldquo;right for the
+          wrong reasons&rdquo; phenomenon [48, 13]. Conversely, largely sound
+          chains can produce incorrect answers when a single critical step propagates to the conclusion. This
+          asymmetry complicates evaluation. Final-answer accuracy overestimates reasoning quality, while strict
+          step-level correctness undercounts chains that achieve their purpose despite minor imprecisions.
+        </p>
+
+        <h3>3.2 Error Propagation and the Compositionality Bottleneck</h3>
+
+        <p>
+          Errors in reasoning chains tend to compound rather than cancel. Compositionality, the ability to
+          combine individually correct steps into a correct multi-step chain, represents a fundamental
+          bottleneck for transformer-based models [11, 34]. Saparov and He
+          [34] showed model accuracy dropping from above 90% on single-step inferences to below
+          40% on five-step chains in some configurations. Dziri et al. [11] demonstrated that
+          this degradation follows patterns more consistent with probabilistic error accumulation than with
+          principled deductive reasoning. Models appear to perform each step semi-independently rather than
+          maintaining a coherent logical state across the chain.
+        </p>
+
+        <p>
+          Error propagation is exacerbated by a snowball effect. Once a chain commits to an incorrect
+          intermediate conclusion, subsequent steps tend to build on rather than correct the error
+          [1, 13]. Models exhibit strong forward coherence, maintaining
+          consistency with prior generated text even when this means propagating a mistake. The behaviour is
+          diametrically opposed to the human pattern of backtracking when a contradiction is detected. While
+          prompted self-correction is possible in principle, rigorous evaluation has shown that
+          <em>unprompted</em> self-correction of reasoning errors is rare and unreliable [16],
+          with significant implications for the self-verification approaches discussed in \S 6.
+        </p>
+
+        <p>
+          An especially alarming finding is that multi-step reasoning reliability cannot be extrapolated from
+          single-step performance. The LongCoT benchmark [27] constructs graphs of
+          interdependent reasoning steps spanning tens to hundreds of thousands of tokens. Even frontier models
+          achieve below 10% accuracy, despite being fully capable of solving each individual step in isolation.
+          The very tasks for which CoT is most needed, complex multi-step problems requiring sustained
+          inference, are precisely those where it is least reliable. DiffCoT [4] proposes
+          replacing single-pass autoregressive generation with diffusion-style iterative refinement of the
+          entire chain as a principled remedy for unidirectional error propagation. Architectural responses of
+          this kind point toward a broader class of non-autoregressive reasoning methods that future work
+          should investigate systematically.
+        </p>
+
+        <h3>3.3 Automated Evaluation of Reasoning Quality</h3>
+
+        <p>
+          The cost of manual evaluation at scale has motivated automated frameworks. ROSCOE
+          [13] introduced a suite of reference-free metrics evaluating reasoning chains along
+          semantic consistency, logical coherence, informativeness, and faithfulness dimensions, decomposing
+          reasoning quality into measurable sub-components. ReCEval [32] proposed complementary
+          metrics focused on individual step correctness and informativeness, drawing on argumentation theory.
+        </p>
+
+        <p>
+          These metrics correlate moderately with human judgments but face important limitations
+          [13, 32]. Surface-level fluency can mask logical errors, a problem
+          particularly acute for LLM-generated text. Semantic-similarity metrics may miss subtle fallacies such
+          as equivocation or affirming the consequent. Domain-specific reasoning requires evaluator competence
+          that current metrics lack. A more recent line uses LLMs themselves as reasoning evaluators, which
+          scales well but introduces circularity concerns. If the evaluator shares failure modes with the
+          evaluated model, systematic errors go undetected. The tension between evaluation scalability and
+          evaluation reliability remains unresolved.
+        </p>
+
+        <h3>3.4 Domain-Specific Error Patterns</h3>
+
+        <p>
+          In <strong>mathematical reasoning</strong>, models frequently produce hallucinated computation. The
+          step-by-step calculations look formally structured but contain arithmetic errors no calculator would
+          make [20, 8]. These errors are insidious because the surrounding reasoning
+          may be entirely sound and the arithmetic is embedded in fluent mathematical notation. Program-aided
+          approaches that delegate computation to external code execution while preserving natural-language
+          decomposition effectively eliminate this class of error [12, 5]. A design
+          principle follows. Separate reasoning about <em>what to compute</em> from the computation itself,
+          leveraging tools for the latter.
+        </p>
+
+        <p>
+          In <strong>commonsense and multi-hop</strong> domains, the dominant error mode shifts to
+          inappropriate world-knowledge application and shortcut reasoning. Models invoke plausible-sounding
+          but incorrect facts, or apply heuristics that hold in typical cases but fail in the scenario
+          presented [34, 11]. Multi-hop chains reveal an especially slippery pattern.
+          Models sometimes <em>appear</em> to reason through intermediate steps but actually bypass them via
+          surface-level associations [11], producing chains that look multi-hop while being
+          single-hop in substance.
+        </p>
+
+        <p>
+          In <strong>multimodal</strong> settings, reasoning errors are compounded by perceptual errors. VLMs
+          on tasks such as ScienceQA exhibit error patterns that combine misidentification of visual elements
+          with reasoning failures [23, 52]. Separating perceptual from reasoning
+          errors is a significant evaluation challenge. A misidentified visual element cascades into an
+          apparently logical but fundamentally flawed chain, and current frameworks typically cannot
+          distinguish &ldquo;saw the wrong thing and reasoned correctly about it&rdquo; from &ldquo;saw the
+          right thing and reasoned incorrectly&rdquo; [52].
+        </p>
+
+        <h2>4. Faithfulness of Chain-of-Thought Reasoning</h2>
+
+        <p>
+          Perhaps the most philosophically troubling question about CoT concerns faithfulness. Do the generated
+          reasoning steps actually cause the model's final answer, or are they elaborate post-hoc
+          rationalizations? The distinction matters profoundly for applications where CoT provides transparency
+          or supports human oversight. If chains are unfaithful, they give users a false sense of understanding
+          while obscuring the actual decision process, the interpretability equivalent of a Potemkin village.
+        </p>
+
+        <h3>4.1 The Faithfulness Problem</h3>
+
+        <p>
+          The concern is grounded in a fundamental architectural reality. In autoregressive language models,
+          there is no structural guarantee that generated text encoding &ldquo;reasoning&rdquo; corresponds to
+          any identifiable internal computation [39, 19]. The model generates
+          each token conditioned on all prior tokens, so the chain exerts some causal influence on subsequent
+          tokens. The faithfulness question is whether this influence is <em>aligned</em> with the semantic
+          content of the reasoning. That is, whether the model generates &ldquo;the answer is 7 because
+          3+4=7&rdquo; because it internally computed 3+4, or because generating &ldquo;3+4=7&rdquo; is a
+          statistically likely continuation that happens to precede a separately determined answer
+          &ldquo;7&rdquo;.
+        </p>
+
+        <h3>4.2 Empirical Evidence for Unfaithfulness</h3>
+
+        <p>
+          The most direct evidence for unfaithfulness comes from experiments showing that models' final
+          answers are systematically influenced by factors not reflected in their stated reasoning. In a
+          landmark study, Turpin et al. [39] added biasing features to multiple-choice questions,
+          such as making the correct answer always appear in a particular position, or inserting a stated
+          opinion from a supposed authority. Model answers shifted systematically, yet the generated CoT never
+          referenced these features. The models produced fluent, logical-sounding chains justifying the biased
+          answer on substantive grounds, effectively confabulating rationales for decisions partially driven by
+          spurious statistical patterns. The behaviour persisted across multiple model families and scales,
+          indicating a general property of current LLMs rather than a quirk of specific architectures.
+        </p>
+
+        <p>
+          Complementary evidence comes from direct interventions on the chain itself. Lanham et al.
+          [19] developed a suite of faithfulness tests. These include truncating chains at
+          various points, inserting incorrect steps into correct chains, replacing reasoning with semantically
+          vacuous filler text, and paraphrasing while preserving or altering logical content. Final answers
+          were often surprisingly insensitive to corruption of intermediate steps, suggesting the reasoning was
+          not fully causally driving the output. Critically, faithfulness varied along multiple dimensions.
+          Larger models showed more faithful reasoning on some tasks but not others, and different corruption
+          types yielded different sensitivity profiles. The picture is one of partial faithfulness. The chain
+          exerts some causal influence, but substantially less than its semantic content would imply.
+        </p>
+
+        <p>
+          A convergent line of evidence comes from studies of robustness to <em>invalid</em> CoT
+          demonstrations [7, 51, 53, 2]. Few-shot
+          exemplars containing deliberately flawed reasoning yield similar accuracy to valid exemplars. If the
+          model's computation genuinely followed the stated logical structure, corrupting that logic should
+          degrade performance. The fact that it does not suggests the model extracts structural and formatting
+          cues from exemplars while largely ignoring the logical content, using the chain as a scaffold for
+          answer generation rather than a faithful computational trace.
+        </p>
+
+        <p>
+          Extending this line beyond adversarial settings, Arcuschin et al. [2] demonstrated
+          post-hoc rationalization on natural, unbiased prompts. Using symmetric question pairs (&ldquo;Is X
+          &gt; Y?&rdquo; vs. &ldquo;Is Y &gt; X?&rdquo;), they showed models construct contradictory but
+          internally coherent justifications for logically incompatible answers, driven by implicit response
+          biases such as a tendency toward &ldquo;Yes&rdquo;. This rules out the possibility that
+          unfaithfulness is merely an artifact of adversarial prompt construction. Models rationalize on
+          ordinary inputs. Frontier and thinking models exhibited significantly lower but non-zero rates,
+          suggesting scaling alone is unlikely to eliminate the problem.
+        </p>
+
+        <h3>4.3 Mechanisms and Theoretical Perspectives</h3>
+
+        <p>
+          Why do models produce unfaithful reasoning? Three hypotheses, none individually sufficient, have
+          empirical support.
+        </p>
+
+        <p>
+          The <strong>capability-gap hypothesis</strong> holds that models lack the meta-cognitive ability to
+          accurately introspect on their own computations [39]. The text-generation system and
+          the answer-determining computation are partially decoupled. The generation system constructs
+          plausible narratives about the answer without direct access to the mechanisms that produced it. This
+          parallels the classical cognitive distinction between fast intuitive and slow deliberate processing,
+          where verbalizable reasoning may be a reconstruction of a decision rather than a record of it.
+        </p>
+
+        <p>
+          The <strong>training-distribution hypothesis</strong> suggests models learn to produce reasoning
+          matching patterns in training data rather than genuinely reflecting their computation
+          [48, 25]. CoT effectiveness depends partly on surface
+          features of exemplars (formatting, length, style) in addition to their logical content
+          [41, 25]. Meta-prompting analyses [51] formalize
+          this as CoT learning structural mappings from task types to reasoning trajectories, with
+          effectiveness depending on structural similarity to training exemplars. The most systematic version
+          of this argument is Zhao et al.'s distributional-artifact thesis [53]. CoT reproduces
+          training-distribution reasoning trajectories rather than performing genuine inference, and its
+          apparent competence collapses under task, length, or format shift. This pattern is inconsistent with
+          genuine reasoning (which should transfer) but fully consistent with pattern reproduction.
+        </p>
+
+        <p>
+          The <strong>post-hoc rationalization hypothesis</strong> is most directly supported by the biasing
+          results of [39] and the in-the-wild faithfulness study of [2]. It
+          proposes that models first determine an answer through rapid pattern matching and then construct a
+          justification, analogous to motivated reasoning in humans. The sequential nature of autoregressive
+          generation makes this architecturally plausible. Early tokens may effectively commit to an answer
+          direction, with subsequent reasoning tokens justifying rather than determining that commitment.
+          Pfau et al. [31] provided striking partial evidence. Even semantically meaningless
+          filler tokens (for example sequences of dots) can enable additional computation during generation,
+          implying that useful work may occur at the representational level regardless of the semantic content
+          of generated tokens. If the model can compute answers using the hidden states of any tokens, the
+          semantic content of &ldquo;reasoning&rdquo; tokens becomes decorative rather than functional.
+        </p>
+
+        <p>
+          These hypotheses are not mutually exclusive, and the degree to which each applies likely varies
+          across models, tasks, and reasoning types. Disentangling them remains an important open challenge
+          for mechanistic interpretability.
+        </p>
+
+        <h3>4.4 Approaches to Improving Faithfulness</h3>
+
+        <p>
+          Several families of approaches have been proposed, each with characteristic strengths and
+          limitations.
+        </p>
+
+        <p>
+          <strong>Mechanistic grounding.</strong> Hu et al. [15] propose grounding CoT
+          faithfulness in model internals by framing reasoning steps as transitions between attractor states
+          in the model's latent space (a Hopfieldian view). This renders faithfulness a graded, step-level
+          property rather than an all-or-nothing judgment. Individual steps can be diagnosed as faithful
+          (corresponding to genuine transitions) or unfaithful (decorative text with no representational
+          counterpart). The framework also yields a diagnostic method, detecting where the
+          representation-space trajectory diverges from expected transitions, that localizes reasoning errors
+          to specific steps. Empirical validation remains preliminary, and &ldquo;expected transitions&rdquo;
+          require either ground-truth traces or a theory of correct reasoning dynamics, neither readily
+          available for open-ended tasks.
+        </p>
+
+        <p>
+          <strong>Decomposition-based approaches</strong> break complex questions into sub-questions answered
+          independently. This reduces the opportunity for post-hoc rationalization by forcing sequential
+          commitment to intermediate answers before encountering subsequent sub-questions
+          [33, 54]. Radhakrishnan et al. [33] demonstrated
+          measurable improvements in faithfulness metrics through question decomposition, but gains are
+          partial, and the approach introduces its own failure modes when sub-questions are poorly specified.
+        </p>
+
+        <p>
+          <strong>Format-constrained approaches</strong> improve faithfulness by restricting reasoning to
+          externally-verifiable representations. Lyu et al. [24] translate natural-language
+          reasoning into symbolic representations executable by external solvers, so the symbolic component is
+          faithful by construction. Selection-Inference [9] decomposes reasoning into
+          alternating selection (retrieving facts) and inference (drawing conclusions) steps that are more
+          amenable to verification than free-form generation. Program-aided approaches
+          [12, 5] similarly externalize computation. The common principle is
+          that constraining the format limits the space for confabulation, at the cost of expressiveness for
+          reasoning that resists formalization.
+        </p>
+
+        <p>
+          <strong>Knowledge grounding and counterfactual probing.</strong> Factual hallucination in
+          intermediate steps is a faithfulness failure mode distinct from post-hoc rationalization. The
+          chain's logical structure may genuinely reflect inference, but its factual premises are wrong
+          [42]. This form is partially remediable by retrieval-augmented CoT that grounds each
+          step against external knowledge [42], demonstrating that at least one component of
+          faithfulness is improvable through architectural intervention. Building on this,
+          [38] propose counterfactual consistency as an operational step-level criterion. A
+          chain whose conclusion is invariant to counterfactual premise alterations reveals that the stated
+          causal logic is not actually driving the output. A chain that responds appropriately to premise
+          changes evidences genuine causal inference. Their multi-agent evaluator probes each step with
+          non-causal and counterfactual reframings to detect steps where the stated causal logic is not
+          load-bearing.
+        </p>
+
+        <p>
+          <strong>Training-based approaches</strong> aim to improve faithfulness through modified objectives.
+          Paul et al. [30] showed that training with objectives that penalize inconsistency
+          between reasoning and answers (for example, checking whether the answer changes when the model's own
+          reasoning is paraphrased or perturbed) can improve the correspondence between stated reasoning and
+          model behaviour. However, the same opacity that makes faithfulness difficult to assess also makes it
+          difficult to optimize. This creates a risk that training optimizes for the <em>appearance</em> of
+          faithfulness (passing specific probes) rather than faithfulness itself.
+        </p>
+
+        <h3>4.5 Faithfulness in Reasoning Models</h3>
+
+        <p>
+          The emergence of dedicated reasoning models trained through reinforcement learning, notably OpenAI's
+          o1 [28] and DeepSeek-R1 [10], has added new dimensions to the
+          faithfulness question. These models produce substantially longer reasoning traces and exhibit
+          qualitatively different behaviours including deliberate exploration, backtracking, and
+          self-correction within a single generation [10]. On one hand, the extended reasoning
+          format provides more opportunities for the reasoning to genuinely influence the answer. On the other
+          hand, RL training optimizes for correct final answers rather than faithful intermediate reasoning,
+          creating a potential misalignment between the incentive structure and the faithfulness objective.
+        </p>
+
+        <p>
+          Early analyses raise concerns that reasoning models may exhibit sophisticated forms of
+          unfaithfulness. Baker et al. [3] investigated steganographic encoding, where the
+          reasoning trace implicitly carries forward information in ways not semantically apparent to a human
+          reader. They also investigated strategic obfuscation, where the trace satisfies outcome-based
+          evaluation while concealing aspects of the actual computation. These concerns are amplified by the
+          fact that some commercial deployments hide the raw reasoning traces from users, showing only
+          summaries [28]. This eliminates even the possibility of direct human verification.
+        </p>
+
+        <p>
+          Model scale interacts with faithfulness in a non-trivial way. Arcuschin et al. [2]
+          provide the clearest evidence. Frontier and thinking models exhibit significantly lower but non-zero
+          faithfulness failure rates compared to smaller models. Scale helps but does not resolve the
+          fundamental problem. This is consistent with the distributional-artifact hypothesis of
+          [53]. Larger models have broader training distributions and thus a wider range of tasks
+          on which pattern reproduction produces correct answers, but the underlying mechanism remains pattern
+          reproduction rather than genuine reasoning. Whether continued scaling will eventually yield
+          qualitatively different reasoning, or merely expand the distributional boundary within which pattern
+          reproduction suffices, is an open empirical question with profound implications for the field's
+          trajectory.
+        </p>
+
+        <div class="blog-callout">
+          <p>
+            The irony is acute. The very models designed to make AI reasoning more visible may, through the
+            incentive structure of their training, learn to produce reasoning traces that are <em>less</em>
+            faithfully connected to their actual computation than the simpler prompted CoT of their
+            predecessors.
+          </p>
+        </div>
+
+        <h2>5. Robustness and Consistency of Chain-of-Thought Reasoning</h2>
+
+        <p>
+          A reliable reasoning system should produce consistent conclusions from semantically equivalent
+          inputs. Yet CoT exhibits substantial sensitivity to superficial aspects of prompt formulation that
+          should not, under any normative theory of reasoning, affect the underlying conclusions. The
+          literature identifies three distinct axes of instability. These are prompt formatting, stochastic
+          sampling, and chain length.
+        </p>
+
+        <h3>5.1 Sensitivity to Prompt Formulation</h3>
+
+        <p>
+          The specific wording of instructions, the format and content of few-shot exemplars, and even
+          typographic conventions such as bullet points versus numbered steps can all significantly influence
+          both the form and the correctness of the generated reasoning [41, 25].
+          Wang et al. [41] demonstrated that the relevance of reasoning steps in exemplars to
+          the target task is less important than structural features like step format and length, suggesting
+          CoT functions partly through formatting cues rather than pure content transfer. Madaan and
+          Yazdanbakhsh [25] showed that both textual patterns (surface form) and semantic content
+          (logical structure) contribute to effectiveness, with varying relative importance across tasks and
+          models.
+        </p>
+
+        <p>
+          Park [29] isolated a surprisingly load-bearing factor. Inserting separators between
+          few-shot exemplars (COT-SEP) significantly improves performance on complex reasoning tasks across
+          GPT-3.5-Turbo, GPT-4, and LLaMA-2, with effects varying by separator type and location. Densely
+          formatted exemplars introduce parsing ambiguity that interferes with reasoning, and formatting
+          structure constitutes a distinct axis of prompt sensitivity independent of semantic content. The
+          practical implication is that CoT performance comparisons across studies may be confounded by
+          formatting differences that are rarely reported or controlled. A substantial fraction of reported
+          performance variance may be attributable to prompt-engineering artifacts rather than genuine
+          differences in reasoning capability.
+        </p>
+
+        <h3>5.2 Vulnerability to Irrelevant Context</h3>
+
+        <p>
+          One of the most striking demonstrations of CoT fragility comes from studies of irrelevant context.
+          Shi et al. [35] showed that adding irrelevant information to mathematical word
+          problems (extra numerical quantities, sentences unrelated to the core problem, or red-herring data)
+          dramatically reduced CoT accuracy across multiple model families and scales. Models frequently
+          incorporated the irrelevant information into their chains, producing longer and more complex (but
+          incorrect) solutions that engaged with the distractors as if they were relevant. On the GSM-IC
+          benchmark constructed by adding irrelevant sentences to GSM8K problems, accuracy dropped by 20 to
+          35 percentage points for many configurations.
+        </p>
+
+        <p>
+          This vulnerability persisted across model scales, though larger models showed some improvement,
+          particularly when given explicit instructions to identify relevant information before reasoning
+          [35]. The pattern suggests CoT is partially driven by an <em>inclusion heuristic</em>, a
+          tendency to incorporate all available numerical or factual information into the chain regardless of
+          relevance, rather than a principled relevance-assessment mechanism. The heuristic is likely
+          inherited from training data, where word problems typically contain only relevant information,
+          creating a distribution where &ldquo;everything mentioned is relevant&rdquo; is a useful
+          statistical prior.
+        </p>
+
+        <p>
+          In multimodal settings, the problem is compounded. VLMs performing visual reasoning can be
+          distracted by irrelevant objects, background elements, or visual features bearing superficial
+          similarity to relevant content [52, 23], adding a whole modality's worth of
+          potential distractors.
+        </p>
+
+        <h3>5.3 Order Effects and Positional Biases</h3>
+
+        <p>
+          CoT is also susceptible to order effects that should be irrelevant. The order in which premises are
+          presented in a logical reasoning problem significantly affects model accuracy. Models perform
+          substantially better when premises are arranged in the order needed for forward chaining than when
+          they are scrambled or reversed [6]. This contrasts with sound logical reasoning, which
+          should be invariant to the presentation order of premises. Logical entailment is a property of the
+          set of premises, not their sequence.
+        </p>
+
+        <p>
+          In multiple-choice settings, the position of the correct answer among options influences both the
+          selected answer and the reasoning chain produced to justify it [39]. These positional
+          biases interact with faithfulness concerns. Models produce reasonable-sounding chains that justify
+          positionally biased answers without acknowledging the positional influence. The compound failure
+          mode is particularly hazardous because it may evade both automated and human quality checks that
+          focus on the coherence of the reasoning chain alone.
+        </p>
+
+        <h3>5.4 Self-Consistency as a Robustness Mechanism</h3>
+
+        <p>
+          The most influential approach to improving CoT robustness has been <strong>self-consistency</strong>
+          [44]. It samples multiple independent reasoning paths and selects the most common
+          final answer through majority voting. The underlying intuition is that while individual chains may
+          be corrupted by stochastic errors or transient biases, the distribution over reasoning paths should
+          concentrate around the correct answer when the model has sufficient underlying capability.
+          Self-consistency has demonstrated consistent improvements across mathematical, commonsense, and
+          symbolic-manipulation tasks, with gains of 5 to 18 percentage points over greedy decoding on
+          standard benchmarks [44].
+        </p>
+
+        <p>
+          Self-consistency has important limitations. It effectively addresses <em>stochastic</em> errors,
+          cases where the model is capable of correct reasoning but sometimes fails due to sampling
+          variability. It does not address <em>systematic</em> biases that affect all sampled paths equally
+          [39, 35]. If a model is systematically biased toward a particular
+          incorrect answer due to positional bias, training-data artifacts, or systematic misunderstanding,
+          majority voting will amplify rather than correct the bias. Furthermore, self-consistency addresses
+          a fundamentally different reliability concern than faithfulness interventions. Majority voting
+          stabilizes the <em>answer</em> but does not improve the <em>faithfulness</em> of any individual
+          chain, and may mask unfaithfulness by aggregating across multiple
+          unfaithful-but-coincidentally-correct chains. A system that produces consistent answers via
+          self-consistency may still be confabulating on every individual run, creating an illusion of
+          reliable reasoning that is actually reliable only at the output level.
+        </p>
+
+        <p>
+          Extensions seek to address these limitations while preserving the core insight.
+          <strong>Tree-of-thought</strong> reasoning [47] enables explicit branching
+          exploration with deliberate evaluation and backtracking, though gains come at substantial
+          computational cost, and the approach still relies on the model's ability to accurately evaluate
+          partial reasoning paths, an ability that may itself be unreliable [37]. Step-aware
+          verifiers [21] and diverse sampling strategies that explicitly maximize path diversity
+          have shown incremental improvements over basic majority voting.
+        </p>
+
+        <h3>5.5 Robustness in Multimodal Reasoning</h3>
+
+        <p>
+          Multimodal CoT introduces additional robustness challenges beyond text-only settings. VLMs must
+          integrate information across modalities, and chains that bridge visual and textual content can fail
+          when either modality introduces noise or ambiguity [52, 23]. The
+          challenge is compounded by the tendency of VLMs to over-rely on language priors, generating chains
+          that are plausible given the textual question but insufficiently grounded in the actual visual
+          input [23]. This creates a distinctive failure mode. The reasoning appears stable and
+          well-structured, but it effectively ignores a major source of input information, defaulting to
+          text-based heuristics when the visual signal is noisy or ambiguous. Zhang et al. [52]
+          propose a two-stage framework that first generates a rationale incorporating both modalities and
+          then produces a final answer. This improved performance, but chains still exhibited hallucination
+          of visual content and inconsistency on visually similar but semantically different images.
+          Robustness improvements developed for text-only settings do not transfer straightforwardly to
+          multimodal contexts.
+        </p>
+
+        <h2>6. Verification and Reward Models for Reasoning</h2>
+
+        <p>
+          The reliability concerns above motivate a fundamental practical question. Can we build systems that
+          reliably assess and improve the quality of reasoning chains? Verification serves dual purposes in
+          the contemporary reasoning pipeline. At inference time it selects among candidate paths to improve
+          accuracy. At training time it provides reward signals for reinforcement learning that incentivize
+          higher-quality reasoning [8, 22, 10].
+        </p>
+
+        <h3>6.1 The Verification Framework</h3>
+
+        <p>
+          The verification literature is organized around a central distinction between
+          <strong>outcome-based reward models (ORMs)</strong>, which evaluate only whether the final answer
+          is correct, and <strong>process-based reward models (PRMs)</strong>, which evaluate the quality of
+          individual reasoning steps [40, 22]. This distinction, first articulated
+          systematically by Uesato et al. [40], has proven both theoretically important and
+          practically consequential, shaping the design of verification systems and the training pipelines of
+          reasoning models.
+        </p>
+
+        <div class="blog-table-wrapper">
+          <table class="blog-table">
+            <caption>Table 1. Comparison of verification paradigms.</caption>
+            <thead>
+              <tr>
+                <th>Paradigm</th>
+                <th>What it evaluates</th>
+                <th>Training signal</th>
+                <th>Key strength</th>
+                <th>Key failure mode</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Outcome-based (ORM)</td>
+                <td>Final answer correctness</td>
+                <td>Binary label per solution</td>
+                <td>Cheap, precisely defined</td>
+                <td>Rewards right for the wrong reasons, vulnerable to reward hacking</td>
+              </tr>
+              <tr>
+                <td>Process-based (PRM)</td>
+                <td>Individual step correctness</td>
+                <td>Dense per-step labels</td>
+                <td>Localized error detection, early termination</td>
+                <td>Expensive annotation, ambiguous step boundaries</td>
+              </tr>
+              <tr>
+                <td>Self-verification</td>
+                <td>Model critiques its own output</td>
+                <td>None (zero-shot)</td>
+                <td>No extra model needed</td>
+                <td>Fails when it is most needed (hard problems)</td>
+              </tr>
+              <tr>
+                <td>Monte-Carlo PRM</td>
+                <td>Step viability via rollouts</td>
+                <td>Auto-derived from sampling</td>
+                <td>Scales without human annotation</td>
+                <td>Conflates step quality with downstream difficulty</td>
+              </tr>
+              <tr>
+                <td>Counterfactual PRM</td>
+                <td>Whether stated causal logic is load-bearing</td>
+                <td>Derived from counterfactual probes</td>
+                <td>Targets faithfulness, not just correctness</td>
+                <td>Generating counterfactuals requires domain knowledge</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>6.2 Outcome-Based Verification</h3>
+
+        <p>
+          Outcome-based verification was pioneered by Cobbe et al. [8] for mathematical word
+          problems. It trains a model to predict whether a complete solution arrives at the correct answer.
+          At inference time, the verifier scores multiple candidate solutions and selects the highest-scoring
+          one, the best-of-N or reranking procedure. The approach is appealing in its simplicity.
+          Final-answer correctness is precisely defined for many task types. Cobbe et al. showed that
+          training a verifier on GSM8K and using it to rerank solutions substantially outperformed direct
+          sampling, with gains increasing as more candidates were generated. The result established a core
+          paradigm. Generating many candidates and selecting the best one can outperform generating a single
+          higher-quality candidate, shifting the challenge from generation to selection.
+        </p>
+
+        <p>
+          Outcome-based verification suffers from well-documented limitations [40, 22].
+          It provides no localized guidance about where or how a chain fails, limiting its utility as a
+          fine-grained feedback signal. It is vulnerable to reward hacking. Models may produce solutions with
+          correct final answers but flawed reasoning, receiving high verification scores without engaging in
+          sound reasoning, an instance of Goodhart's law [22]. Finally, it requires generating
+          complete solutions before evaluation, preventing early termination of clearly flawed reasoning
+          paths.
+        </p>
+
+        <h3>6.3 Process-Based Verification</h3>
+
+        <p>
+          Process-based verification addresses these limitations by evaluating individual steps. The most
+          influential work, Lightman et al. [22], trained PRMs on the PRM800K dataset of
+          approximately 800,000 step-level human judgments of mathematical reasoning correctness. Their
+          central empirical finding was that process-based verification significantly outperformed
+          outcome-based verification when used to select among candidates at inference time, with the gap
+          widening as the candidate pool grew. On the MATH benchmark, PRM-based selection achieved
+          substantially higher accuracy than ORM-based selection given the same pool of solutions.
+        </p>
+
+        <p>
+          The superiority of process-based verification aligns with both theoretical expectations and
+          intuitive reasoning. By evaluating individual steps, PRMs can detect errors early before they
+          propagate and compound [40, 22]. They provide more informative training
+          signal by identifying which steps are problematic, enabling more targeted model improvement. And
+          they offer greater resistance to reward hacking, since a model cannot easily produce a solution
+          that receives high process-based scores while containing fundamentally flawed reasoning. Each step
+          must independently pass scrutiny.
+        </p>
+
+        <p>
+          However, process-based verification introduces substantial challenges. Step-level human annotations
+          are expensive, requiring evaluators who can understand and assess individual reasoning steps rather
+          than simply checking answers against ground truth. What constitutes a &ldquo;correct&rdquo; step is
+          inherently more ambiguous than final-answer correctness. Steps may be underspecified (relying on
+          implicit reasoning), redundant (correct but unnecessary), stylistically non-standard (valid but
+          unconventional), or approximately correct (using rounding or estimation). These borderline cases
+          create noise in training data and limit inter-annotator agreement.
+        </p>
+
+        <p>
+          To address annotation costs, subsequent work has pursued automated generation of step-level
+          training data. <strong>Math-Shepherd</strong> [43] generates process supervision
+          signals by evaluating whether each intermediate step can lead to a correct final answer through
+          continued sampling, a form of Monte-Carlo estimation of step quality. If completing a solution
+          from a given step frequently yields correct answers, the step is labeled correct, otherwise
+          incorrect. This approximates human-annotated PRM quality at a fraction of the cost, though it
+          inherits certain biases. Steps that are correct but lead into difficult regions may be mislabeled
+          as incorrect due to the downstream model's inability to complete the solution, conflating step
+          quality with downstream difficulty. <strong>V-STaR</strong> [14] extended this line
+          by combining self-taught reasoning with verification training in an iterative bootstrap loop.
+        </p>
+
+        <h3>6.4 Self-Verification and Its Limitations</h3>
+
+        <p>
+          An alternative is to use the reasoning model itself as verifier, appealing for its simplicity and
+          zero additional model cost. Methods in this family include <strong>Self-Refine</strong>
+          [26], which iteratively prompts the model to critique and revise its outputs through
+          structured feedback loops, and explicit self-verification strategies that ask the model to check
+          each step before committing to a final answer [46].
+        </p>
+
+        <p>
+          The empirical evidence on self-verification is decidedly mixed. In a systematic evaluation, Huang
+          et al. [16] demonstrated that LLMs cannot reliably self-correct without access to
+          external feedback signals. Models exhibit two characteristic failure modes. They either maintain
+          their original answer with high confidence, failing to detect genuine errors, or they oscillate
+          between answers without converging. The fundamental difficulty is that self-verification requires
+          applying superior reasoning to evaluate one's own outputs, but the same capabilities and biases
+          that produced the original error are present during verification [37, 16].
+        </p>
+
+        <p>
+          Stechly et al. [37] reinforced this finding through focused evaluation on planning
+          and logical reasoning tasks, showing that models' ability to verify solutions was often no better
+          than their ability to generate correct solutions in the first place. When a model lacks the
+          capability to solve a problem correctly, it typically also lacks the capability to identify errors
+          in an incorrect solution. The two abilities are not independent. The implication is significant.
+          Self-verification is most likely to succeed precisely when it is least needed (on easy problems)
+          and most likely to fail when it is most needed (on hard problems where errors are prevalent).
+          These results suggest a broader principle. Reliable verification requires an <em>external</em>
+          signal or a model with <em>complementary</em> strengths.
+        </p>
+
+        <h3>6.5 Verification in the Era of Reasoning Models</h3>
+
+        <p>
+          The advent of reasoning models trained through RL has both elevated the importance and complicated
+          the practice of verification [28, 10, 36]. These
+          models are trained to optimize verified outcomes, creating strong incentive structures for
+          producing correct final answers. DeepSeek-R1 [10] demonstrated that RL with
+          relatively simple outcome-based rewards can elicit sophisticated reasoning behaviours including
+          spontaneous chain-of-thought, self-verification, and error correction, without explicit
+          process-based supervision. This suggests the behavioural manifestation of process-level reasoning
+          can emerge from outcome-level optimization, though whether the resulting reasoning is genuinely
+          faithful remains an open question (\S 4.5).
+        </p>
+
+        <p>
+          The scaling of test-time compute, generating many candidates and selecting the best according to a
+          verifier, has become a central strategy for pushing reasoning performance [36]. Snell
+          et al. showed that optimally scaling inference-time computation can outperform scaling model
+          parameters, establishing test-time compute as a first-class scaling dimension. However, this
+          paradigm amplifies both the benefits and the risks of verification. It improves performance when
+          the verifier is accurate but accelerates reward hacking when the verifier is systematically
+          exploitable. As models become better at modeling the verifier's behaviour, the gap between
+          verifier-approved and genuinely correct solutions may widen, a concern that intensifies with
+          continued training against fixed verifiers.
+        </p>
+
+        <h2>7. Cross-Cutting Analysis</h2>
+
+        <p>
+          The four themes of correctness, faithfulness, robustness, and verification are deeply intertwined.
+          The connections and tensions between them reveal fundamental challenges that no single research
+          thread can resolve in isolation.
+        </p>
+
+        <h3>7.1 The Faithfulness Verification Paradox</h3>
+
+        <p>
+          The most significant tension exists between the faithfulness literature and the verification
+          enterprise. Process-based verification, which represents the current state of the art in reasoning
+          evaluation [22], fundamentally assumes that the stated chain plays a meaningful causal
+          role in determining the model's answer. That is, it assumes substantial faithfulness. If chains
+          are largely post-hoc rationalizations [39, 19], then verifying the
+          correctness of individual steps may have limited bearing on the actual reliability of the model's
+          conclusions. A model that produces correct answers through opaque internal processes and then
+          generates plausible but unfaithful chains would receive high process-based verification scores
+          without actually reasoning in the verified manner. The verification would be assessing the quality
+          of the <em>rationalization</em>, not the quality of the <em>reasoning</em>.
+        </p>
+
+        <p>
+          This paradox has not been fully confronted in the literature. The verification community tends to
+          assume or implicitly require faithfulness. The faithfulness community documents violations without
+          fully addressing the implications for verification. A promising resolution might emerge from the
+          observation that process-based <em>training</em> (not just evaluation) could improve faithfulness
+          as a side effect. If a model is trained to produce step-by-step reasoning evaluated at each step,
+          it may develop internal computations that more closely track the generated reasoning. However,
+          this hypothesis remains largely untested, and the alternative, that models learn to produce
+          better-looking chains without changing their underlying computation, is equally plausible.
+        </p>
+
+        <p>
+          A related tension sits between faithfulness and consistency. Techniques that improve consistency
+          (self-consistency, prompt formatting standardization) do not address faithfulness, and techniques
+          that diagnose faithfulness failures (counterfactual probing [38], mechanistic
+          trajectory analysis [15]) do not improve consistency
+          [49, 2, 38]. No single intervention currently addresses
+          CoT reliability holistically. A system combining self-consistency for output stability, retrieval
+          augmentation for factual grounding, counterfactual probing for faithfulness monitoring, and
+          diffusion-style iterative refinement [4] for long-horizon error accumulation would
+          address multiple dimensions. But no such integrated framework has been proposed or evaluated.
+        </p>
+
+        <h3>7.2 Robustness as a Window into Faithfulness</h3>
+
+        <p>
+          The robustness literature provides indirect but valuable evidence for the faithfulness debate
+          through triangulation. If CoT reasoning were fully faithful, then factors that influence the
+          model's answer should be reflected in the chain. The finding that models are systematically
+          influenced by irrelevant context [35], premise order [6], and positional
+          biases [39] without mentioning these factors in their reasoning constitutes evidence
+          of unfaithfulness by logical necessity. The chain claims to arrive at the answer through one
+          process while the answer is actually influenced by a different process, the definition of
+          unfaithfulness.
+        </p>
+
+        <p>
+          Conversely, self-consistency [44] may improve performance partly by averaging over
+          different <em>unfaithful</em> reasoning paths. If each path captures a different subset of the
+          model's actual considerations, majority voting may approximate the model's true posterior
+          distribution better than any single (potentially unfaithful) chain. Under this interpretation,
+          self-consistency works not because it averages over faithful but stochastically erroneous
+          reasoning, but because it aggregates partial and unfaithful reflections of a richer underlying
+          computation. Testing this hypothesis would require combining robustness and faithfulness
+          methodologies in novel ways, an underexplored research direction.
+        </p>
+
+        <h3>7.3 The Correctness Faithfulness Dissociation</h3>
+
+        <p>
+          A recurring finding is the practical dissociation between correctness and faithfulness. Models can
+          achieve high answer accuracy while producing chains that do not faithfully reflect their
+          computation [19], and they can produce logically sound reasoning that is not what
+          actually drives their answers [39]. Improving correctness of chains through better
+          verification or training does not necessarily improve faithfulness, and vice versa. The field
+          needs to be explicit about which dimension it is optimizing and to recognize that gains on one
+          dimension may come at the expense of, or be orthogonal to, the other.
+        </p>
+
+        <p>
+          This dissociation is particularly relevant for safety-critical applications. If the goal is
+          <em>interpretability</em>, understanding why the model produced a particular output, then
+          faithfulness is essential regardless of correctness. If the goal is <em>reliability</em>, ensuring
+          correct outputs, then correctness of the final answer is what matters, with faithfulness relevant
+          only insofar as it supports downstream reliability. Current approaches tend to conflate these
+          goals, optimizing for correct-and-plausible-looking reasoning without distinguishing whether the
+          plausibility reflects genuine transparency or skilled confabulation.
+        </p>
+
+        <h3>7.4 Methodological Convergence and Asymmetric Opacity</h3>
+
+        <p>
+          Across themes, we observe a methodological convergence toward intervention-based evaluation,
+          measuring properties of reasoning chains by perturbing them and observing effects. Faithfulness is
+          assessed by truncating, corrupting, or replacing steps [19]. Robustness is assessed
+          by perturbing inputs [35]. Error propagation is studied by injecting errors
+          [1]. Faithfulness is also probed by counterfactual premise alteration
+          [38]. This convergence is encouraging, pointing toward a shared experimental
+          methodology, but introduces a collective vulnerability. If intervention-based methods
+          systematically miss certain failure modes (for example, if models compensate for interventions in
+          ways that mask unfaithfulness) the field's conclusions may be uniformly biased.
+        </p>
+
+        <p>
+          A notable methodological divergence exists between work on prompted CoT in open or semi-open
+          models and work on proprietary reasoning models. Research on prompted CoT benefits from relatively
+          transparent experimental control. Researchers can systematically vary prompts, access model
+          logits, and even inspect intermediate representations in open-weight models. Research on trained
+          reasoning models (o1, o1-pro) operates under far greater opacity. Training processes, reward
+          models, and full reasoning traces are proprietary [28], and even the summary traces
+          provided to users may be post-processed. The open-source reasoning model movement, exemplified by
+          DeepSeek-R1 [10], partially addresses this gap but cannot substitute for transparent
+          analysis of the most widely deployed commercial systems.
+        </p>
+
+        <h2>8. Open Problems and Future Directions</h2>
+
+        <h3>8.1 Ground-Truth Faithfulness Evaluation</h3>
+
+        <p>
+          The most pressing methodological gap is the absence of ground-truth methods for evaluating
+          faithfulness. Current approaches rely on indirect behavioural probes. If corrupting the chain does
+          not change the answer, the chain was probably unfaithful [19]. But these provide
+          necessary rather than sufficient conditions. A model that produces faithful reasoning might also
+          be robust to mild corruption, leading to false negatives. Developing <em>mechanistic
+          interpretability</em> methods that establish direct causal links between generated reasoning
+          tokens and specific internal computations would transform the field. Early work connecting CoT to
+          internal circuit analysis [31, 15] suggests this is achievable in
+          principle, but current techniques do not scale to the multi-step chains and model sizes
+          characteristic of frontier systems. Bridging this gap should be a priority for the
+          interpretability community.
+        </p>
+
+        <p>
+          A closely related gap is the lack of unified, comparable faithfulness metrics. Counterfactual
+          consistency [38], representation-trajectory analysis [15], robustness to
+          invalid demonstrations [7, 53], and truncation or corruption probes
+          [19] each capture different facets of faithfulness, but no study has compared them
+          head-to-head on the same tasks and models. A benchmark suite that evaluates multiple faithfulness
+          criteria simultaneously would let researchers determine whether these criteria are correlated,
+          complementary, or contradictory.
+        </p>
+
+        <h3>8.2 Faithfulness-Aware Verification</h3>
+
+        <p>
+          Process-based verification needs to be extended to account for potential unfaithfulness.
+          Verification methods combining step-level evaluation of stated reasoning with behavioural probes
+          for faithfulness (for example checking whether the answer distribution changes when stated
+          reasoning is causally intervened upon) would provide more reliable holistic assessment than either
+          approach alone. Such faithfulness-aware verification would be particularly valuable for auditing
+          reasoning models in high-stakes deployment, where the question is not just whether the reasoning
+          looks correct, but whether the model is actually doing what it says it is doing.
+        </p>
+
+        <p>
+          Existing faithfulness diagnostics are primarily post-hoc evaluation tools rather than real-time
+          monitors. Developing lightweight indicators that can flag potentially unfaithful reasoning during
+          inference, by monitoring representation-space trajectories [15] or deploying rapid
+          counterfactual probes [38], would enable systems that know when to trust their own
+          reasoning and when to defer to alternative methods.
+        </p>
+
+        <h3>8.3 Multimodal Reasoning Reliability</h3>
+
+        <p>
+          The reliability of multimodal CoT remains substantially less studied than text-only reasoning
+          despite the rapid deployment of VLMs in visual reasoning applications
+          [52, 23]. Key open questions include the following. How
+          faithfully do VLM chains reflect visual perception versus language priors? How should process-based
+          verification be extended to evaluate steps involving cross-modal grounding? What error taxonomies
+          are appropriate for reasoning that integrates visual and textual information, and how should
+          perceptual errors be separated from reasoning errors? The growing deployment in medical imaging
+          and autonomous driving lends urgency.
+        </p>
+
+        <h3>8.4 Reasoning Under Distribution Shift</h3>
+
+        <p>
+          Nearly all existing work evaluates CoT reliability on benchmark distributions that do not capture
+          the full range of inputs encountered in deployment. The behaviour of CoT under distribution shift
+          remains largely unexplored. Given the documented sensitivity to superficial input features
+          [35, 6], there is strong reason to expect reliability may
+          degrade substantially under shift, but this hypothesis requires systematic testing across
+          reasoning domains and shift types. Understanding this relationship is critical for establishing
+          deployment guardrails. Long-horizon reasoning is a particularly severe form of distribution shift.
+          The catastrophic degradation documented by [27] at long chain lengths demands
+          architectural innovation beyond the single-pass autoregressive paradigm. DiffCoT's iterative
+          refinement [4] is a promising direction, but scalability to the multi-thousand-step
+          reasoning required for autonomous planning remains to be demonstrated. Tree-structured reasoning,
+          hierarchical decomposition, and hybrid neuro-symbolic approaches are alternatives worth pursuing.
+        </p>
+
+        <h3>8.5 Theoretical Foundations for CoT Reliability</h3>
+
+        <p>
+          The field currently lacks a theoretical framework unifying the diverse empirical observations. Why
+          does compositionality degrade predictably with chain length
+          [11, 34]? Under what formal conditions should we expect faithful
+          or unfaithful reasoning? What is the relationship between architecture, training objective, data
+          distribution, and reasoning reliability? Information-theoretic analyses of CoT as a communication
+          channel between reasoning and answering stages could provide principled answers. Formal models of
+          when process-based verification is theoretically superior to outcome-based verification,
+          accounting for verifier error rates, reward hacking dynamics, and faithfulness levels, would
+          ground current empirical practices.
+        </p>
+
+        <h2>9. Conclusion</h2>
+
+        <p>
+          The reliability of chain-of-thought reasoning is not a single question but a constellation of
+          interrelated challenges spanning correctness, faithfulness, robustness, and verification.
+          Reasoning chains in LLMs are demonstrably imperfect. They exhibit systematic errors that compound
+          over multi-step inference [34, 11]. They may not faithfully reflect
+          the model's actual computation [39, 19, 2]. They are
+          fragile to perturbations that should be irrelevant to sound reasoning
+          [35, 41, 29]. And they degrade
+          catastrophically at long chain lengths [27]. Verification methods, particularly
+          process-based reward models [22, 43], offer promising tools for
+          improving quality, but their effectiveness is complicated by the very faithfulness concerns they
+          are designed to address, a paradox that remains unresolved.
+        </p>
+
+        <p>
+          The emergence of reasoning models trained through reinforcement learning
+          [28, 10] has raised both the capability ceiling and the stakes,
+          producing more sophisticated reasoning behaviour while potentially introducing more sophisticated
+          forms of unfaithfulness [3]. The field's path forward requires better measurement
+          (unified metrics, inference-time monitoring, faithfulness-aware verification), architectural
+          innovation (non-autoregressive reasoning, multimodal grounding, long-horizon refinement), and
+          theoretical foundations, with the recognition that scaling alone is unlikely to resolve the
+          fundamental limitations in how current models generate explanatory text. The persuasiveness of a
+          reasoning chain is not evidence of its reliability, and closing that gap must be the field's
+          central priority.
+        </p>
+
+        </section>
+
+        <div class="references-section">
+          <h2 class="references-header">References</h2>
+          <ol class="references-list">
+            <li id="ref-1">An, S., Ma, Z., Lin, Z., Zheng, N., Lou, J.G., &amp; Chen, W. (2023). &ldquo;Learning from mistakes makes LLM better reasoner.&rdquo; <em>arXiv:2310.20689</em>.</li>
+            <li id="ref-2">Arcuschin, I., et al. (2025). &ldquo;Chain-of-Thought Reasoning In The Wild Is Not Always Faithful.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-3">Baker, B., Barak, B., Garg, S., Goldin, I., et al. (2025). &ldquo;Monitoring reasoning models for misbehavior and the risks of promoting obfuscation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-4">Cao, S., et al. (2026). &ldquo;DiffCoT. Diffusion-styled Chain-of-Thought Reasoning in LLMs.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-5">Chen, W., Ma, X., Wang, X., &amp; Cohen, W.W. (2023). &ldquo;Program of Thoughts Prompting. Disentangling Computation from Reasoning for Numerical Reasoning Tasks.&rdquo; <em>TMLR</em>.</li>
+            <li id="ref-6">Chen, X., Shi, F., Scales, N., Dohan, D., Chi, E., &amp; Zhou, D. (2024). &ldquo;Premise Order Matters in Reasoning with Large Language Models.&rdquo; <em>arXiv:2402.08939</em>.</li>
+            <li id="ref-7">Chia, Y.K., et al. (2023). &ldquo;Contrastive Chain-of-Thought Prompting.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-8">Cobbe, K., Kosaraju, V., Bavarian, M., et al. (2021). &ldquo;Training Verifiers to Solve Math Word Problems.&rdquo; <em>arXiv:2110.14168</em>.</li>
+            <li id="ref-9">Creswell, A., Shanahan, M., &amp; Higgins, I. (2023). &ldquo;Selection-Inference. Exploiting Large Language Models for Interpretable Logical Reasoning.&rdquo; <em>ICLR 2023</em>.</li>
+            <li id="ref-10">DeepSeek-AI. (2025). &ldquo;DeepSeek-R1. Incentivizing Reasoning Capability in LLMs via Reinforcement Learning.&rdquo; <em>arXiv:2501.12948</em>.</li>
+            <li id="ref-11">Dziri, N., Lu, X., Sclar, M., Li, X.L., et al. (2024). &ldquo;Faith and Fate. Limits of Transformers on Compositionality.&rdquo; <em>NeurIPS 2024</em>.</li>
+            <li id="ref-12">Gao, L., Madaan, A., Zhou, S., Alon, U., et al. (2023). &ldquo;PAL. Program-Aided Language Models.&rdquo; <em>ICML 2023</em>.</li>
+            <li id="ref-13">Golovneva, O., Chen, M., Poff, S., et al. (2023). &ldquo;ROSCOE. A Suite of Metrics for Scoring Step-by-Step Reasoning.&rdquo; <em>ACL 2023</em>.</li>
+            <li id="ref-14">Hosseini, A., Yuan, X., Malkin, N., Courville, A., Sordoni, A., &amp; Agarwal, R. (2024). &ldquo;V-STaR. Training Verifiers for Self-Taught Reasoners.&rdquo; <em>arXiv:2402.06457</em>.</li>
+            <li id="ref-15">Hu, L., et al. (2024). &ldquo;Understanding Reasoning in Chain-of-Thought from the Hopfieldian View.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-16">Huang, J., Chen, X., Mishra, S., Zheng, H.S., Yu, A.W., Song, X., &amp; Zhou, D. (2024). &ldquo;Large Language Models Cannot Self-Correct Reasoning Yet.&rdquo; <em>ICLR 2024</em>.</li>
+            <li id="ref-17">Jacovi, A., &amp; Goldberg, Y. (2020). &ldquo;Towards Faithfully Interpretable NLP Systems. A Survey.&rdquo; <em>ACL 2020</em>.</li>
+            <li id="ref-18">Kojima, T., Gu, S.S., Reid, M., Matsuo, Y., &amp; Iwasawa, Y. (2022). &ldquo;Large Language Models are Zero-Shot Reasoners.&rdquo; <em>NeurIPS 2022</em>.</li>
+            <li id="ref-19">Lanham, T., Chen, A., Radhakrishnan, A., et al. (2023). &ldquo;Measuring Faithfulness in Chain-of-Thought Reasoning.&rdquo; <em>arXiv:2307.13702</em>.</li>
+            <li id="ref-20">Lewkowycz, A., Andreassen, A., Dohan, D., et al. (2022). &ldquo;Solving Quantitative Reasoning Problems with Language Models.&rdquo; <em>NeurIPS 2022</em>.</li>
+            <li id="ref-21">Li, Y., Lin, Z., Zhang, S., Fu, Q., Chen, B., Lou, J.G., &amp; Chen, W. (2023). &ldquo;Making Language Models Better Reasoners with Step-Aware Verifier.&rdquo; <em>ACL 2023</em>.</li>
+            <li id="ref-22">Lightman, H., Kosaraju, V., Burda, Y., et al. (2024). &ldquo;Let's Verify Step by Step.&rdquo; <em>ICLR 2024</em>.</li>
+            <li id="ref-23">Lu, P., Mishra, S., Xia, T., et al. (2022). &ldquo;Learn to Explain. Multimodal Reasoning via Thought Chains for Science Question Answering.&rdquo; <em>NeurIPS 2022</em>.</li>
+            <li id="ref-24">Lyu, Q., Havaldar, S., Stein, A., et al. (2023). &ldquo;Faithful Chain-of-Thought Reasoning.&rdquo; <em>IJCNLP-AACL 2023</em>.</li>
+            <li id="ref-25">Madaan, A., &amp; Yazdanbakhsh, A. (2022). &ldquo;Text and Patterns. For Effective Chain of Thought, It Takes Two to Tango.&rdquo; <em>arXiv:2209.07686</em>.</li>
+            <li id="ref-26">Madaan, A., Tandon, N., Gupta, P., et al. (2023). &ldquo;Self-Refine. Iterative Refinement with Self-Feedback.&rdquo; <em>NeurIPS 2023</em>.</li>
+            <li id="ref-27">Motwani, S.R., et al. (2026). &ldquo;LongCoT. Benchmarking Long-Horizon Chain-of-Thought Reasoning.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-28">OpenAI. (2024). &ldquo;Learning to Reason with LLMs.&rdquo; <em>OpenAI Blog</em>.</li>
+            <li id="ref-29">Park, Y., et al. (2024). &ldquo;Can Separators Improve Chain-of-Thought Prompting?&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-30">Paul, D., Ismayilzada, M., Peyrard, M., et al. (2024). &ldquo;Making Reasoning Matter. Measuring and Improving Faithfulness of Chain-of-Thought Reasoning.&rdquo; <em>EMNLP 2024</em>.</li>
+            <li id="ref-31">Pfau, J., Merrill, W., &amp; Bowman, S.R. (2024). &ldquo;Let's Think Dot by Dot. Hidden Computation in Transformer Language Models.&rdquo; <em>COLM 2024</em>.</li>
+            <li id="ref-32">Prasad, A., Saha, S., Zhou, X., &amp; Bansal, M. (2023). &ldquo;ReCEval. Evaluating Reasoning Chains via Correctness and Informativeness.&rdquo; <em>ACL 2023</em>.</li>
+            <li id="ref-33">Radhakrishnan, A., Nguyen, K., Chen, A., et al. (2023). &ldquo;Question Decomposition Improves the Faithfulness of Model-Generated Reasoning.&rdquo; <em>arXiv:2307.11768</em>.</li>
+            <li id="ref-34">Saparov, A., &amp; He, H. (2023). &ldquo;Language Models are Greedy Reasoners. A Systematic Formal Analysis of Chain-of-Thought.&rdquo; <em>ICLR 2023</em>.</li>
+            <li id="ref-35">Shi, F., Chen, X., Misra, K., et al. (2023). &ldquo;Large Language Models Can Be Easily Distracted by Irrelevant Context.&rdquo; <em>ICML 2023</em>.</li>
+            <li id="ref-36">Snell, C., Lee, J., Xu, K., &amp; Kumar, A. (2024). &ldquo;Scaling LLM Test-Time Compute Optimally Can Be More Effective than Scaling Model Parameters.&rdquo; <em>arXiv:2408.03314</em>.</li>
+            <li id="ref-37">Stechly, K., Marquez, M., &amp; Kambhampati, S. (2024). &ldquo;On the Self-Verification Limitations of Large Language Models on Reasoning and Planning Tasks.&rdquo; <em>arXiv:2402.08115</em>.</li>
+            <li id="ref-38">Tang, Z., et al. (2023). &ldquo;Towards CausalGPT. A Multi-Agent Approach for Faithful Knowledge Reasoning via Promoting Causal Consistency in LLMs.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-39">Turpin, M., Michael, J., Perez, E., &amp; Bowman, S.R. (2024). &ldquo;Language Models Don't Always Say What They Think. Unfaithful Explanations in Chain-of-Thought Prompting.&rdquo; <em>NeurIPS 2024</em>.</li>
+            <li id="ref-40">Uesato, J., Kushman, N., Kumar, R., Song, F., et al. (2022). &ldquo;Solving Math Word Problems with Process- and Outcome-Based Feedback.&rdquo; <em>arXiv:2211.14275</em>.</li>
+            <li id="ref-41">Wang, B., Min, S., Deng, X., Shen, J., et al. (2023). &ldquo;Towards Understanding Chain-of-Thought Prompting. An Empirical Study of What Matters in Chain-of-Thought Prompting.&rdquo; <em>ACL 2023</em>.</li>
+            <li id="ref-42">Wang, K., et al. (2023). &ldquo;Knowledge-Driven CoT. Exploring Faithful Reasoning in LLMs for Knowledge-Intensive Question Answering.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-43">Wang, P., Li, L., Shao, Z., Xu, R.X., et al. (2024). &ldquo;Math-Shepherd. Verify and Reinforce LLMs Step-by-Step Without Human Annotations.&rdquo; <em>ACL 2024</em>.</li>
+            <li id="ref-44">Wang, X., Wei, J., Schuurmans, D., Le, Q., Chi, E., Narang, S., Chowdhery, A., &amp; Zhou, D. (2023). &ldquo;Self-Consistency Improves Chain of Thought Reasoning in Language Models.&rdquo; <em>ICLR 2023</em>.</li>
+            <li id="ref-45">Wei, J., Wang, X., Schuurmans, D., Bosma, M., Ichter, B., Xia, F., Chi, E., Le, Q., &amp; Zhou, D. (2022). &ldquo;Chain-of-Thought Prompting Elicits Reasoning in Large Language Models.&rdquo; <em>NeurIPS 2022</em>.</li>
+            <li id="ref-46">Weng, Y., Zhu, M., Xia, F., Li, B., He, S., Liu, K., &amp; Zhao, J. (2023). &ldquo;Large Language Models are Better Reasoners with Self-Verification.&rdquo; <em>EMNLP Findings 2023</em>.</li>
+            <li id="ref-47">Yao, S., Yu, D., Zhao, J., Shafran, I., Griffiths, T.L., Cao, Y., &amp; Narasimhan, K. (2024). &ldquo;Tree of Thoughts. Deliberate Problem Solving with Large Language Models.&rdquo; <em>NeurIPS 2024</em>.</li>
+            <li id="ref-48">Ye, X., &amp; Durrett, G. (2022). &ldquo;The Unreliability of Explanations in Few-Shot Prompting for Textual Reasoning.&rdquo; <em>NeurIPS 2022</em>.</li>
+            <li id="ref-49">Yu, Z. (2023). &ldquo;Towards Better Chain-of-Thought Prompting Strategies. A Survey.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-50">Zelikman, E., Wu, Y., Mu, J., &amp; Goodman, N. (2022). &ldquo;STaR. Bootstrapping Reasoning with Reasoning.&rdquo; <em>NeurIPS 2022</em>.</li>
+            <li id="ref-51">Zhang, Y. (2023). &ldquo;Meta Prompting for AI Systems.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-52">Zhang, Z., Zhang, A., Li, M., &amp; Smola, A. (2023). &ldquo;Multimodal Chain-of-Thought Reasoning in Language Models.&rdquo; <em>arXiv:2302.00923</em>.</li>
+            <li id="ref-53">Zhao, C. (2025). &ldquo;Is Chain-of-Thought Reasoning of LLMs a Mirage? A Data Distribution Lens.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-54">Zhou, D., Scharli, N., Hou, L., Wei, J., et al. (2023). &ldquo;Least-to-Most Prompting Enables Complex Reasoning in Large Language Models.&rdquo; <em>ICLR 2023</em>.</li>
+          </ol>
+        </div>
+      </article>
+    </div>
+
+    <!-- Blog styling and spacing script -->
+    <script defer src="/js/blog.js"></script>
+    <script defer src="/js/katex-init.js"></script>
+    <script defer src="/js/references.js"></script>
+  </body>
+</html>
