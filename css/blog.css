@@ -127,8 +127,10 @@ nav a:active {
   margin-top: 1.5rem;
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.8rem;
 }
+
 
 .blog-link {
   display: inline-flex;
@@ -521,12 +523,25 @@ nav a:active {
 .blog-model-tag {
   display: inline-flex;
   align-items: center;
-  font-size: 0.8rem;
-  color: #aaa;
-  padding: 0.3rem 0.7rem;
-  border: 1px solid #eee;
-  border-radius: 3px;
-  font-style: italic;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: #CC785C;
+  background: transparent;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  font-style: normal;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  cursor: default;
+}
+
+.blog-model-tag svg {
+  width: 0.95em;
+  height: 0.95em;
+  flex-shrink: 0;
+  color: #CC785C;
 }
 
 /* ============================================
