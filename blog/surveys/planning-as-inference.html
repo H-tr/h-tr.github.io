@@ -1,0 +1,1516 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Planning as Inference in Probabilistic Models | Hu Tianrun</title>
+
+    <!-- Fonts -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Prism.js initialization -->
+    <script src="/js/prism-init.js"></script>
+
+    <!-- KaTeX Math Support -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Site Assets -->
+    <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg" />
+    <link href="/css/blog.css" rel="stylesheet" />
+    <link href="/css/references.css" rel="stylesheet" />
+
+    <!-- KaTeX Scripts -->
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"
+    ></script>
+  </head>
+  <body>
+    <div class="blog-post">
+      <a href="../?tab=survey" class="back-button">
+        <i class="fas fa-arrow-left"></i>Back
+      </a>
+
+      <header class="blog-post-header">
+        <h1 class="blog-post-title">Planning as Inference in Probabilistic Models</h1>
+        <div class="blog-post-date">April 23, 2026</div>
+      </header>
+
+      <article class="blog-post-content">
+        <section class="blog-section">
+
+        <h2>1. Introduction</h2>
+
+        <p>
+          Sequential decision making under uncertainty is a central problem across artificial intelligence,
+          robotics, and cognitive science. The dominant formalism for decades has been dynamic programming,
+          which casts planning as the optimization of a value function via the Bellman equation
+          [8, 83]. A parallel tradition, which has grown from a theoretical curiosity into a
+          major research programme, recasts planning and control not as optimization problems but as
+          inference problems in probabilistic graphical models. Under this view, an optimal agent does not
+          maximize cumulative reward directly. It conditions a probabilistic model on the event of behaving
+          optimally and performs posterior inference to recover a plan or policy. This conceptual reframing,
+          broadly termed planning as inference, has yielded new algorithms, tighter theoretical connections
+          between control and estimation, and practical systems that rival or exceed the performance of
+          conventional reinforcement learning methods [54, 87, 93].
+        </p>
+
+        <p>
+          The appeal of the inference perspective is both theoretical and practical. Theoretically, it
+          reveals deep dualities between stochastic optimal control and probabilistic estimation
+          [48, 89], provides principled mechanisms for exploration via information-theoretic
+          objectives [26, 33], and connects sequential decision making to the broader toolkit of
+          approximate inference (variational methods, Monte Carlo sampling, message passing, and
+          expectation-maximization) [54, 68, 93]. Practically, algorithms derived from this
+          viewpoint (Soft Actor-Critic [33], model-predictive path integral control
+          [99], and diffusion-based planners [44]) have achieved state-of-the-art
+          results in continuous control, robotic manipulation, and locomotion.
+        </p>
+
+        <p>
+          This scoping review addresses the research question of how planning problems have been formulated
+          and solved as inference problems in probabilistic models, and what the key algorithmic frameworks,
+          theoretical foundations, and empirical advances are in this paradigm. We cover the period from
+          2006 to 2026, spanning artificial intelligence, robotics and control, probabilistic machine
+          learning, and cognitive science. The lower bound is motivated by a cluster of foundational
+          publications in 2006 (Todorov's linearly solvable MDPs [87] and Toussaint and Storkey's
+          graphical model formulation [93]) that crystallized the modern form of the framework,
+          although we reference earlier antecedents where relevant [4, 17].
+        </p>
+
+        <p>
+          The survey is organized as follows. Section 2 establishes background and definitions. Section 3
+          examines the theoretical foundations of the control-as-inference framework, including
+          KL-regularized control, linearly solvable MDPs, path integral methods, and
+          expectation-maximization approaches. Section 4 covers active inference and the free energy
+          principle as a planning framework grounded in neuroscience. Section 5 treats maximum entropy
+          reinforcement learning and soft methods, which have produced the most widely deployed algorithms
+          from this paradigm. Section 6 reviews model-based probabilistic planning, including Gaussian
+          process dynamics, world models, generative trajectory models, and probabilistic programming.
+          Section 7 provides a cross-cutting analysis of connections and tensions between themes. Section 8
+          identifies open problems and future directions, and Section 9 concludes.
+        </p>
+
+        <div class="blog-callout">
+          <p>
+            <strong>The single most important takeaway.</strong> The choice of inference method in planning
+            as inference is not a computational convenience but a constitutive design decision. It shapes
+            the resulting agent's epistemic and pragmatic behavior [49, 54, 59].
+            Curvature-sensitive Gaussian approximations generate ambiguity-avoiding active inference agents,
+            while curvature-blind ones do not [49]. Variational families, sampling schemes, and
+            amortization choices in soft reinforcement learning collectively determine policy expressiveness
+            and exploration [33, 54]. The next generation of inference-based planners will be
+            evaluated as much by their inference approximations as by their generative models.
+          </p>
+        </div>
+
+
+        <h2>2. Background and Definitions</h2>
+
+        <p>
+          The planning-as-inference framework operates at the intersection of several formalisms. A
+          <strong>Markov decision process</strong> (MDP) is defined by states (\(s \in \mathcal{S}\)),
+          actions (\(a \in \mathcal{A}\)), a transition kernel (\(p(s' \mid s, a)\)), a reward function
+          (\(r(s, a)\)), and a discount factor (\(\gamma\)). The objective is a policy (\(\pi(a \mid s)\))
+          maximizing expected cumulative reward. In the partially observed setting (POMDP), the agent
+          receives observations (\(o\)) rather than states, introducing a belief-state computation. The
+          standard approach solves the Bellman equation for a value function (\(V(s)\)) or action-value
+          function (\(Q(s, a)\)), from which a policy is extracted [8, 83]. Multiagent extensions
+          (Dec-POMDPs) introduce multiple agents with independent observation histories, yielding
+          NEXP-complete planning problems even for two agents [50].
+        </p>
+
+        <p>
+          <strong>Planning as inference</strong> augments the MDP with binary optimality variables
+          (\(\mathcal{O}_t \in \{0, 1\}\)) at each time step, where
+          (\(p(\mathcal{O}_t = 1 \mid s_t, a_t) \propto \exp(r(s_t, a_t))\)) [54]. The joint
+          probability of a trajectory (\(\tau = (s_1, a_1, \ldots, s_T, a_T)\)) under the graphical model,
+          conditioned on all optimality variables being 1, encodes the planning problem. Computing the
+          posterior (\(p(\tau \mid \mathcal{O}_{1:T} = 1)\)) or the per-step marginal
+          (\(p(a_t \mid s_t, \mathcal{O}_{t:T} = 1)\)) yields the optimal policy. This formulation
+          transforms policy computation into posterior inference in a probabilistic graphical model
+          [54, 82, 93].
+        </p>
+
+        <div class="math-block">
+          $p(\tau \mid \mathcal{O}_{1:T}=1) \;\propto\; p(\tau) \prod_{t=1}^{T} \exp(r(s_t, a_t))$
+        </div>
+
+        <p>
+          <strong>KL-regularized control</strong> refers to optimal control problems where the objective
+          includes a Kullback-Leibler divergence penalty between the controlled and uncontrolled dynamics
+          [47, 87]. This regularization is what makes the control problem exactly solvable as an
+          inference problem. A <strong>linearly solvable MDP</strong> is the special case where this KL
+          structure linearizes the Bellman equation [87]. The
+          <strong>free energy principle</strong> posits that biological agents minimize a variational free
+          energy functional, and <strong>active inference</strong> extends this to action selection, where
+          planning amounts to minimizing expected free energy over future trajectories
+          [25, 27]. <strong>Maximum entropy reinforcement learning</strong> augments the standard
+          RL objective with an entropy bonus (\(\mathcal{H}[\pi(\cdot \mid s)]\)) at each step, yielding
+          policies that are both reward-maximizing and maximally stochastic
+          [32, 54, 102]. This objective is dual to the inference formulation, with the entropy
+          bonus arising naturally from the KL structure of the graphical model [54].
+        </p>
+
+        <p>
+          <strong>Probabilistic graphical models</strong> represent joint distributions over random
+          variables through graph structure (directed Bayesian networks or undirected Markov random
+          fields). Inference amounts to computing marginal or conditional distributions, typically
+          intractable in exact form and hence approximated via variational inference (minimizing a KL
+          divergence between an approximate and true posterior), message passing, or Monte Carlo sampling.
+          Variational free energy, an upper bound on negative log-evidence, serves as the central objective
+          in variational inference, providing both a tractable optimization target and an
+          information-theoretic interpretation of the gap between model and data [48, 54].
+        </p>
+
+        <p>
+          This review covers work that explicitly formulates planning or control as inference in a
+          probabilistic model. We exclude pure model-free reinforcement learning that does not invoke
+          inference-based reasoning, Bayesian optimization for black-box functions, and inference methods
+          for supervised or unsupervised learning that lack a sequential decision-making component. We
+          include work from the active inference tradition when it addresses planning and action selection,
+          but not purely perceptual applications of the free energy principle. Approaches that use the
+          graphical model view to integrate motion planning with trajectory estimation, or to unify
+          reasoning across abstraction levels, are included because they draw the same formal equivalence
+          between plans and posteriors.
+        </p>
+
+
+        <h2>3. Theoretical Foundations</h2>
+
+        <h3>3.1 The Graphical Model Formulation</h3>
+
+        <p>
+          The central insight of the planning-as-inference paradigm is that the Bellman optimality equation
+          can be recovered as a message-passing computation in a suitably defined graphical model. Early
+          intimations appeared in the EM-based RL literature of the late 1990s, where reward-weighted
+          likelihood maximization was shown to yield policy improvement [17, 65]. Attias
+          [4] showed that plans in goal-directed tasks could be obtained by inference in a directed
+          graphical model over observations, actions, and goals, an early formulation that predated the
+          now-dominant optimality-variable construction. The modern form crystallized in work by Toussaint
+          and Storkey [93], who constructed a graphical model over state-action trajectories
+          augmented with binary reward events, and demonstrated that backward messages correspond to value
+          functions while forward messages correspond to state visitation distributions. This bidirectional
+          message-passing view unifies dynamic programming (backward pass) with trajectory sampling
+          (forward pass) within a single probabilistic framework [91, 93].
+        </p>
+
+        <p>
+          The generality of this formulation has been appreciated gradually. Subsequent formalizations
+          showed that the specific choice of how to encode reward (as log-probability of an optimality
+          variable, as exponential tilting of a reference measure, or as a likelihood in an EM procedure)
+          determines which inference algorithm recovers which control algorithm [54, 68].
+          The mapping is remarkably tight. Belief propagation yields soft value iteration, variational
+          inference yields policy gradient methods, and expectation-maximization yields reward-weighted
+          regression [48, 54]. This taxonomy, developed most comprehensively in Levine's
+          [54] tutorial and reinforced by the graphical-model-and-variational-inference survey of
+          Sun et al. [82], has become the standard reference for the field. The framework
+          accommodates discrete and continuous state-action spaces, finite and infinite horizons, and fully
+          and partially observed settings, although computational tractability varies sharply across these
+          cases [68, 93].
+        </p>
+
+        <p>
+          A critical subtlety is the role of the reference policy (or prior policy). In the graphical
+          model, the distribution over actions before conditioning on optimality is a prior
+          (\(\pi_0(a \mid s)\)), and the posterior policy deviates from this prior only insofar as evidence
+          from optimality variables demands [28, 54]. When the prior is uniform, the framework
+          reduces to standard maximum entropy control. When the prior is a previously learned policy, the
+          framework yields KL-regularized policy updates reminiscent of trust-region methods
+          [1, 28, 75]. This prior-posterior structure provides a natural language for
+          curriculum learning, hierarchical control, and transfer, although these applications have been
+          explored unevenly [28, 86].
+        </p>
+
+        <h3>3.2 KL-Regularized Control and Linearly Solvable MDPs</h3>
+
+        <p>
+          The mathematical backbone of planning as inference is the theory of KL-regularized stochastic
+          optimal control. The key result, developed independently by Todorov [87, 88] and
+          Kappen [47], is that when the cost of control is measured as the KL divergence between
+          controlled and uncontrolled dynamics, the nonlinear Bellman equation linearizes. Defining a
+          desirability function (\(z(s) = \exp(-V(s))\)) where (\(V\)) is the optimal cost-to-go, the
+          Bellman equation becomes linear in (\(z\)), solvable by matrix exponentiation or eigenvalue
+          methods in discrete settings [87] and by path integral computation in continuous
+          settings [47].
+        </p>
+
+        <p>
+          This linearization is not merely a mathematical convenience. It establishes a formal duality
+          between optimal control and Bayesian inference. Todorov [89] proved that the
+          KL-regularized control problem is dual to a maximum-likelihood estimation problem, and that the
+          optimal controller can be recovered by inferring the posterior distribution over trajectories
+          given observations generated by an optimally controlled process. This duality is exact, not
+          approximate, and holds for a broad class of stochastic systems [48, 89]. The
+          practical consequence is that efficient inference algorithms (sampling, variational methods,
+          spectral methods) can be directly repurposed for control [48].
+        </p>
+
+        <p>
+          The linearly solvable MDP framework has been extended in several directions. Dvijotham and
+          Todorov [21] generalized it to handle state-dependent control costs and constraints.
+          Todorov [90] showed connections to information-theoretic bounded rationality, where
+          agents with limited computational resources naturally exhibit KL-regularized behavior. The
+          compositionality of the linear framework (that optimal policies for composite tasks can be
+          obtained by combining the desirability functions of subtasks) has been exploited for multi-task
+          and hierarchical control [73, 90]. Despite its elegance, the framework's restriction
+          to KL-structured costs limits direct applicability, and bridging this gap to general reward
+          functions is an active area of research (Section 8).
+        </p>
+
+        <h3>3.3 Path Integral Control</h3>
+
+        <p>
+          The continuous-time, continuous-state limit of KL-regularized control leads to path integral
+          control, where the optimal control signal is expressed as an expectation over stochastic
+          trajectories weighted by their exponentiated costs [47, 84]. The path integral
+          formulation is attractive because it converts a Hamilton-Jacobi-Bellman PDE into a sampling
+          problem. One simulates forward trajectories under the uncontrolled (or noise-injected) dynamics,
+          evaluates their costs, and takes a cost-weighted average to obtain the control
+          [84, 99].
+        </p>
+
+        <p>
+          This approach has been particularly influential in robotics, where high-dimensional continuous
+          control is the norm. The model-predictive path integral (MPPI) framework [99]
+          combines path integral control with model-predictive control, sampling trajectories from a
+          learned or known dynamics model and recomputing the control at each step. MPPI has demonstrated
+          strong performance on aggressive autonomous driving [100], quadrotor flight
+          [60], and manipulation tasks [9]. Its main limitation is computational. Good
+          performance requires many sampled trajectories, and sample complexity grows with task horizon and
+          dimensionality. Importance sampling and covariance adaptation have been proposed to ameliorate
+          this [67, 99], but scaling to very high-dimensional problems remains challenging.
+        </p>
+
+        <p>
+          The connection between path integrals and inference is deep. The trajectory-weighting step in
+          path integral control is formally equivalent to importance-weighted inference in a graphical
+          model where trajectories are latent variables and costs serve as likelihood terms
+          [48, 54]. This insight has motivated the use of more sophisticated inference methods
+          (sequential Monte Carlo [66], Stein variational gradient descent [52, 81],
+          and amortized importance sampling) as drop-in improvements to the basic path integral
+          computation.
+        </p>
+
+        <h3>3.4 Expectation-Maximization Approaches</h3>
+
+        <p>
+          An influential subfamily of planning-as-inference algorithms uses the expectation-maximization
+          (EM) algorithm to iteratively improve a policy. In the E-step, trajectories are sampled and
+          weighted by exponentiated returns. In the M-step, a parametric policy is fit to the weighted
+          samples by maximum likelihood. This template, which includes reward-weighted regression
+          [65], relative entropy policy search [64], and cross-entropy methods as
+          special cases, makes the inference interpretation of planning explicit. The E-step performs
+          inference (computing the posterior over trajectories given high reward), and the M-step performs
+          learning (updating the policy to match this posterior).
+        </p>
+
+        <p>
+          The EM view has been particularly fruitful for deriving practical policy search algorithms with
+          principled update rules. Maximum a Posteriori Policy Optimisation (MPO) [1] uses the EM
+          decomposition to separate policy evaluation (a supervised learning problem) from policy
+          improvement (a KL-constrained optimization), achieving competitive performance on continuous
+          control benchmarks with excellent stability properties. Hoffman et al. [42] extended
+          the EM approach to continuous MDPs with arbitrary reward structures, while Vlassis et al.
+          [97] demonstrated Monte Carlo EM for model-free robot control. The EM perspective also
+          provides a natural framework for incorporating constraints, priors, and hierarchical structure
+          into policy optimization [1, 68].
+        </p>
+
+        <p>
+          A limitation of EM-based approaches is the familiar one. EM is prone to local optima, and the
+          quality of the solution depends on initialization and the expressiveness of the policy class.
+          The EM viewpoint nonetheless continues to generate new algorithms, most recently in diffusion-based
+          planning (Section 6.4), where the iterative denoising process can be interpreted as a form of
+          iterative posterior refinement [44].
+        </p>
+
+        <h3>3.5 Probabilistic Programming as a Planning Language</h3>
+
+        <p>
+          The inference-based view of planning finds a natural computational substrate in probabilistic
+          programming, which provides general-purpose languages for specifying generative models and
+          performing automated inference. Belle and Levesque [7] argued that probabilistic
+          planning (planning in domains with stochastic actions, partial observability, and noisy sensors)
+          can be expressed directly as probabilistic programs, with plan synthesis delegated to the
+          language's inference engine. This offers expressiveness (probabilistic programming languages
+          accommodate rich generative models including continuous variables, recursive structures, and
+          open-universe representations) and modularity (improvements to general-purpose inference engines
+          automatically improve planning performance).
+        </p>
+
+        <p>
+          The probabilistic programming approach inherits the computational limitations of general-purpose
+          inference. Current inference engines struggle with the long sequential dependencies
+          characteristic of planning problems, and the expressiveness that makes probabilistic programs
+          attractive as a modeling language also makes inference intractable without strong structural
+          assumptions [7]. The tension between modeling flexibility and computational tractability
+          remains a defining challenge for this approach, one that subsequent work in active inference and
+          soft RL has addressed by imposing structured generative models that admit efficient inference at
+          the cost of reduced generality.
+        </p>
+
+        <h3>3.6 Scaling to Multiagent Settings</h3>
+
+        <p>
+          The intractability of multiagent planning (NEXP-complete for Dec-POMDPs) has motivated the
+          search for conditions under which the inference view yields practical algorithms. Kumar et al.
+          [50] identified sufficient conditions under which multiagent planning can be decomposed
+          into tractable inference sub-problems. By encoding agent interactions as factors in a graphical
+          model and exploiting conditional independence structure, their approach transforms the
+          exponential cost of joint policy enumeration into a polynomial-cost message-passing computation.
+          The key insight is that many realistic multiagent problems exhibit interaction structure that is
+          sparse relative to the worst case. Agents influence each other through shared state variables
+          rather than through arbitrary joint policies, and this sparsity maps onto the factorization
+          structure of a graphical model [50].
+        </p>
+
+        <p>
+          This line of work illustrates a recurring motif. Intractable planning problems become tractable
+          when reformulated as inference in graphical models with exploitable structure. The source of
+          tractability is not approximate inference per se but the identification of conditional
+          independence relationships that the original planning formulation obscures. Whether similar
+          structural insights can be identified for other classes of hard planning problems (continuous
+          multiagent coordination, adversarial settings, open-ended environments) remains an important open
+          question [29, 85].
+        </p>
+
+
+        <h2>4. Active Inference and the Free Energy Principle</h2>
+
+        <h3>4.1 From Perception to Planning</h3>
+
+        <p>
+          The free energy principle posits that self-organizing systems, including biological organisms,
+          can be described as minimizing a variational free energy functional, thereby maintaining
+          themselves in a restricted set of characteristic states [25]. What began as a unifying
+          theory of brain function, encompassing perception, learning, and attention, was extended to
+          action selection through active inference. Agents act to minimize the surprise (or free energy)
+          associated with their sensory observations [25, 27]. Under this account, planning is
+          not reward maximization but surprise minimization, with the agent's generative model encoding
+          preferences as prior beliefs about future observations.
+        </p>
+
+        <p>
+          The relevance to planning as inference is direct. In active inference, an agent maintains a
+          generative model (\(p(o_{1:T}, s_{1:T}, \pi)\)) over observations, hidden states, and policies.
+          Planning amounts to evaluating the expected free energy (\(G(\pi)\)) of each candidate policy and
+          selecting the policy that minimizes (\(G\)) [26, 27]. This evaluation is an inference
+          computation. The agent infers the posterior distribution over states conditioned on the policy,
+          then scores the policy by the expected divergence between predicted and preferred observations
+          plus an epistemic term that drives exploration [26, 62]. The mathematical apparatus is
+          variational inference, specifically variational message passing on a partially observed Markov
+          decision process encoded as a factor graph [16, 27].
+        </p>
+
+        <h3>4.2 Expected Free Energy and Exploration</h3>
+
+        <p>
+          The expected free energy (EFE) objective is the distinctive contribution of active inference to
+          the planning-as-inference landscape. It decomposes into two terms, a pragmatic (or instrumental)
+          term that measures the divergence between predicted and preferred outcomes, analogous to expected
+          reward, and an epistemic (or information-seeking) term that measures the expected information
+          gain about hidden states, driving exploration [26, 59, 62]. This decomposition
+          provides a principled, unified account of the exploration-exploitation trade-off that does not
+          require auxiliary mechanisms such as epsilon-greedy exploration, upper confidence bounds, or
+          intrinsic reward bonuses.
+        </p>
+
+        <div class="math-block">
+          $G(\pi) \;=\; \underbrace{\mathbb{E}_{q(o \mid \pi)}\big[\mathrm{KL}\big[q(o \mid \pi)\,\Vert\,\tilde{p}(o)\big]\big]}_{\text{pragmatic}} \;-\; \underbrace{\mathbb{E}_{q(o, s \mid \pi)}\big[\mathrm{KL}\big[q(s \mid o, \pi)\,\Vert\,q(s \mid \pi)\big]\big]}_{\text{epistemic}}$
+        </div>
+
+        <p>
+          The formal properties of the EFE have been scrutinized in detail. Millidge, Tschantz, and
+          Buckley [59] provided a systematic derivation showing that the EFE can be motivated from
+          multiple starting points (as a KL divergence between predictive and preferred distributions, as
+          a variational bound, or as an information-theoretic objective) but that no single derivation
+          simultaneously justifies all of its properties. This analysis revealed that the EFE is not
+          simply the negative expected reward plus information gain, but involves subtle interactions
+          between the agent's model of the environment and its prior preferences [59]. Sajid et
+          al. [72] provided a comparative analysis showing that active inference under EFE can
+          recover Bayesian RL, information-directed sampling, and KL-regularized control as special cases
+          depending on the choice of generative model and prior preferences.
+        </p>
+
+        <p>
+          Empirically, the exploration properties of the EFE have been demonstrated in grid-world
+          navigation [26], T-maze tasks [27], multi-armed bandits [77], and
+          ecological foraging simulations [41]. Active inference agents navigating ambiguous
+          environments where multiple locations produce identical observations spontaneously generate
+          epistemic actions that disambiguate their position, a behavior absent in greedy planners that
+          select actions based solely on expected reward [49, 76, 95]. Schubert
+          [76] extended this finding to autonomous reconnaissance missions, showing that EFE-based
+          route planning naturally prioritizes areas of high evidential uncertainty, maintaining
+          situational awareness without explicit exploration objectives. Most demonstrations remain in
+          small-scale discrete domains, however, raising questions about the scalability of the EFE
+          computation to high-dimensional problems (see Section 4.5).
+        </p>
+
+        <h3>4.3 Theoretical Connections and Critiques</h3>
+
+        <p>
+          Active inference's relationship to established frameworks has been a subject of both productive
+          synthesis and ongoing debate. Several analyses have demonstrated formal equivalences between
+          active inference and specific RL formulations under appropriate conditions. Tschantz et al.
+          [94] showed that variational policy gradients, a deep RL algorithm derived from the
+          active inference framework, recover standard policy gradient methods when the generative model
+          is parameterized as a neural network and the variational bound is optimized by gradient descent.
+          Millidge [58] demonstrated that deep active inference with amortized inference yields
+          algorithms closely related to actor-critic methods, with the free energy objective playing the
+          role of the critic.
+        </p>
+
+        <p>
+          These equivalences obscure important differences in perspective and emphasis. Active inference is
+          fundamentally a model-based framework. It requires an explicit generative model of the
+          environment, and planning is performed by simulating future trajectories under this model
+          [16, 27]. This stands in contrast to model-free maximum entropy RL, where the
+          inference interpretation is used to derive update rules but planning-time inference over future
+          states is not performed [33]. The emphasis on generative models also means that active
+          inference naturally handles partial observability, state estimation, and model learning within a
+          single framework [62, 79], whereas these are typically handled by separate components
+          in conventional RL architectures.
+        </p>
+
+        <p>
+          A particularly sharp unification result comes from Watson et al. [98], who showed that
+          active inference reduces to partially observed control-as-inference when costs are defined in
+          observation space. This mathematical equivalence has a provocative practical implication.
+          Scalable, uncertainty-aware optimal control solvers developed in the probabilistic numerics
+          community are not merely analogous to active inference but are valid implementations of it. The
+          equivalence collapses the apparent gap between neuroscience-inspired active inference and
+          engineering-oriented control-as-inference into a difference of emphasis rather than substance
+          [98]. Sennesh et al. [78] reinforced this from the active inference side,
+          deriving the proper time-averaged active inference objective from optimal control principles and
+          formally reconnecting active inference to optimal feedback control theory. Their formulation
+          recovers a sensorimotor objective that accommodates time-varying reference states, a capability
+          absent from finite-horizon formulations, and demonstrates that standard discounted or
+          finite-horizon EFE is best understood as a tractable approximation whose theoretical
+          justification is weaker than typically acknowledged [78].
+        </p>
+
+        <p>
+          Critics have raised several concerns. The EFE's derivation has been called ad hoc, with the
+          pragmatic and epistemic terms lacking a single coherent variational justification
+          [10, 59]. The computational complexity of evaluating the EFE over all candidate
+          policies grows combinatorially with the planning horizon, limiting applicability without
+          approximations [16]. The claim that active inference subsumes all of RL as a special
+          case remains contentious. While certain mappings exist, they require specific assumptions that
+          do not hold universally [58, 72].
+        </p>
+
+        <h3>4.4 Approximation Shapes Behavior</h3>
+
+        <p>
+          A subtle but consequential finding is that the choice of approximate inference method in active
+          inference is not an incidental implementation detail but is partially constitutive of the
+          resulting behavior. Kouw [49] showed that when non-linear measurement functions are
+          approximated with curvature-sensitive Gaussian methods (for example, second-order Taylor
+          expansion), a state-dependent ambiguity term emerges automatically in the variational free
+          energy, even without an explicit prior over preferred observations. The degree of
+          ambiguity-avoidance embedded in the agent's planning is therefore directly determined by the
+          choice of approximation scheme. Curvature-sensitive approximations produce ambiguity-avoidance,
+          curvature-blind ones do not [49].
+        </p>
+
+        <p>
+          This observation inverts the usual relationship between model and algorithm in planning. In
+          classical planning, the model specifies the problem and the algorithm solves it. The algorithm
+          is a tool whose properties (convergence rate, memory usage) are distinct from the solution's
+          properties (optimality, feasibility). In planning as inference, the choice of approximate
+          inference scheme is partially constitutive of the solution, the resulting behavior. This
+          entanglement is simultaneously a feature (it provides a principled design knob for shaping
+          behavior) and a challenge (it means behavior analysis requires joint analysis of model and
+          inference method, not model alone) [49, 54].
+        </p>
+
+        <h3>4.5 Scaling Active Inference</h3>
+
+        <p>
+          Recognizing the scalability challenge, recent work has pursued deep active inference, using
+          neural networks for both the generative model and the inference computations. Fountas et al.
+          [23] combined deep generative models with Monte Carlo tree search to scale active
+          inference to visual environments, demonstrating performance comparable to model-based RL on
+          Animal-AI and dSprites tasks. Catal et al. [12] used variational autoencoders as the
+          generative model and showed that active inference agents can learn to navigate from pixel
+          observations. Millidge [58] and Tschantz et al. [94] showed that amortized
+          inference (training a neural network to directly output approximate posteriors) can bypass the
+          combinatorial policy evaluation problem, yielding scalable deep active inference agents.
+        </p>
+
+        <p>
+          The introduction of sophisticated generative model architectures has further expanded the scope.
+          Champion et al. [13] implemented active inference using variational message passing on
+          factor graphs with neural network factors, demonstrating more principled approximate inference
+          than direct gradient-based optimization. Paul et al. [63] proposed an active inference
+          formulation compatible with transformer-based sequence models, and several groups have explored
+          connections to world models in the Dreamer family [37, 71]. Van der Himst and
+          Lanillos [96] coupled active inference with variational autoencoders to handle
+          high-dimensional continuous observation spaces in partially observable domains, achieving
+          performance comparable to or exceeding deep Q-learning. This is the first direct empirical
+          evidence that the EFE framework is practically competitive with state-of-the-art deep RL in
+          domains of non-trivial complexity, although deep active inference has not yet matched the
+          performance of state-of-the-art deep RL on the hardest benchmarks [23, 72].
+        </p>
+
+        <p>
+          Integration with learned cognitive map representations has further relaxed the hand-crafted
+          generative model constraint. Van de Maele et al. [95] combined EFE-based planning with
+          clone-structured cognitive graphs that learn environmental structure from observation sequences.
+          The resulting system acquires a world model from data and plans over it using EFE minimization,
+          demonstrating that the free energy framework is compatible with data-driven representations
+          rather than requiring hand-specification. CSCGs naturally capture the aliased observation
+          structure that makes planning difficult, the same representational property that EFE-based
+          planning exploits for epistemic action generation [95].
+        </p>
+
+        <h3>4.6 Extensions</h3>
+
+        <p>
+          Two recent extensions probe the boundaries of the active inference framework along orthogonal
+          dimensions. Heins et al. [40] investigated whether collective behavior in multi-agent
+          active inference systems can be understood as inference at the population level. Using spin
+          glass models as a testbed, they established a formal correspondence between individual-scale
+          free energy minimization and collective-scale Boltzmann distributions, effectively, a collection
+          of active inference agents can implement sampling-based inference at the population level. This
+          multi-scale equivalence is fragile. It breaks under modifications to individual generative
+          models or interaction topology that might appear minor from an engineering perspective
+          [40]. The implication is that emergent collective inference is a special rather than
+          generic property of multi-agent active inference, a sobering finding for those hoping the free
+          energy principle provides a universal bridge between individual and collective computation.
+        </p>
+
+        <p>
+          Schubert [76] extended active inference in a different direction, integrating
+          Dempster-Shafer evidential belief functions into the generative model via pignistic probability
+          transformations. This extension demonstrates that variational free energy can be computed
+          against non-Bayesian uncertainty representations, belief functions that distinguish between
+          ignorance and conflicting evidence in ways that standard probability distributions cannot. The
+          practical motivation is autonomous reconnaissance, where sensor data may be ambiguous,
+          contradictory, or absent, and the standard Bayesian apparatus of precise probability assignments
+          may be epistemically overcommitted [76]. Stochastic shortest-path formulations further
+          generalize the temporal structure. Baioumy et al. [6] showed that SSP MDPs, which do
+          not require a fixed horizon or discount factor, can be solved as probabilistic inference
+          problems, enabling both online and offline planning under the inference-as-planning paradigm.
+          These extensions suggest that while the core free energy minimization imperative is robust, its
+          interface with diverse uncertainty representations and temporal structures requires careful
+          mathematical engineering.
+        </p>
+
+
+        <h2>5. Maximum Entropy Reinforcement Learning and Soft Methods</h2>
+
+        <h3>5.1 The Maximum Entropy Objective</h3>
+
+        <p>
+          The maximum entropy framework augments the standard RL objective with a causal entropy term,
+          yielding (\(J(\pi) = \sum_t \mathbb{E}[r(s_t, a_t) + \alpha \mathcal{H}[\pi(\cdot \mid s_t)]]\)),
+          where (\(\alpha\)) is a temperature parameter controlling the stochasticity-reward trade-off
+          [32, 102]. This augmented objective has a direct inference interpretation. Maximizing
+          (\(J(\pi)\)) is equivalent to computing the posterior over actions in the optimality-variable
+          graphical model described in Section 2, with the temperature (\(\alpha\)) corresponding to the
+          weight of the prior relative to the likelihood [54]. The entropy bonus emerges naturally
+          from the KL divergence between the policy and a uniform reference distribution.
+        </p>
+
+        <p>
+          The theoretical grounding for maximum entropy RL is rich. Ziebart et al. [102]
+          introduced the framework in the context of inverse reinforcement learning, showing that the
+          maximum causal entropy distribution over trajectories is the unique distribution that matches
+          feature expectations while remaining maximally uncertain about the demonstrator's intent.
+          Todorov [87] and Kappen [47] independently arrived at equivalent formulations
+          from the stochastic optimal control perspective. The convergence of these threads (from inverse
+          RL, from linearly solvable MDPs, and from the graphical model formulation) provided strong
+          theoretical support for the maximum entropy objective as the correct way to incorporate the
+          inference perspective into RL [54, 61].
+        </p>
+
+        <p>
+          Several desirable properties follow from the entropy regularization. Policies are stochastic and
+          multi-modal, capturing multiple near-optimal solutions rather than collapsing to a single
+          deterministic action [32]. This stochasticity provides built-in exploration, a form of
+          robustness to model misspecification, and improved compositionality across tasks
+          [22, 33]. The connection to robustness is particularly notable. Eysenbach and Levine
+          [22] proved that maximum entropy RL solves certain robust RL problems, providing a formal
+          justification for the common intuition that stochastic policies are more robust than
+          deterministic ones.
+        </p>
+
+        <h3>5.2 Soft Value Functions and Soft Q-Learning</h3>
+
+        <p>
+          The inference interpretation leads to soft counterparts of standard RL quantities. The soft
+          value function (\(V_{\text{soft}}(s) = \alpha \log \sum_a \exp(Q_{\text{soft}}(s, a)/\alpha)\)),
+          a log-sum-exp (softmax) over Q-values rather than a hard maximum, arises as the normalization
+          constant (log-partition function) in the posterior over actions [32, 54]. The soft
+          Bellman equation replaces the max operator with this soft operator, and convergence of soft
+          value iteration follows from contraction arguments analogous to the standard case [32].
+          Fox et al. [24] developed an alternative soft update through G-learning, taming
+          overestimation bias via KL regularization against a baseline policy.
+        </p>
+
+        <p>
+          Soft Q-learning [32] operationalized this framework using deep neural networks and
+          amortized Stein variational gradient descent to sample from the energy-based optimal policy
+          (\(\pi^*(a \mid s) \propto \exp(Q_{\text{soft}}(s, a)/\alpha)\)). While theoretically appealing,
+          Soft Q-learning's reliance on approximate sampling from the energy-based policy limited its
+          practical stability and scalability. The key algorithmic breakthrough came with Soft Actor-Critic
+          (SAC) [33, 34], which replaced the sampling step with an explicit actor network
+          trained to minimize the KL divergence to the soft Q-induced policy. SAC maintains separate
+          Q-networks and a policy network, uses the reparameterization trick for gradient estimation, and
+          includes automatic temperature tuning to adaptively set (\(\alpha\)).
+        </p>
+
+        <p>
+          The impact of SAC on the field has been substantial. It achieved state-of-the-art sample
+          efficiency and asymptotic performance on continuous control benchmarks including MuJoCo
+          locomotion, dexterous manipulation, and real-world robotic tasks [34, 35]. Its
+          off-policy nature and entropy regularization provide better exploration and training stability
+          compared to on-policy maximum entropy methods. SAC remains, as of 2026, one of the most widely
+          used baseline algorithms in continuous RL, and its influence extends to downstream applications
+          in robotic learning [45], autonomous driving, and game playing.
+        </p>
+
+        <h3>5.3 Policy Optimization as Posterior Inference</h3>
+
+        <p>
+          Beyond specific algorithms, the maximum entropy framework has illuminated the general
+          relationship between policy optimization and posterior inference. Schulman, Chen, and Abbeel
+          [74] demonstrated a formal equivalence between policy gradients and soft Q-learning,
+          showing that both can be viewed as performing approximate inference in the same graphical model
+          but with different variational families. Nachum et al. [61] further bridged the gap
+          between value-based and policy-based methods through the path consistency learning framework,
+          which enforces soft Bellman consistency along sampled trajectories, combining the strengths of
+          both approaches.
+        </p>
+
+        <p>
+          The EM perspective on policy optimization, discussed in Section 3.4, was extended to the maximum
+          entropy setting by Abdolmaleki et al. [1] in the MPO algorithm. MPO decouples policy
+          improvement (computing the posterior over actions given the Q-function as likelihood) from
+          policy fitting (a supervised learning problem), yielding an algorithm with excellent stability
+          properties and strong performance on both simulated and real robotic tasks [1, 70].
+          The information-geometric structure of these KL-constrained updates has been analysed through
+          the lens of natural gradient methods and trust regions [28, 75], revealing that many
+          apparently distinct algorithms are performing different approximations to the same underlying
+          inference computation. Sun et al. [82] consolidated these derivations in a tutorial
+          that walks through the PGM structure of deep RL, explicitly showing how variational inference
+          over trajectory PGMs recovers SAC-style entropy regularization and how uncertainty-driven
+          exploration emerges from posterior variance over value functions.
+        </p>
+
+        <p>
+          A recent direction extends the maximum entropy principle to structured and hierarchical policies.
+          Galashov et al. [28] introduced information asymmetry between levels of a hierarchy
+          through KL-regularized objectives, encouraging higher levels to communicate only task-relevant
+          information. Tirumala et al. [86] used the inference perspective to derive algorithms
+          for learning default behaviours that serve as priors for downstream tasks. Grau-Moya et al.
+          [30] extended soft Q-learning to two-player stochastic games. These developments
+          demonstrate the continuing fertility of the inference viewpoint for generating new algorithmic
+          ideas, even as the specific algorithms evolve.
+        </p>
+
+        <h3>5.4 Early Bayesian Value Functions</h3>
+
+        <p>
+          The soft RL branch of the planning-as-inference paradigm evolved in part from earlier efforts to
+          treat value functions as objects of probabilistic inference. Xia et al. [101] proposed
+          modeling action-value functions as latent variables under a Gaussian process prior, with
+          observed rewards serving as likelihood terms. Bayesian posterior updates replaced standard TD
+          learning. The Q-function posterior mean provided the value estimate, while the posterior
+          variance furnished an exploration bonus, states with high value uncertainty are preferentially
+          visited [101]. This is an early and concrete instantiation of planning as inference
+          applied directly to the value function, predating the systematic PGM-based formulations that
+          would later provide its theoretical context.
+        </p>
+
+        <p>
+          The significance of the GP-based approach extends beyond its immediate algorithmic contribution.
+          By deriving exploration from posterior uncertainty rather than from ad hoc
+          (\(\epsilon\))-greedy or Boltzmann strategies, it anticipates the central insight of maximum
+          entropy RL. Entropy and uncertainty are not obstacles to be overcome but information-theoretic
+          quantities to be managed within a coherent probabilistic framework [82, 101]. The
+          limitation of the GP approach, poor scaling to high-dimensional state spaces due to cubic
+          computational cost, motivated the shift to parametric approximations and eventually to the deep
+          network-based methods that characterize modern soft RL.
+        </p>
+
+        <h3>5.5 Limitations and the Temperature Problem</h3>
+
+        <p>
+          Despite its successes, the maximum entropy framework faces well-known limitations. The
+          temperature parameter (\(\alpha\)) controls the trade-off between reward maximization and
+          entropy, and its optimal value depends on the reward scale, the effective action dimensionality,
+          and the stage of training [34]. While automatic temperature tuning via a constrained
+          optimization has proven effective in practice [34], the target entropy is itself a
+          hyperparameter, and poor temperature schedules can lead to either insufficient exploration (low
+          (\(\alpha\))) or excessive stochasticity (high (\(\alpha\))).
+        </p>
+
+        <p>
+          More fundamentally, the maximum entropy objective does not always align with the true desiderata
+          of planning. In safety-critical settings, maximal entropy is precisely what one does not want.
+          Deterministic, high-confidence policies are required [2]. The connection between entropy
+          regularization and robustness, while formally established [22], holds only for specific
+          classes of perturbations, and the practical robustness gains vary across domains. The assumption
+          of a uniform reference policy is restrictive. When the natural baseline behavior is non-uniform,
+          the standard entropy bonus can be inappropriate, motivating KL-regularized variants with learned
+          priors [28, 86]. A recurring critique also concerns the distinction between undirected
+          entropy-based exploration and directed epistemic exploration. Maximum entropy RL provides the
+          former, while active inference's EFE decomposition targets the latter. The two are not
+          equivalent, and Lee et al. [53] connected maximum entropy RL to state marginal matching
+          as an alternative view of exploration.
+        </p>
+
+
+        <h2>6. Model-Based Probabilistic Planning</h2>
+
+        <h3>6.1 Integrated Reasoning and Structured Planning</h3>
+
+        <p>
+          The graphical-model view of planning provides a natural substrate for integrating reasoning
+          across abstraction levels. Toussaint [92] demonstrated that probabilistic inference over
+          a single graphical model can integrate motor control, grasp planning, and symbolic reasoning in
+          a blocks-world domain, levels of abstraction that classical approaches treat with separate,
+          loosely coupled algorithms. By representing kinematic constraints, contact physics, and
+          high-level action sequences as factors in a joint distribution, inference-based planning
+          achieves a degree of integration that hierarchical optimization approaches struggle to match.
+          The key mechanism is bidirectional uncertainty propagation. Beliefs about high-level action
+          feasibility propagate downward to constrain motor plans, while sensory evidence about physical
+          state propagates upward to inform symbolic reasoning [92]. This bidirectional
+          information flow is a natural consequence of inference in graphical models but must be
+          explicitly engineered in classical planning architectures.
+        </p>
+
+        <p>
+          Toussaint [91] extended this line of work to robot trajectory optimization using
+          approximate inference over a trajectory graphical model, while Solway and Botvinick
+          [80] developed an account of goal-directed decision making as probabilistic inference,
+          bridging planning as inference with models of prefrontal function in cognitive neuroscience.
+          Botvinick and Toussaint [11] surveyed the cognitive-science implications of the
+          planning-as-inference view, arguing that reformulating planning as inference clarifies
+          long-standing puzzles about goal representation, habit formation, and hierarchical control. The
+          emergent claim across these threads is that the inference formulation is not only
+          computationally useful but cognitively natural, providing a common currency for integrating
+          perception, action, and memory.
+        </p>
+
+        <h3>6.2 Gaussian Process Motion Planning and Trajectory Inference</h3>
+
+        <p>
+          A particularly robotic application of planning as inference casts continuous motion planning as
+          posterior inference over a trajectory distribution with a Gaussian process prior. Dong et al.
+          [20] introduced Gaussian process motion planning (GPMP), representing trajectories as
+          samples from a GP prior defined by a linear stochastic differential equation. Obstacle
+          avoidance, kinematic constraints, and goal-reaching terms enter as likelihoods, and maximum a
+          posteriori inference via factor graphs recovers smooth, collision-free trajectories. Mukadam et
+          al. [57] extended this to continuous-time trajectory estimation and planning, exploiting
+          the sparse block-tridiagonal structure induced by the GP prior to enable efficient iSAM-style
+          incremental inference. This approach unifies trajectory estimation (a classical SLAM problem)
+          with trajectory optimization (a classical planning problem) under a single Bayesian umbrella.
+        </p>
+
+        <p>
+          Earlier entropy-regularized trajectory optimization methods such as CHOMP [69] and
+          STOMP [46] can be understood retrospectively through the same lens. The cost-weighted
+          averaging that defines STOMP's noisy rollouts is formally an importance-sampling estimate of the
+          posterior over trajectories under a Gaussian prior, and CHOMP's functional gradient updates
+          correspond to MAP inference in a related model [46, 48, 69]. Guided policy search
+          [55] further connected trajectory optimization with policy learning, using
+          trajectory-optimal controllers as teachers for a neural policy trained via KL-regularized
+          supervision.
+        </p>
+
+        <p>
+          A more recent line of work generates distributions over trajectories rather than single
+          solutions. Lambert et al. [52] proposed entropy-regularized motion planning via Stein
+          variational inference, addressing a practical challenge that the theoretical literature often
+          elides. Generating not a single optimal trajectory but a distribution over diverse, high-quality
+          trajectories is often essential for downstream tasks such as imitation learning, where broad
+          coverage of the trajectory space is needed for robust policy transfer. By formulating the
+          trajectory distribution as a Boltzmann posterior with an energy function defined by collision
+          costs, goal-reaching objectives, and smoothness priors, Lambert et al. [52] transformed
+          motion planning into a sampling problem amenable to Stein Variational Gradient Descent (SVGD).
+          The resulting algorithm produces a particle-based approximation to the posterior trajectory
+          distribution that is both diverse (covering multiple homotopy classes in environments with
+          obstacles) and high-quality, with each trajectory satisfying kinematic and collision
+          constraints. The entropy regularization here serves a distinct purpose compared to soft RL.
+          Rather than promoting exploration during learning, it ensures coverage of the solution space for
+          downstream use.
+        </p>
+
+        <h3>6.3 Gaussian Process Dynamics and Probabilistic Neural Network Models</h3>
+
+        <p>
+          Model-based approaches that learn an explicit dynamics model and use it for planning make the
+          inference interpretation particularly natural. Planning is inference over trajectories in a
+          learned probabilistic model. The paradigmatic early work is PILCO [18], which uses
+          Gaussian process dynamics models and performs analytic moment matching to propagate uncertainty
+          through the planning horizon. By maintaining calibrated uncertainty estimates over dynamics,
+          PILCO achieves remarkable sample efficiency, learning to swing up a cart-pole from scratch in
+          under 30 seconds of interaction [18]. The GP-based approach makes the inference nature
+          of planning explicit. Policy optimization in PILCO involves computing expected returns under the
+          posterior predictive distribution of the GP, which is an integration problem. The cubic scaling
+          of GPs with data size, the difficulty of handling high-dimensional observations, and the
+          analytic intractability of moment matching for complex nonlinear systems limit scalability
+          [15, 18], motivating the transition to neural-network-based dynamics models.
+        </p>
+
+        <p>
+          The transition from GP to neural network dynamics models required new approaches to uncertainty
+          quantification. PETS (Probabilistic Ensemble Trajectory Sampling) [15] combined
+          ensembles of probabilistic neural networks with trajectory sampling for planning, achieving
+          sample efficiency competitive with PILCO but scaling to higher-dimensional tasks. The ensemble
+          approach captures both aleatoric uncertainty (via the probabilistic outputs of each network) and
+          epistemic uncertainty (via disagreement across ensemble members), providing a practical
+          approximation to the posterior over dynamics [15].
+        </p>
+
+        <p>
+          Planning in these models uses sampling-based inference methods, typically random shooting or the
+          cross-entropy method, to find action sequences that maximize expected return under the dynamics
+          ensemble [15, 43]. This is directly analogous to path integral control (Section 3.3),
+          with the learned ensemble replacing a known dynamics model. MBPO (Model-Based Policy
+          Optimization) [43] extended this by using the learned model to generate synthetic data
+          for model-free policy learning, effectively amortizing the planning computation into the policy
+          network. The resulting algorithm achieved strong performance on MuJoCo tasks while retaining
+          much of the sample efficiency of pure model-based methods [43].
+        </p>
+
+        <p>
+          The accuracy of the learned dynamics model is critical, and model errors compound over long
+          planning horizons. This problem, studied under the rubric of model exploitation or model bias
+          [15, 43, 51], has motivated shorter planning horizons, model ensembles, and
+          uncertainty-aware planning objectives. The inference perspective provides a natural framework
+          for addressing model bias. Rather than treating the learned dynamics as ground truth, one should
+          marginalize over model uncertainty when computing expected returns, a computation that is itself
+          an inference problem [15, 19].
+        </p>
+
+        <h3>6.4 Latent-Space World Models</h3>
+
+        <p>
+          A major advance in model-based probabilistic planning has been the development of world models
+          that learn compact latent representations of the environment and plan in this latent space. Ha
+          and Schmidhuber [31] demonstrated that agents can learn a variational autoencoder for
+          perception and a recurrent dynamics model in latent space, then train a policy entirely within
+          the dream of this world model. The Dreamer line of work [36, 37, 38, 39]
+          formalized and scaled this approach, using the recurrent state-space model (RSSM) to learn
+          latent dynamics and performing policy optimization by differentiating through the imagined
+          trajectories.
+        </p>
+
+        <p>
+          The RSSM architecture separates deterministic and stochastic components of the state, allowing
+          the model to capture both the predictable structure and the inherent uncertainty of the
+          environment [36]. Planning in this framework involves sampling from the learned
+          posterior over latent states (perception), rolling out trajectories under the learned dynamics
+          (imagination), and optimizing the policy to maximize imagined returns (acting), a pipeline that
+          maps cleanly onto the perception-inference-action loop of the planning-as-inference framework
+          [37]. DreamerV3 [39] demonstrated that this approach, with appropriate
+          architectural choices, achieves competitive or superior performance across a range of domains
+          (Atari games, continuous control, Minecraft) using a single set of hyperparameters.
+        </p>
+
+        <p>
+          The latent-space planning approach has deep connections to active inference (Section 4), where
+          the generative model over observations and hidden states is central. Several authors have noted
+          that the Dreamer architecture can be interpreted as implementing a form of active inference,
+          with the RSSM as the generative model and the actor-critic policy optimization as an amortized
+          approximation to expected free energy minimization [23, 71]. Whether these
+          connections are merely analogical or reflect a deeper structural equivalence remains debated,
+          although the mathematical unification reported by Watson et al. [98] suggests the latter.
+        </p>
+
+        <h3>6.5 Generative Models for Trajectory Optimization</h3>
+
+        <p>
+          The most recent development in model-based probabilistic planning replaces explicit dynamics
+          models with generative models over entire trajectories, making the inference interpretation
+          literal. Planning is sampling from a conditional distribution over trajectories. The Diffuser
+          framework [44] trains a diffusion model on a dataset of trajectories and plans by
+          sampling from this model conditioned on desired properties (start state, goal state, or return).
+          The denoising process of the diffusion model progressively refines a noisy trajectory into a
+          coherent plan, naturally handling multi-modality and long-horizon dependencies.
+        </p>
+
+        <p>
+          This trajectory-level approach offers several advantages over step-by-step dynamics models. The
+          diffusion model captures the joint distribution over entire trajectories, avoiding the
+          compounding error problem of autoregressive rollouts [44]. Conditioning can be applied
+          flexibly (on any subset of states, actions, or returns at any timestep) by composing the
+          diffusion model with classifiers or by inpainting [3, 44]. Decision Diffuser
+          [3] further demonstrated that conditioning a trajectory diffusion model on return,
+          constraints, and skills enables flexible decision-making without explicit reward optimization.
+        </p>
+
+        <p>
+          The diffusion-for-planning paradigm has expanded rapidly. Chi et al. [14] applied
+          diffusion models to visuomotor policy learning in robotic manipulation, achieving strong results
+          on multi-modal manipulation tasks. Liang et al. [56] extended the framework to
+          model-based offline RL with AdaptDiffuser, demonstrating self-evolving diffusion planners that
+          adapt to new tasks via online rollouts. The theoretical foundation connects to score-based
+          generative modeling and Langevin dynamics, which can be viewed as performing posterior sampling
+          in the trajectory space, exactly the planning-as-inference computation, with the score function
+          playing the role of the gradient of the log-posterior [3, 44]. Diffusion-based
+          planning is computationally expensive due to the iterative denoising process, and its reliance
+          on offline datasets limits applicability in online learning settings. Accelerating inference and
+          extending to online, interactive settings are active areas of development.
+        </p>
+
+        <h3>6.6 Probabilistic Programming for Planning</h3>
+
+        <p>
+          A complementary line of model-based work embeds planning inside probabilistic programming
+          languages. Belle and Levesque [7] showed that stochastic planning with partial
+          observability can be expressed as a probabilistic program, with the language's inference engine
+          delegated to produce policies. This approach offers extreme expressiveness (continuous
+          variables, recursive structures, and open-universe semantics are all supported) at the cost of
+          general-purpose inference inefficiency. The tension between expressive modeling and efficient
+          inference is resolved on a case-by-case basis by imposing structural assumptions (factor graphs,
+          conjugate priors, or conditional independence) that reduce the general inference problem to a
+          tractable one [7, 50]. In practice, the probabilistic-programming-for-planning
+          approach complements rather than replaces the more specialized frameworks. Its value is
+          greatest when the model is rich, data is scarce, and tractability is not the binding constraint.
+        </p>
+
+
+        <h2>7. Cross-Cutting Analysis</h2>
+
+        <h3>7.1 The Control-Inference Duality as Unifying Thread</h3>
+
+        <p>
+          The most striking pattern across the themes surveyed is the repeated rediscovery and
+          reformulation of the same fundamental insight. Stochastic optimal control and probabilistic
+          inference are two views of the same mathematical structure. This duality, established rigorously
+          by Todorov [89] and Kappen [47] for KL-regularized control, manifests differently
+          across traditions. In the maximum entropy RL literature, it appears as the equivalence between
+          soft Bellman equations and message passing [32, 54]. In active inference, it appears
+          as the claim that perception, learning, and action all minimize a single free energy functional
+          [25, 27]. In model-based planning, it appears as the use of posterior sampling over
+          trajectories as a planning algorithm [15, 44]. Each community has developed its own
+          notation, terminology, and preferred approximations, but the underlying mathematical object
+          (a posterior distribution over actions or trajectories conditioned on optimality) is shared.
+        </p>
+
+        <p>
+          This convergence has been productive. Ideas flow between communities, and the same algorithm
+          can be derived from multiple starting points, each derivation offering different insights. SAC
+          can be derived from the soft Bellman equation [33], from an EM procedure [1],
+          or from a variational inference perspective [54]. The EFE of active inference can be
+          derived from a KL-regularized objective [59], from information-theoretic first
+          principles [26], or from a Bayesian decision-theoretic framework [72]. The
+          unification result of Watson et al. [98] collapses the distinction between active
+          inference and control-as-inference when costs are specified in observation space. This
+          redundancy of derivations provides cross-validation and suggests the framework has reached a
+          degree of mathematical maturity.
+        </p>
+
+        <h3>7.2 Model-Free versus Model-Based Instantiations</h3>
+
+        <p>
+          A central tension in the field is between model-free and model-based instantiations of the
+          inference view. Maximum entropy RL methods like SAC [33] use the inference framework to
+          derive update rules but do not perform explicit inference over future states at decision time.
+          The posterior computation is amortized into the policy network during training. Active
+          inference [27] and model-based methods like Dreamer [37] and MPPI
+          [99] perform online inference over future trajectories at planning time, using an
+          explicit model of the world.
+        </p>
+
+        <p>
+          This distinction has practical consequences. Model-free inference-based methods inherit the
+          computational efficiency of model-free RL (fast action selection at test time) but sacrifice the
+          ability to adapt rapidly to new tasks or changes in the environment. Model-based methods can
+          flexibly replan but face computational costs and model accuracy challenges [15, 43].
+          The trajectory of the field suggests a convergence. Methods like MBPO [43] and Dreamer
+          [37] combine model-based planning with model-free policy learning, using the model to
+          generate training data or compute targets but amortizing the final policy into a fast neural
+          network. Diffusion-based planners [44] further blur the boundary by learning to sample
+          from the posterior over trajectories without maintaining a separate dynamics model.
+        </p>
+
+        <h3>7.3 Exploration-Exploitation as Inference</h3>
+
+        <p>
+          A third cross-cutting theme is the treatment of exploration-exploitation as a problem naturally
+          solved by the inference framework. All three major traditions offer accounts of exploration.
+          Active inference provides the most explicit treatment. The epistemic term of the EFE directly
+          quantifies the value of information [26, 77]. Maximum entropy RL provides exploration
+          through the entropy bonus, which encourages broad action distributions and prevents premature
+          commitment to suboptimal modes [33]. Model-based methods leverage posterior uncertainty
+          in the dynamics model to drive directed exploration [15, 19].
+        </p>
+
+        <p>
+          These approaches differ in important respects. The EFE's epistemic drive is state-directed. It
+          explicitly values visiting states where the agent's model is uncertain [26]. The entropy
+          bonus in maximum entropy RL is action-directed. It encourages diverse actions regardless of
+          their epistemic value [33]. Model-based uncertainty drives a form of Thompson sampling,
+          sampling models from the posterior and planning optimistically under each sample [15].
+          Recent work has attempted to combine these mechanisms. Tschantz et al. [94] showed that
+          active inference agents can be trained with deep RL algorithms while retaining the epistemic
+          drive of the EFE. Lee et al. [53] connected maximum entropy RL to state marginal
+          matching, providing an alternative perspective on exploration. The relationship between these
+          approaches, and which provides the most efficient exploration in practice, remains an active
+          area of investigation.
+        </p>
+
+        <h3>7.4 Approximation as Design</h3>
+
+        <p>
+          A recurring insight across all themes is that the choice of approximate inference method is not
+          merely an implementation detail but a design decision that shapes agent behavior in substantive
+          ways. Kouw [49] showed this most explicitly for active inference. Curvature-sensitive
+          Gaussian approximations produce ambiguity-avoiding agents while curvature-blind approximations
+          do not. The same principle operates in soft RL, where the choice of variational family
+          determines the expressiveness of the resulting policy [54], and in motion planning,
+          where the choice between SVGD and alternative samplers affects trajectory diversity
+          [52]. The implication is that behavior analysis in planning as inference requires joint
+          analysis of model and inference method, not model alone.
+        </p>
+
+        <p>
+          Exact inference is tractable only in restricted settings (small discrete MDPs, linear-Gaussian
+          dynamics, KL-structured costs). In all other cases, approximate inference is necessary, and the
+          choice of approximation (variational, sampling-based, amortized) fundamentally shapes the
+          resulting algorithm and its properties [16, 54]. Variational methods (mean-field,
+          structured variational inference) provide fast, deterministic approximations but can
+          underestimate uncertainty and miss multi-modal posteriors [27, 54]. Sampling methods
+          (MCMC, SMC, path integrals) can capture multi-modality but are computationally expensive and
+          suffer from high variance in high-dimensional spaces [66, 99]. Amortized inference
+          (training a neural network to approximate the posterior) offers fast test-time computation but
+          requires substantial training data and may not generalize to out-of-distribution states
+          [33, 58].
+        </p>
+
+        <h3>7.5 Scalability Trajectories</h3>
+
+        <p>
+          The evolution of scalability across the planning-as-inference literature follows a common arc.
+          Initial formulations target discrete, small-scale domains [50, 91], followed by
+          extensions to continuous state spaces via Gaussian process or variational methods
+          [49, 101], and finally integration with deep learning for high-dimensional domains
+          [33, 44, 52, 96]. Soft RL has progressed furthest along this arc, with
+          SAC and related algorithms routinely applied to problems with hundreds of state dimensions.
+          Active inference has reached medium-scale domains through deep variational methods
+          [23, 96] but has not yet demonstrated the scalability of its soft RL counterparts on
+          complex continuous control benchmarks. Model-based probabilistic planning occupies an
+          intermediate position, with scalability varying dramatically depending on the generative
+          model's structure [7, 39, 92].
+        </p>
+
+        <h3>7.6 Methodological Trends</h3>
+
+        <p>
+          Several methodological shifts are evident across the two-decade survey period. First, there has
+          been a movement from exact or structured inference (belief propagation, EM) toward amortized and
+          sampling-based methods (VAEs, SVGD, particle methods), mirroring the broader machine learning
+          community's shift toward scalable approximate methods. Second, the unit of inference has
+          expanded from single actions or policies to full trajectory distributions, reflecting an
+          increasing appreciation that distributional properties (coverage, diversity, robustness) are as
+          important as point optimality [44, 52]. Third, the boundary between model-based and
+          model-free has blurred. Deep active inference [96] learns its generative model from
+          data, while model-free soft RL implicitly maintains a soft model through its entropy-regularized
+          value functions [54]. Fourth, cross-pollination between communities has accelerated.
+          Unification results [78, 98] and tutorial expositions [54, 82]
+          explicitly bridge the active-inference and soft-RL derivations that once felt distant.
+        </p>
+
+        <div class="blog-table-wrapper">
+        <table class="blog-table">
+          <thead>
+            <tr>
+              <th>Theme</th>
+              <th>Inference formulation</th>
+              <th>Typical inference method</th>
+              <th>Exploration mechanism</th>
+              <th>Representative references</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Control-as-inference foundations</td>
+              <td>Posterior over trajectories given optimality variables</td>
+              <td>Message passing, EM, variational</td>
+              <td>Entropy of prior policy</td>
+              <td>[54, 68, 82, 93]</td>
+            </tr>
+            <tr>
+              <td>KL-regularized / linearly solvable MDPs</td>
+              <td>Linearized Bellman via desirability function</td>
+              <td>Spectral, path integral</td>
+              <td>KL to uncontrolled dynamics</td>
+              <td>[21, 47, 84, 87, 89]</td>
+            </tr>
+            <tr>
+              <td>Active inference</td>
+              <td>Generative model over observations, hidden states, policies</td>
+              <td>Variational message passing, amortized VI</td>
+              <td>Epistemic term in EFE</td>
+              <td>[25, 26, 27, 62, 95, 98]</td>
+            </tr>
+            <tr>
+              <td>Maximum entropy RL</td>
+              <td>Posterior over actions with optimality likelihood</td>
+              <td>Actor-critic with entropy regularization</td>
+              <td>Policy entropy bonus</td>
+              <td>[22, 32, 33, 61, 102]</td>
+            </tr>
+            <tr>
+              <td>Model-based probabilistic planning</td>
+              <td>Inference over trajectories in learned model</td>
+              <td>MPPI, CEM, random shooting, diffusion sampling</td>
+              <td>Model-ensemble disagreement</td>
+              <td>[15, 37, 43, 44, 99]</td>
+            </tr>
+            <tr>
+              <td>Trajectory-level GP and Stein methods</td>
+              <td>Posterior over trajectories with GP or Boltzmann prior</td>
+              <td>MAP inference on factor graphs, SVGD</td>
+              <td>Posterior variance / diversity</td>
+              <td>[20, 52, 57, 69]</td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+
+        <div class="taxonomy-tree">
+          <div class="taxonomy-root">Planning as Inference</div>
+          <div class="taxonomy-branch">
+            <span class="branch-id">F</span>
+            <span class="branch-label">Foundations</span>
+            <div class="taxonomy-leaves">
+              <span class="leaf-id">F1 Graphical model formulation</span>
+              <span class="leaf-id">F2 KL-regularized control</span>
+              <span class="leaf-id">F3 Path integral control</span>
+              <span class="leaf-id">F4 EM-based policy search</span>
+              <span class="leaf-id">F5 Probabilistic programming</span>
+              <span class="leaf-id">F6 Multiagent factored inference</span>
+            </div>
+          </div>
+          <div class="taxonomy-branch">
+            <span class="branch-id">A</span>
+            <span class="branch-label">Active inference</span>
+            <div class="taxonomy-leaves">
+              <span class="leaf-id">A1 Expected free energy</span>
+              <span class="leaf-id">A2 Epistemic exploration</span>
+              <span class="leaf-id">A3 Deep / amortized AIF</span>
+              <span class="leaf-id">A4 Time-averaged and control links</span>
+              <span class="leaf-id">A5 Collective and non-Bayesian extensions</span>
+            </div>
+          </div>
+          <div class="taxonomy-branch">
+            <span class="branch-id">S</span>
+            <span class="branch-label">Soft RL</span>
+            <div class="taxonomy-leaves">
+              <span class="leaf-id">S1 MaxEnt objective</span>
+              <span class="leaf-id">S2 Soft Q-learning and SAC</span>
+              <span class="leaf-id">S3 Policy optimization as posterior inference</span>
+              <span class="leaf-id">S4 KL-regularized hierarchical priors</span>
+            </div>
+          </div>
+          <div class="taxonomy-branch">
+            <span class="branch-id">M</span>
+            <span class="branch-label">Model-based planning</span>
+            <div class="taxonomy-leaves">
+              <span class="leaf-id">M1 GP dynamics and ensembles</span>
+              <span class="leaf-id">M2 Latent world models</span>
+              <span class="leaf-id">M3 Trajectory GP and Stein inference</span>
+              <span class="leaf-id">M4 Diffusion trajectory generation</span>
+              <span class="leaf-id">M5 Integrated motion and symbolic inference</span>
+            </div>
+          </div>
+        </div>
+
+
+        <h2>8. Open Problems and Future Directions</h2>
+
+        <p>
+          <strong>Closing the approximation gap.</strong> The formal elegance of the planning-as-inference
+          framework rests on exact inference being possible, at least in principle, but practical
+          implementations rely on coarse approximations. The quality of these approximations is rarely
+          characterized, and the relationship between approximation error in inference and suboptimality
+          in control is poorly understood [16, 54]. Developing tighter error bounds for
+          approximate planning-as-inference, analogous to the performance bounds available for approximate
+          dynamic programming [8], is an important theoretical direction. The finding that
+          approximation choices constitutively shape agent behavior [49] further demands a
+          systematic taxonomy linking classes of approximate inference methods to classes of guaranteed
+          behavioral properties.
+        </p>
+
+        <p>
+          <strong>Beyond KL-structured costs.</strong> The exact duality between control and inference
+          holds only for KL-regularized costs [47, 87]. General reward functions require
+          approximations that break the duality, and it is unclear how much is lost in this approximation
+          [68]. Extending the exact duality to broader classes of cost functions, or
+          characterizing the approximation error for general costs, would significantly expand the
+          framework's theoretical reach. Non-Bayesian and hybrid uncertainty representations, such as
+          Schubert's [76] Dempster-Shafer integration, point to a largely unexplored design
+          space. Planning under deep uncertainty, where agents cannot assign precise probabilities to
+          outcomes, is common in real-world applications but is poorly served by standard Bayesian
+          formulations.
+        </p>
+
+        <p>
+          <strong>Scalable active inference.</strong> Active inference provides the most principled
+          treatment of exploration-exploitation and model-based planning within the inference framework,
+          but has not yet scaled to the complex, high-dimensional benchmarks routinely handled by deep RL
+          [23, 72]. Whether this is a fundamental limitation (the computational cost of the EFE
+          evaluation) or an engineering challenge (the need for better approximate inference and
+          generative model architectures) remains to be determined. Integrating active inference with the
+          large-scale world models and diffusion-based planning methods of Section 6 is a promising
+          direction, and initial results from deep active inference with VAE encoders [96]
+          suggest feasibility. Deep RL algorithms that maintain explicit epistemic value, perhaps through
+          information gain estimation in learned latent models, could combine the scalability of soft RL
+          with the directed exploration of active inference.
+        </p>
+
+        <p>
+          <strong>Online generative planning.</strong> Diffusion-based and other generative planning
+          methods currently rely on offline datasets [3, 44]. Extending these approaches to
+          online settings, where the generative model is continually updated from new experience while
+          maintaining coherent planning, is a largely unsolved problem. The interaction between
+          generative model training and data collection, an inference-flavored version of the exploration
+          problem, requires new theoretical and algorithmic tools.
+        </p>
+
+        <p>
+          <strong>Multi-agent planning as inference.</strong> Most work in planning as inference
+          considers single-agent settings. Extending the framework to multi-agent systems, where planning
+          involves inference over the joint behavior of multiple agents, raises fundamental challenges
+          related to equilibrium concepts, communication, and computational complexity
+          [29, 85]. Initial work has explored game-theoretic extensions [30] and
+          factored inference under sparsity [50], and Heins et al. [40] established a
+          formal but fragile correspondence between individual free energy minimization and
+          collective-scale Boltzmann distributions. Characterizing the conditions under which multi-agent
+          active inference systems exhibit robust emergent coordination, using tools from statistical
+          physics and network science, would clarify when emergent collective inference is a generic
+          property rather than a special case [40].
+        </p>
+
+        <p>
+          <strong>Unification of temporal formulations.</strong> The gap between time-averaged and
+          finite-horizon active inference [78] parallels similar gaps in RL (average-reward vs.
+          discounted vs. finite-horizon formulations). A unified treatment that relates these temporal
+          formulations within the inference-as-planning framework, perhaps via connections to ergodic
+          theory or large-deviation principles, would resolve ongoing confusion about which results
+          transfer across formulations and which are artifacts of particular temporal assumptions. Similar
+          clarity is needed about the relationship between the stochastic shortest-path formulation
+          [6], the discounted formulation, and the finite-horizon formulation, each of which is
+          tractable under different inference strategies.
+        </p>
+
+        <p>
+          <strong>Cognitive science validation.</strong> Active inference and planning-as-inference have
+          been proposed as models of human and animal cognition [5, 11, 27]. Rigorous
+          empirical validation against behavioral and neural data, beyond the small-scale demonstrations
+          typical of the current literature, is needed to assess whether these models provide genuinely
+          predictive accounts of biological decision-making or merely flexible redescriptions
+          [10]. Solway and Botvinick [80] and Baker et al. [5] offer concrete
+          targets for such validation in the cognitive science tradition, but sustained cross-disciplinary
+          benchmarking is still scarce.
+        </p>
+
+        <p>
+          <strong>Foundation-model planners through the inference lens.</strong> Large language models
+          and diffusion models increasingly serve as implicit planners in robotics and embodied AI. Their
+          behavior, sampling trajectories or action sequences from a learned conditional distribution, is
+          a clear instance of planning as inference but sits outside the canonical theoretical
+          framework. Extending the inference-as-planning formalism to cover foundation-model planners,
+          and characterizing when their sampling behavior implements principled posterior inference
+          versus heuristic generation, would unify contemporary empirical practice with the theoretical
+          tradition surveyed here [44, 63].
+        </p>
+
+
+        <h2>9. Conclusion</h2>
+
+        <p>
+          Two decades of research have established planning as inference as a mature and productive
+          paradigm for sequential decision-making. The theoretical foundations (the duality between
+          KL-regularized control and probabilistic inference, the graphical model formulation, and the
+          path integral perspective) provide a unified mathematical language that connects disparate
+          algorithmic traditions in reinforcement learning, control theory, and cognitive science
+          [47, 54, 87]. The three major research programmes within this paradigm (active
+          inference, maximum entropy RL, and model-based probabilistic planning) have each contributed
+          distinctive algorithmic ideas and empirical advances, from the exploration-driving expected
+          free energy of active inference [26], through the practically dominant Soft
+          Actor-Critic [33], to the trajectory-level generative planning of diffusion models
+          [44]. Recent unification results [78, 98] have revealed that these
+          trajectories converge mathematically, even as their communities remain sociologically distinct.
+        </p>
+
+        <p>
+          The most important insight of this body of work is that the choice to frame planning as
+          inference is not merely a mathematical trick but a design choice with concrete algorithmic
+          consequences. It yields policies that are naturally stochastic, exploratory, and composable, and
+          it enables the direct application of the rich toolkit of approximate inference methods to
+          decision-making problems. Crucially, the choice of inference method within this framework is
+          itself constitutive of behavior [49, 54], making the design of planners a joint task
+          over model and approximation. The central challenge going forward is scaling, making
+          inference-based planning practical in the high-dimensional, partially observed, multi-agent
+          settings that characterize real-world decision-making, while preserving the principled
+          exploration, uncertainty-awareness, and cross-abstraction integration that motivate the
+          inference view in the first place.
+        </p>
+
+
+        </section>
+
+        <div class="citation-section">
+          <h2 class="citation-header">Citation</h2>
+          <p class="citation-text">
+            If you find this survey useful, please cite it as
+          </p>
+          <pre class="citation-pre">
+@misc{planning_as_inference_survey_2026,
+  author    = {Hu Tianrun},
+  title     = {Planning as Inference in Probabilistic Models},
+  year      = {2026},
+  publisher = {GitHub},
+  url       = {https://h-tr.github.io/blog/surveys/planning-as-inference.html}
+}
+          </pre>
+        </div>
+
+        <div class="references-section">
+          <h2 class="references-header">References</h2>
+          <ol class="references-list">
+            <li id="ref-1">Abdolmaleki, A., Springenberg, J. T., Tassa, Y., Munos, R., Heess, N., &amp; Riedmiller, M. (2018). &ldquo;Maximum a Posteriori Policy Optimisation.&rdquo; <em>ICLR 2018</em>.</li>
+            <li id="ref-2">Achiam, J., Held, D., Tamar, A., &amp; Abbeel, P. (2017). &ldquo;Constrained Policy Optimization.&rdquo; <em>ICML 2017</em>, pp. 22&ndash;31.</li>
+            <li id="ref-3">Ajay, A., Du, Y., Gupta, A., Tenenbaum, J. B., Jaakkola, T., &amp; Levine, S. (2023). &ldquo;Is Conditional Generative Modeling All You Need for Decision Making?&rdquo; <em>NeurIPS 2023</em>.</li>
+            <li id="ref-4">Attias, H. (2003). &ldquo;Planning by Probabilistic Inference.&rdquo; <em>AISTATS 2003</em>.</li>
+            <li id="ref-5">Baker, C. L., Saxe, R., &amp; Tenenbaum, J. B. (2009). &ldquo;Action Understanding as Inverse Planning.&rdquo; <em>Cognition</em>, 113(3), 329&ndash;349.</li>
+            <li id="ref-6">Baioumy, M., Mattamala, M., &amp; Hawes, N. (2021). &ldquo;On Solving a Stochastic Shortest-Path Markov Decision Process as Probabilistic Inference.&rdquo; <em>arXiv preprint arXiv:2109.05866</em>.</li>
+            <li id="ref-7">Belle, V., &amp; Levesque, H. J. (2018). &ldquo;Probabilistic Planning by Probabilistic Programming.&rdquo; <em>arXiv preprint arXiv:1801.08365</em>.</li>
+            <li id="ref-8">Bertsekas, D. P. (2012). <em>Dynamic Programming and Optimal Control</em>, Vol. II, 4th ed. Athena Scientific.</li>
+            <li id="ref-9">Bhardwaj, M., Sundaralingam, B., Mousavian, A., Ratliff, N., Fox, D., Ramos, F., &amp; Boots, B. (2022). &ldquo;STORM. An Integrated Framework for Fast Joint-Space Model-Predictive Control for Reactive Manipulation.&rdquo; <em>CoRL 2022</em>.</li>
+            <li id="ref-10">Biehl, M., Pollock, F. A., &amp; Kanai, R. (2021). &ldquo;A Technical Critique of Some Parts of the Free Energy Principle.&rdquo; <em>Entropy</em>, 23(3), 293.</li>
+            <li id="ref-11">Botvinick, M., &amp; Toussaint, M. (2012). &ldquo;Planning as Inference.&rdquo; <em>Trends in Cognitive Sciences</em>, 16(10), 485&ndash;488.</li>
+            <li id="ref-12">&Ccedil;atal, O., Wauthier, S., De Boom, C., Verbelen, T., &amp; Dhoedt, B. (2019). &ldquo;Learning Perception and Planning with Deep Active Inference.&rdquo; <em>ICAART 2019</em>.</li>
+            <li id="ref-13">Champion, T., Grze&#347;, M., &amp; Bowman, H. (2022). &ldquo;Branching Time Active Inference with Bayesian Filtering.&rdquo; <em>Neural Computation</em>, 34(10), 2132&ndash;2144.</li>
+            <li id="ref-14">Chi, C., Feng, S., Du, Y., Xu, Z., Cousineau, E., Burchfiel, B., &amp; Song, S. (2023). &ldquo;Diffusion Policy. Visuomotor Policy Learning via Action Diffusion.&rdquo; <em>RSS 2023</em>.</li>
+            <li id="ref-15">Chua, K., Calandra, R., McAllister, R., &amp; Levine, S. (2018). &ldquo;Deep Reinforcement Learning in a Handful of Trials Using Probabilistic Dynamics Models.&rdquo; <em>NeurIPS 2018</em>.</li>
+            <li id="ref-16">Da Costa, L., Parr, T., Sajid, N., Vesber, S., Ryan, V., &amp; Friston, K. (2020). &ldquo;Active Inference on Discrete State-Spaces. A Synthesis.&rdquo; <em>Journal of Mathematical Psychology</em>, 99, 102447.</li>
+            <li id="ref-17">Dayan, P., &amp; Hinton, G. E. (1997). &ldquo;Using Expectation-Maximization for Reinforcement Learning.&rdquo; <em>Neural Computation</em>, 9(2), 271&ndash;278.</li>
+            <li id="ref-18">Deisenroth, M. P., &amp; Rasmussen, C. E. (2011). &ldquo;PILCO. A Model-Based and Data-Efficient Approach to Policy Search.&rdquo; <em>ICML 2011</em>.</li>
+            <li id="ref-19">Depeweg, S., Hern&aacute;ndez-Lobato, J. M., Doshi-Velez, F., &amp; Udluft, S. (2018). &ldquo;Decomposition of Uncertainty in Bayesian Deep Learning for Efficient and Risk-Sensitive Learning.&rdquo; <em>ICML 2018</em>.</li>
+            <li id="ref-20">Dong, J., Mukadam, M., Dellaert, F., &amp; Boots, B. (2016). &ldquo;Motion Planning as Probabilistic Inference Using Gaussian Processes and Factor Graphs.&rdquo; <em>RSS 2016</em>.</li>
+            <li id="ref-21">Dvijotham, K., &amp; Todorov, E. (2010). &ldquo;Inverse Optimal Control with Linearly-Solvable MDPs.&rdquo; <em>ICML 2010</em>.</li>
+            <li id="ref-22">Eysenbach, B., &amp; Levine, S. (2022). &ldquo;Maximum Entropy RL (Provably) Solves Some Robust RL Problems.&rdquo; <em>ICLR 2022</em>.</li>
+            <li id="ref-23">Fountas, Z., Sajid, N., Mediano, P. A., &amp; Friston, K. (2020). &ldquo;Deep Active Inference Agents Using Monte-Carlo Methods.&rdquo; <em>NeurIPS 2020</em>.</li>
+            <li id="ref-24">Fox, R., Pakman, A., &amp; Tishby, N. (2016). &ldquo;Taming the Noise in Reinforcement Learning via Soft Updates.&rdquo; <em>UAI 2016</em>.</li>
+            <li id="ref-25">Friston, K. (2010). &ldquo;The Free-Energy Principle. A Unified Brain Theory?&rdquo; <em>Nature Reviews Neuroscience</em>, 11(2), 127&ndash;138.</li>
+            <li id="ref-26">Friston, K., Rigoli, F., Ognibene, D., Mathys, C., FitzGerald, T., &amp; Pezzulo, G. (2015). &ldquo;Active Inference and Epistemic Value.&rdquo; <em>Cognitive Neuroscience</em>, 6(4), 187&ndash;214.</li>
+            <li id="ref-27">Friston, K., FitzGerald, T., Rigoli, F., Schwartenbeck, P., &amp; Pezzulo, G. (2017). &ldquo;Active Inference. A Process Theory.&rdquo; <em>Neural Computation</em>, 29(1), 1&ndash;49.</li>
+            <li id="ref-28">Galashov, A., Jayakumar, S. M., Hasenclever, L., Tirumala, D., Schwarz, J., Desjardins, G., Czarnecki, W. M., Teh, Y. W., Pascanu, R., &amp; Heess, N. (2019). &ldquo;Information Asymmetry in KL-Regularized RL.&rdquo; <em>ICLR 2019</em>.</li>
+            <li id="ref-29">Gmytrasiewicz, P. J., &amp; Doshi, P. (2005). &ldquo;A Framework for Sequential Planning in Multi-Agent Settings.&rdquo; <em>Journal of Artificial Intelligence Research</em>, 24, 49&ndash;79.</li>
+            <li id="ref-30">Grau-Moya, J., Leibfried, F., &amp; Bou-Ammar, H. (2018). &ldquo;Balancing Two-Player Stochastic Games with Soft Q-Learning.&rdquo; <em>IJCAI 2018</em>.</li>
+            <li id="ref-31">Ha, D., &amp; Schmidhuber, J. (2018). &ldquo;World Models.&rdquo; <em>NeurIPS 2018</em>.</li>
+            <li id="ref-32">Haarnoja, T., Tang, H., Abbeel, P., &amp; Levine, S. (2017). &ldquo;Reinforcement Learning with Deep Energy-Based Policies.&rdquo; <em>ICML 2017</em>.</li>
+            <li id="ref-33">Haarnoja, T., Zhou, A., Abbeel, P., &amp; Levine, S. (2018a). &ldquo;Soft Actor-Critic. Off-Policy Maximum Entropy Deep Reinforcement Learning with a Stochastic Actor.&rdquo; <em>ICML 2018</em>.</li>
+            <li id="ref-34">Haarnoja, T., Zhou, A., Hartikainen, K., Tucker, G., Ha, S., Tan, J., Kumar, V., Zhu, H., Gupta, A., Abbeel, P., &amp; Levine, S. (2018b). &ldquo;Soft Actor-Critic Algorithms and Applications.&rdquo; <em>arXiv preprint arXiv:1812.05905</em>.</li>
+            <li id="ref-35">Haarnoja, T., Ha, S., Zhou, A., Tan, J., Tucker, G., &amp; Levine, S. (2019). &ldquo;Learning to Walk via Deep Reinforcement Learning.&rdquo; <em>RSS 2019</em>.</li>
+            <li id="ref-36">Hafner, D., Lillicrap, T., Fischer, I., Villegas, R., Ha, D., Lee, H., &amp; Davidson, J. (2019). &ldquo;Learning Latent Dynamics for Planning from Pixels.&rdquo; <em>ICML 2019</em>.</li>
+            <li id="ref-37">Hafner, D., Lillicrap, T., Ba, J., &amp; Norouzi, M. (2020). &ldquo;Dream to Control. Learning Behaviors by Latent Imagination.&rdquo; <em>ICLR 2020</em>.</li>
+            <li id="ref-38">Hafner, D., Lillicrap, T., Norouzi, M., &amp; Ba, J. (2021). &ldquo;Mastering Atari with Discrete World Models.&rdquo; <em>ICLR 2021</em>.</li>
+            <li id="ref-39">Hafner, D., Pasukonis, J., Ba, J., &amp; Lillicrap, T. (2023). &ldquo;Mastering Diverse Domains through World Models.&rdquo; <em>arXiv preprint arXiv:2301.04104</em>.</li>
+            <li id="ref-40">Heins, C., Millidge, B., Da Costa, L., Mann, R., Friston, K., &amp; Couzin, I. (2022). &ldquo;Spin Glass Systems as Collective Active Inference.&rdquo; <em>arXiv preprint arXiv:2207.06970</em>.</li>
+            <li id="ref-41">Heins, C., Millidge, B., Da Costa, L., Mann, R., Friston, K., &amp; Couzin, I. (2024). &ldquo;Active Inference and the Ecology of Foraging.&rdquo; <em>PLoS Computational Biology</em>, 20(1), e1011727.</li>
+            <li id="ref-42">Hoffman, M., de Freitas, N., Doucet, A., &amp; Peters, J. (2009). &ldquo;An Expectation Maximization Algorithm for Continuous Markov Decision Processes with Arbitrary Reward.&rdquo; <em>AISTATS 2009</em>.</li>
+            <li id="ref-43">Janner, M., Fu, J., Zhang, M., &amp; Levine, S. (2019). &ldquo;When to Trust Your Model. Model-Based Policy Optimization.&rdquo; <em>NeurIPS 2019</em>.</li>
+            <li id="ref-44">Janner, M., Du, Y., Tenenbaum, J. B., &amp; Levine, S. (2022). &ldquo;Planning with Diffusion for Flexible Behavior Synthesis.&rdquo; <em>ICML 2022</em>.</li>
+            <li id="ref-45">Kalashnikov, D., Irpan, A., Pastor, P., Ibarz, J., Herzog, A., Jang, E., Quillen, D., Holly, E., Kalakrishnan, M., Vanhoucke, V., &amp; Levine, S. (2018). &ldquo;Scalable Deep Reinforcement Learning for Vision-Based Robotic Manipulation.&rdquo; <em>CoRL 2018</em>.</li>
+            <li id="ref-46">Kalakrishnan, M., Chitta, S., Theodorou, E., Pastor, P., &amp; Schaal, S. (2011). &ldquo;STOMP. Stochastic Trajectory Optimization for Motion Planning.&rdquo; <em>ICRA 2011</em>.</li>
+            <li id="ref-47">Kappen, H. J. (2005). &ldquo;Path Integrals and Symmetry Breaking for Optimal Control Theory.&rdquo; <em>Journal of Statistical Mechanics. Theory and Experiment</em>, 2005(11), P11011.</li>
+            <li id="ref-48">Kappen, H. J., G&oacute;mez, V., &amp; Opper, M. (2012). &ldquo;Optimal Control as a Graphical Model Inference Problem.&rdquo; <em>Machine Learning</em>, 87(2), 159&ndash;182.</li>
+            <li id="ref-49">Kouw, W. M. (2024). &ldquo;Planning to Avoid Ambiguous States through Gaussian Approximations to Non-Linear Sensors in Active Inference Agents.&rdquo; <em>arXiv preprint arXiv:2409.01974</em>.</li>
+            <li id="ref-50">Kumar, A., Zilberstein, S., &amp; Toussaint, M. (2011). &ldquo;Scalable Multiagent Planning Using Probabilistic Inference.&rdquo; <em>IJCAI 2011</em>.</li>
+            <li id="ref-51">Lambert, N., Amos, B., Yadan, O., &amp; Calandra, R. (2020). &ldquo;Objective Mismatch in Model-Based Reinforcement Learning.&rdquo; <em>L4DC 2020</em>.</li>
+            <li id="ref-52">Lambert, A., Fishman, A., Fox, D., Boots, B., &amp; Ramos, F. (2021). &ldquo;Entropy Regularized Motion Planning via Stein Variational Inference.&rdquo; <em>arXiv preprint arXiv:2107.05146</em>.</li>
+            <li id="ref-53">Lee, L., Eysenbach, B., Parisotto, E., Xing, E., Levine, S., &amp; Salakhutdinov, R. (2019). &ldquo;Efficient Exploration via State Marginal Matching.&rdquo; <em>arXiv preprint arXiv:1906.05274</em>.</li>
+            <li id="ref-54">Levine, S. (2018). &ldquo;Reinforcement Learning and Control as Probabilistic Inference. Tutorial and Review.&rdquo; <em>arXiv preprint arXiv:1805.00909</em>.</li>
+            <li id="ref-55">Levine, S., &amp; Koltun, V. (2013). &ldquo;Guided Policy Search.&rdquo; <em>ICML 2013</em>.</li>
+            <li id="ref-56">Liang, Z., Mu, Y., Ding, M., Ni, F., Tomizuka, M., &amp; Luo, P. (2023). &ldquo;AdaptDiffuser. Diffusion Models as Adaptive Self-Evolving Planners.&rdquo; <em>ICML 2023</em>.</li>
+            <li id="ref-57">Mukadam, M., Dong, J., Yan, X., Dellaert, F., &amp; Boots, B. (2018). &ldquo;Continuous-Time Gaussian Process Motion Planning via Probabilistic Inference.&rdquo; <em>International Journal of Robotics Research</em>, 37(11), 1319&ndash;1340.</li>
+            <li id="ref-58">Millidge, B. (2020). &ldquo;Deep Active Inference as Variational Policy Gradients.&rdquo; <em>Journal of Mathematical Psychology</em>, 96, 102348.</li>
+            <li id="ref-59">Millidge, B., Tschantz, A., &amp; Buckley, C. L. (2021). &ldquo;Whence the Expected Free Energy?&rdquo; <em>Neural Computation</em>, 33(2), 447&ndash;482.</li>
+            <li id="ref-60">Mohamed, A., Amer, K., Elruby, M., Zeng, N., &amp; Zahran, M. (2020). &ldquo;Model-Predictive Path Integral Control Framework for Partially Observable Environments.&rdquo; <em>ICRA 2020</em>.</li>
+            <li id="ref-61">Nachum, O., Norouzi, M., Xu, K., &amp; Schuurmans, D. (2017). &ldquo;Bridging the Gap Between Value and Policy Based Reinforcement Learning.&rdquo; <em>NeurIPS 2017</em>.</li>
+            <li id="ref-62">Parr, T., &amp; Friston, K. (2019). &ldquo;Generalised Free Energy and Active Inference.&rdquo; <em>Biological Cybernetics</em>, 113(5), 495&ndash;513.</li>
+            <li id="ref-63">Paul, A., Isomura, T., &amp; Friston, K. J. (2024). &ldquo;Active Inference as a Unified Theory of Sequential Decision-Making.&rdquo; <em>arXiv preprint arXiv:2402.03955</em>.</li>
+            <li id="ref-64">Peters, J., M&uuml;lling, K., &amp; Altun, Y. (2010). &ldquo;Relative Entropy Policy Search.&rdquo; <em>AAAI 2010</em>.</li>
+            <li id="ref-65">Peters, J., &amp; Schaal, S. (2007). &ldquo;Reinforcement Learning by Reward-Weighted Regression.&rdquo; <em>ICML 2007</em>.</li>
+            <li id="ref-66">Pich&eacute;, A., Thomas, V., Ibrahim, C., Bengio, Y., &amp; Pal, C. (2019). &ldquo;Probabilistic Planning with Sequential Monte Carlo Methods.&rdquo; <em>ICLR 2019</em>.</li>
+            <li id="ref-67">Pinneri, C., Sawant, S., Blaes, S., Achterhold, J., St&uuml;ckler, J., Rol&iacute;nek, M., &amp; Martius, G. (2021). &ldquo;Sample-Efficient Cross-Entropy Method for Real-Time Planning.&rdquo; <em>CoRL 2021</em>.</li>
+            <li id="ref-68">Rawlik, K., Toussaint, M., &amp; Vijayakumar, S. (2012). &ldquo;On Stochastic Optimal Control and Reinforcement Learning by Approximate Inference.&rdquo; <em>RSS 2012</em>.</li>
+            <li id="ref-69">Ratliff, N., Zucker, M., Bagnell, J. A., &amp; Srinivasa, S. (2009). &ldquo;CHOMP. Gradient Optimization Techniques for Efficient Motion Planning.&rdquo; <em>ICRA 2009</em>.</li>
+            <li id="ref-70">Riedmiller, M., Hafner, R., Lampe, T., Neunert, M., Degrave, J., van de Wiele, T., Mnih, V., Heess, N., &amp; Springenberg, J. T. (2018). &ldquo;Learning by Playing. Solving Sparse Reward Tasks from Scratch.&rdquo; <em>ICML 2018</em>.</li>
+            <li id="ref-71">Safron, A. (2020). &ldquo;An Integrated World Modeling Theory of Consciousness.&rdquo; <em>Frontiers in Artificial Intelligence</em>, 3, 30.</li>
+            <li id="ref-72">Sajid, N., Ball, P. J., Parr, T., &amp; Friston, K. J. (2021). &ldquo;Active Inference. Demystified and Compared.&rdquo; <em>Neural Computation</em>, 33(3), 674&ndash;712.</li>
+            <li id="ref-73">Saxe, A. M., Earle, A. C., &amp; Roesner, B. (2017). &ldquo;Hierarchy through Composition with Multitask LMDPs.&rdquo; <em>ICML 2017</em>.</li>
+            <li id="ref-74">Schulman, J., Chen, X., &amp; Abbeel, P. (2017). &ldquo;Equivalence Between Policy Gradients and Soft Q-Learning.&rdquo; <em>arXiv preprint arXiv:1704.06440</em>.</li>
+            <li id="ref-75">Schulman, J., Levine, S., Abbeel, P., Jordan, M., &amp; Moritz, P. (2015). &ldquo;Trust Region Policy Optimization.&rdquo; <em>ICML 2015</em>.</li>
+            <li id="ref-76">Schubert, J. (2025). &ldquo;Active Inference for an Intelligent Agent in Autonomous Reconnaissance Missions.&rdquo; <em>arXiv preprint arXiv:2510.17450</em>.</li>
+            <li id="ref-77">Schwartenbeck, P., Passecker, J., Hauser, T. U., FitzGerald, T. H., Kronbichler, M., &amp; Friston, K. J. (2019). &ldquo;Computational Mechanisms of Curiosity and Goal-Directed Exploration.&rdquo; <em>eLife</em>, 8, e41703.</li>
+            <li id="ref-78">Sennesh, E., Hoffman, J., &amp; van de Meent, J.-W. (2022). &ldquo;Deriving Time-Averaged Active Inference from Control Principles.&rdquo; <em>arXiv preprint arXiv:2208.10601</em>.</li>
+            <li id="ref-79">Smith, R., Friston, K. J., &amp; Whyte, C. J. (2022). &ldquo;A Step-By-Step Tutorial on Active Inference and Its Application to Empirical Data.&rdquo; <em>Journal of Mathematical Psychology</em>, 107, 102632.</li>
+            <li id="ref-80">Solway, A., &amp; Botvinick, M. (2012). &ldquo;Goal-Directed Decision Making as Probabilistic Inference.&rdquo; <em>Psychological Review</em>, 119(1), 120&ndash;154.</li>
+            <li id="ref-81">Liu, Q., &amp; Wang, D. (2016). &ldquo;Stein Variational Gradient Descent. A General Purpose Bayesian Inference Algorithm.&rdquo; <em>NeurIPS 2016</em>.</li>
+            <li id="ref-82">Sun, X., Shen, M., Tintarev, N., &amp; Bischl, B. (2019). &ldquo;Tutorial and Survey on Probabilistic Graphical Model and Variational Inference in Deep Reinforcement Learning.&rdquo; <em>arXiv preprint arXiv:1908.09381</em>.</li>
+            <li id="ref-83">Sutton, R. S., &amp; Barto, A. G. (2018). <em>Reinforcement Learning. An Introduction</em>, 2nd ed. MIT Press.</li>
+            <li id="ref-84">Theodorou, E., Buchli, J., &amp; Schaal, S. (2010). &ldquo;A Generalized Path Integral Control Approach to Reinforcement Learning.&rdquo; <em>Journal of Machine Learning Research</em>, 11, 3137&ndash;3181.</li>
+            <li id="ref-85">Tian, Z., Wen, Y., Gong, Z., Punber, F., Zhang, S., &amp; Wang, J. (2020). &ldquo;Learning to Communicate Implicitly by Actions.&rdquo; <em>AAAI 2020</em>.</li>
+            <li id="ref-86">Tirumala, D., Galashov, A., Noh, H., Hasenclever, L., Pascanu, R., Schwarz, J., Desjardins, G., Czarnecki, W. M., Ahuja, A., Teh, Y. W., &amp; Heess, N. (2020). &ldquo;Behavior Priors for Efficient Reinforcement Learning.&rdquo; <em>arXiv preprint arXiv:2010.14274</em>.</li>
+            <li id="ref-87">Todorov, E. (2006). &ldquo;Linearly-Solvable Markov Decision Problems.&rdquo; <em>NeurIPS 2006</em>.</li>
+            <li id="ref-88">Todorov, E. (2007). &ldquo;Linearly-Solvable Markov Decision Problems.&rdquo; <em>Advances in Neural Information Processing Systems</em>, Vol. 19.</li>
+            <li id="ref-89">Todorov, E. (2008). &ldquo;General Duality Between Optimal Control and Estimation.&rdquo; <em>IEEE CDC 2008</em>.</li>
+            <li id="ref-90">Todorov, E. (2009). &ldquo;Efficient Computation of Optimal Actions.&rdquo; <em>Proceedings of the National Academy of Sciences</em>, 106(28), 11478&ndash;11483.</li>
+            <li id="ref-91">Toussaint, M. (2009). &ldquo;Robot Trajectory Optimization Using Approximate Inference.&rdquo; <em>ICML 2009</em>.</li>
+            <li id="ref-92">Toussaint, M. (2010). &ldquo;Integrated Motor Control, Planning, Grasping and High-Level Reasoning in a Blocks World Using Probabilistic Inference.&rdquo; <em>ICRA 2010</em>.</li>
+            <li id="ref-93">Toussaint, M., &amp; Storkey, A. (2006). &ldquo;Probabilistic Inference for Solving Discrete and Continuous State Markov Decision Processes.&rdquo; <em>ICML 2006</em>.</li>
+            <li id="ref-94">Tschantz, A., Millidge, B., Seth, A. K., &amp; Buckley, C. L. (2020). &ldquo;Reinforcement Learning Through Active Inference.&rdquo; <em>arXiv preprint arXiv:2002.12636</em>.</li>
+            <li id="ref-95">Van de Maele, T., Verbelen, T., Mazzaglia, P., Ferraro, S., &amp; Dhoedt, B. (2023). &ldquo;Integrating Cognitive Map Learning and Active Inference for Planning in Ambiguous Environments.&rdquo; <em>arXiv preprint arXiv:2308.08307</em>.</li>
+            <li id="ref-96">van der Himst, O., &amp; Lanillos, P. (2020). &ldquo;Deep Active Inference for Partially Observable MDPs.&rdquo; <em>arXiv preprint arXiv:2009.03622</em>.</li>
+            <li id="ref-97">Vlassis, N., Toussaint, M., Kontes, G., &amp; Piperidis, S. (2009). &ldquo;Learning Model-Free Robot Control by a Monte Carlo EM Algorithm.&rdquo; <em>Autonomous Robots</em>, 27(2), 123&ndash;130.</li>
+            <li id="ref-98">Watson, J., Abdulsamad, H., &amp; Peters, J. (2020). &ldquo;Active Inference or Control as Inference? A Unifying View.&rdquo; <em>arXiv preprint arXiv:2010.00262</em>.</li>
+            <li id="ref-99">Williams, G., Aldrich, A., &amp; Theodorou, E. A. (2017). &ldquo;Model Predictive Path Integral Control. From Theory to Parallel Computation.&rdquo; <em>Journal of Guidance, Control, and Dynamics</em>, 40(2), 344&ndash;357.</li>
+            <li id="ref-100">Williams, G., Drews, P., Goldfain, B., Rehg, J. M., &amp; Theodorou, E. A. (2018). &ldquo;Information-Theoretic Model Predictive Control. Theory and Applications to Autonomous Driving.&rdquo; <em>IEEE Transactions on Robotics</em>, 34(6), 1603&ndash;1622.</li>
+            <li id="ref-101">Xia, Z., &amp; Zhao, D. (2016). &ldquo;Online Reinforcement Learning Control by Bayesian Inference.&rdquo; <em>IET Control Theory and Applications</em>, 10(12), 1331&ndash;1338.</li>
+            <li id="ref-102">Ziebart, B. D., Maas, A. L., Bagnell, J. A., &amp; Dey, A. K. (2008). &ldquo;Maximum Entropy Inverse Reinforcement Learning.&rdquo; <em>AAAI 2008</em>.</li>
+          </ol>
+        </div>
+
+      </article>
+    </div>
+
+    <!-- Blog styling and spacing script -->
+    <script defer src="/js/blog.js"></script>
+    <script defer src="/js/katex-init.js"></script>
+    <script defer src="/js/references.js"></script>
+  </body>
+</html>

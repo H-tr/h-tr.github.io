@@ -1,0 +1,1007 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Programming Paradigms in Robotics | Hu Tianrun</title>
+
+    <!-- Fonts -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Prism.js initialization -->
+    <script src="/js/prism-init.js"></script>
+
+    <!-- KaTeX Math Support -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Site Assets -->
+    <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg" />
+    <link href="/css/blog.css" rel="stylesheet" />
+    <link href="/css/references.css" rel="stylesheet" />
+
+    <!-- KaTeX Scripts -->
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"
+    ></script>
+  </head>
+  <body>
+    <div class="blog-post">
+      <a href="../?tab=survey" class="back-button">
+        <i class="fas fa-arrow-left"></i>Back
+      </a>
+
+      <header class="blog-post-header">
+        <h1 class="blog-post-title">Programming Paradigms in Robotics</h1>
+        <div class="blog-post-date">April 23, 2026</div>
+      </header>
+
+      <article class="blog-post-content">
+        <section class="blog-section">
+
+        <h2>1. Introduction</h2>
+
+        <p>
+          Robotic systems have entered a phase of rapid capability expansion, driven by deep learning, scalable
+          simulation, and hardware miniaturization. Yet as robots move from controlled laboratories into
+          unstructured environments (warehouses, homes, farms, surgical theaters), their software stacks face
+          a complexity crisis familiar to an earlier generation of engineers. In the 1970s and 1980s, software
+          engineering confronted analogous scaling challenges and responded with a suite of intellectual
+          tools. Object-oriented encapsulation, modular decomposition, separation of concerns, layered
+          abstraction, and reusable libraries transformed how software is designed, maintained, and reasoned
+          about. A growing body of robotics research now draws on these principles, sometimes explicitly
+          and sometimes implicitly, to structure robot perception, learning, planning, and control
+          [1, 2, 6, 9, 11, 45].
+        </p>
+
+        <p>
+          The central research question of this survey is how concepts from programming languages and
+          software engineering, including object-centric representations, functional paradigms, modular
+          architectures, and decoupled design, have been adopted and adapted in robotics for learning,
+          planning, perception, and control. The question is timely because the field stands at an inflection
+          point. End-to-end deep learning, which dominated 2015 to 2020, increasingly encounters brittleness,
+          poor sample efficiency, and limited transferability, weaknesses that structured design principles
+          are well positioned to address [3, 13, 14, 15]. Meanwhile foundation models and
+          internet-scale pretraining introduce new opportunities and new failure modes that demand
+          principled architectural thinking [4, 43, 46].
+        </p>
+
+        <p>
+          Structured design principles are not new to robotics. Layered architectures such as the
+          subsumption stack, the sense-plan-act pipeline, three-tier hybrid systems, and the BDI family
+          have framed robot software for decades. What is new in the 2015 to 2026 period is the interaction
+          between these architectural ideas and learned components. Entire layers of the stack are now
+          replaced, or at least parameterized, by neural networks whose training demands new forms of
+          modularity [3, 8], new forms of decoupling [11], and new notions of
+          reuse across embodiments and tasks [6, 25]. The software engineering principles that matter
+          most today are precisely those that let a team train, test, and swap one learned layer without
+          retraining the stack.
+        </p>
+
+        <p>
+          The scope of this survey reflects that reorientation. We focus on works published between 2015
+          and 2026 that explicitly borrow structural abstractions from software engineering, together with
+          a curated set of earlier foundational papers whose ideas continue to shape current systems
+          [16, 17, 22]. We organize our analysis around three substantive themes that emerged
+          from the literature. First, object-centric representations in robot perception and manipulation,
+          which borrow from object-oriented encapsulation. Second, modular and reusable skill libraries,
+          which mirror the design of software component libraries. Third, decoupled and layered robot
+          system architectures, which apply separation of concerns across perception, planning, and
+          control. A cross-cutting analysis then draws out tensions and convergences across the three
+          themes, and we close with specific open problems and a short conclusion.
+        </p>
+
+        <div class="blog-callout">
+          <p>
+            <strong>The single most important takeaway.</strong> Across object-centric perception, modular
+            skills, and decoupled architectures, the field has moved from monolithic designs toward
+            representations and systems that embed structural assumptions about the world. These
+            assumptions yield measurable gains in sample efficiency, generalization, and transferability.
+            The binding constraint is no longer decomposition, which has been studied for decades, but
+            composition, the question of how to integrate independently designed or independently learned
+            components into coherent behavior. Progress on composition will determine whether the next
+            generation of robot systems inherits the compositional payoff that software engineering has
+            enjoyed for half a century.
+          </p>
+        </div>
+
+        <h2>2. Background and Definitions</h2>
+
+        <p>
+          Three vocabularies meet in this survey. One comes from programming languages and software
+          engineering, the second from classical robotics, and the third from modern machine learning. To
+          keep the synthesis legible we define the key terms precisely, noting where robotics usage
+          diverges from its software engineering ancestry.
+          <strong>Object-centric representation</strong> denotes any computational scheme that decomposes a
+          visual scene into discrete entity-level units, each carrying its own attributes (shape,
+          appearance, pose), rather than encoding the scene as a monolithic feature vector
+          [1, 2, 3]. The analogy to object-oriented programming is deliberate. A software object
+          encapsulates state and exposes an interface. An object-centric slot encapsulates an entity's
+          properties and supports structured downstream reasoning. Within robotics the dominant
+          instantiation is the <em>slot-based</em> architecture, a fixed set of latent vectors that compete
+          to bind to entities in the input via iterative attention [1, 2, 3].
+        </p>
+
+        <p>
+          <strong>Modular architecture</strong>, in the software engineering sense, denotes a system
+          decomposed into self-contained units with well-defined interfaces, where each module can be
+          developed, tested, and replaced independently. Robotics inherits this word and stretches it to
+          cover at least three distinct loci. Physical modules (reconfigurable limbs, sensors, actuators)
+          that can be rearranged into different robot morphologies [5, 6, 25, 26, 27, 29]. Behavioural
+          modules (independently trained skill policies) composed at runtime [9, 10, 17]. And
+          representational modules (disentangled latent factors, slotted embeddings) inside a single
+          network [1, 2, 3]. The common thread is the software engineering insight that modularity
+          enables reuse, the same component serving multiple systems without modification.
+        </p>
+
+        <p>
+          <strong>Separation of concerns</strong> (SoC) is the principle that a system should be organized
+          so each section addresses a distinct aspect of functionality, minimizing coupling. In layered
+          software architectures SoC produces stacks where higher layers depend on lower layers through
+          stable interfaces. In robotics SoC appears as the decomposition of behavior into perception,
+          planning, and control layers, but also as the factorization of learning objectives into
+          independently trainable sub-problems [9, 10, 11]. A related notion,
+          <strong>decoupled design</strong>, targets the avoidance of unnecessary shared state between
+          components. Hardware-level decoupling, as when a sensor's field of view is made independent of
+          robot motion, can simplify or remove software-level compensation [11].
+        </p>
+
+        <p>
+          <strong>Abstraction hierarchy</strong> refers to a stack of representations in which each level
+          hides details of the level below behind a simpler interface, a central idea in operating systems
+          (the process abstraction over threads and memory) and in programming languages (the type system
+          over bit patterns). In robotics the same idea structures task planning, with high-level symbolic
+          goals refined into option policies, motion plans, and torque commands [16, 17, 18, 19, 20, 21].
+          <strong>Functional and compositional paradigms</strong> stress the treatment of computations as
+          values that can be passed, named, and recombined. Central pattern generators instantiated
+          per-module in modular robots, with a shared coupling rule, are an explicit example of that
+          pattern [7, 26, 28, 29, 33]. Programmatic policies and code-emitting language models are a
+          more recent one [43, 46].
+        </p>
+
+        <p>
+          <strong>Scope boundaries.</strong> We cover work at the intersection of software engineering and
+          programming-language design principles with robotics systems published between 2015 and 2026,
+          with selected foundational work from earlier periods where it establishes essential intellectual
+          context [16, 17, 22, 28, 33]. We do not cover formal verification of robotic systems,
+          type-theoretic approaches to robot programming languages, or full-stack domain-specific language
+          design for robotics. Each merits its own survey. We also exclude algorithmic contributions that
+          do not engage with architectural or representational structure, even when they improve a sample
+          efficiency or success-rate metric.
+        </p>
+
+        <h2>3. Object-Centric Representations in Robot Perception and Manipulation</h2>
+
+        <h3>3.1 Disentangling Identity from Extrinsics</h3>
+
+        <p>
+          A robot retrieving a mug from a cluttered shelf must recognize the mug across changes in
+          lighting, viewpoint, occlusion, and surrounding objects. The requirement of identifying
+          <em>what</em> an object is independently of <em>how</em> it currently appears maps precisely onto
+          the object-oriented principle of separating intrinsic identity from contextual state
+          [1, 2, 3]. Recent slot-based architectures have operationalized this separation by
+          factoring object representations into scene-invariant and scene-dependent components. Chen et al.
+          [1] introduced disentangled slot attention, partitioning each slot's latent code into
+          an intrinsic component encoding shape and appearance and an extrinsic component encoding
+          position, scale, and orientation, and demonstrated cross-scene object matching. That capability
+          is absent from earlier slot attention variants that entangle these factors. Klepach et al.
+          [2] extended the disentanglement principle into the action domain, showing that
+          object-centric slots can isolate agent-object interaction dynamics from action-correlated
+          background distractors in unlabeled video. Yoon et al. [3] provided complementary
+          evidence that pre-trained object-centric representations improve sample efficiency in downstream
+          reinforcement learning, precisely because the slot structure imposes an inductive bias toward
+          compositional scene understanding.
+        </p>
+
+        <p>
+          The convergence across these independent lines of work is notable. All three arrive at the
+          conclusion that structured factorization of object properties is a prerequisite for robust
+          generalization, whether the downstream task is recognition [1], imitation [2],
+          or reinforcement learning [3]. Parallel evidence from recent manipulation work agrees.
+          Li et al. [8] show that object-centric visual representations, obtained by routing features
+          through object masks rather than through a global backbone, improve manipulation policy
+          generalization under distribution shift compared to dense or global features. Spotlighting
+          Task-Relevant Features [38] builds on the same intuition by selectively retaining
+          features tied to task-relevant objects and suppressing scene background, yielding further
+          robustness gains in manipulation. These results echo the software engineering experience that
+          well-encapsulated objects with clean interfaces compose more reliably than monolithic data
+          structures, a lesson accumulated over decades of large-scale system design.
+        </p>
+
+        <h3>3.2 From Perception to Action</h3>
+
+        <p>
+          The utility of object-centric representations extends beyond perceptual recognition into the
+          action-learning pipeline, a transition that mirrors how software objects evolved from passive
+          data containers into active entities with behavioural interfaces. Klepach et al. [2]
+          demonstrated that object-centric pretraining on unlabeled internet video enables latent action
+          inference for embodied agents. By isolating object-level dynamics from background visual noise,
+          their system infers proxy action labels that support few-shot imitation learning without any
+          ground-truth action annotations. That result addresses a critical bottleneck in embodied AI, the
+          scarcity of action-labeled training data, by leveraging the structural assumptions of
+          object-centric representations rather than requiring additional supervision.
+        </p>
+
+        <p>
+          Yoon et al. [3] provided a systematic investigation of this perception-to-action transfer,
+          revealing both its promise and its limits. Their study found that object-centric pre-training
+          yields clear sample efficiency gains on object-centric RL tasks, but the benefits degrade
+          significantly in visually complex environments where the slot attention mechanism struggles to
+          segment entities cleanly. The finding constitutes an important caveat. The OOP-inspired
+          assumption that scenes decompose into discrete objects with clean boundaries holds well in
+          structured environments but falters in the visual complexity of real-world settings.
+          Additionally, Yoon et al. identified that the choice of <em>slot-aggregation pooling method</em>,
+          how information from multiple slots is combined for downstream decision-making, is a critical
+          and underexamined design factor, analogous to the choice of composition operators in software
+          architecture [3]. Earlier work on object-centric priors for generalizable robot learning
+          [34] had already hinted at this dependence by showing that pretrained visual backbones
+          routed through object-level features generalize better than generic visual features, without
+          settling on how slots should be pooled at decision time.
+        </p>
+
+        <p>
+          Object-centric dynamics modelling pushes the analogy one step further, replacing passive object
+          encodings with predictive entities that expose methods for interaction. Interaction networks
+          trained on object-level states and actions predict future object states and support manipulation
+          planning with far fewer samples than dense-feature alternatives [35]. Latent
+          object-centric representations for visual-based manipulation [36] make similar claims in
+          image space. These systems treat objects as miniature state machines with learned transition
+          functions, which is arguably the nearest robotic analogue of object-oriented programming, in
+          which encapsulated state co-exists with methods that mutate it. Rearrangement planning
+          explicitly frames manipulation around an object-centric action space, separating what moves from
+          how the robot moves the object [37], and is another instance of the same abstraction.
+        </p>
+
+        <h3>3.3 Geometric Reconstruction as an Alternative Route</h3>
+
+        <p>
+          Not all object-centric representations emerge from learned latent spaces. Rogge et al.
+          [4] demonstrated a reconstruction-based route to structured object models using 3D
+          Gaussian Splatting, in which mask-guided background removal and occlusion-aware pruning yield
+          compact geometric representations up to 96 percent smaller than full-scene reconstructions.
+          These models are directly usable for physics simulation and manipulation planning, bypassing the
+          interpretability challenges of learned slot representations. The approach complements the
+          latent-space methods of Chen [1], Klepach [2], and Yoon [3] by providing
+          explicit geometric structure (meshes, Gaussian primitives) rather than implicit learned
+          features, at the cost of requiring per-scene reconstruction rather than amortized inference.
+        </p>
+
+        <p>
+          Coexistence of the two paradigms, learned slots and explicit reconstruction, recapitulates a
+          tension familiar from software engineering, namely abstract data types versus concrete data
+          structures. Learned slots offer generality and amortized computation but sacrifice geometric
+          fidelity and interpretability. Explicit reconstructions offer precision and direct physical
+          grounding but require per-instance computation. Systems that hybridize the two, attaching
+          learned semantic slots to explicit mesh or Gaussian entities, are just beginning to appear
+          [4, 8]. Benchmarks such as ARMBench [39] and object-centric simulation
+          environments such as iGibson 2.0 [40] provide structured evaluation surfaces that favour
+          either paradigm, organizing scenes around objects with extendable attributes and skills. The
+          field has yet to produce a satisfying synthesis, and the optimal design point likely depends on
+          the downstream task's requirements for speed, accuracy, and physical realism.
+        </p>
+
+        <h3>3.4 Object-Centric Affordances and Multimodal Grounding</h3>
+
+        <p>
+          A parallel line of work elevates affordances to first-class properties of objects, much like
+          methods on a software object. Dexterous robotic grasping models a visual affordance prior
+          attached to each object and then embeds that affordance inside a deep RL policy
+          [41], effectively treating affordance inference as an object method. Data-driven
+          object-centric models of everyday forces [42] earlier proposed a similar factorization at
+          the dynamics level, attaching force statistics to object identity so that planners could draw on
+          a reusable library of object-specific motion priors. More recently ManipLLM [43]
+          re-casts multimodal language models as object-centric reasoners, predicting contact points and
+          end-effector directions conditioned on an object's identity and the language instruction. The
+          trend across these works is away from monolithic visuomotor mappings and toward policies that
+          consult an object-indexed library of affordances, forces, and manipulation parameters
+          [8, 35, 41, 42, 43]. A closely related architectural move is to compose hierarchical
+          object-centric controllers, each operating along an object-attached axis, so that complex tasks
+          assemble from per-object primitives with well-defined interfaces [44].
+        </p>
+
+        <p>
+          Evaluating these object-centric policies remains uneven. The ARMBench benchmark [39]
+          offers a large-scale, warehouse-scale object-centric testbed with defect, segmentation, and
+          identification tasks, and is the most systematic evaluation surface currently available.
+          Object-centric simulators such as iGibson 2.0 [40] foreground the tracked object states
+          necessary for household tasks. But cross-method evaluation is still fragmented, and the
+          comparative advantage of slot representations over dense features varies across benchmarks in
+          ways the literature has not reconciled [3, 8, 38]. The strongest practical claim
+          supported across these works is that wherever the object boundary is reliable, object-centric
+          representations improve downstream generalization, and wherever it is noisy the advantage
+          shrinks or disappears [3, 8].
+        </p>
+
+        <h2>4. Modular and Reusable Skill Libraries</h2>
+
+        <h3>4.1 Per-Module Primitives and Cross-Embodiment Transfer</h3>
+
+        <p>
+          The aspiration to build reusable robot skill libraries, analogous to software libraries that
+          provide tested and composable components, has been pursued most concretely in modular robotics
+          where physical reconfigurability makes skill reuse a practical necessity. The foundational
+          insight, established by Sproewitz et al. [5] and refined by Whitman et al. [6],
+          is that assigning one Central Pattern Generator (CPG) oscillator per physical robot module
+          creates a natural correspondence between mechanical and computational modularity. Each module
+          carries its own locomotion primitive, and inter-module coupling produces coordinated gaits, so
+          the same skill architecture transfers across different robot configurations without requiring
+          redesign, much as a well-designed software library function operates correctly regardless of
+          the calling context. Broader reviews of CPG-based locomotion [28] document the same
+          pattern across decades of biological and robotic work, with the oscillator population playing
+          the role of the standard library and the coupling topology playing the role of the main
+          program.
+        </p>
+
+        <p>
+          Graph-mirrored policy structure, introduced by Whitman et al. [6], extends this approach
+          into the deep learning era. The robot's kinematic chain is represented as a design graph, and
+          the control policy is instantiated as a neural network graph of identical topology, with all
+          modules of the same physical type sharing parameters. The structural inductive bias enables
+          zero-shot transfer to unseen robot configurations, a result that directly parallels the
+          software engineering principle of parametric polymorphism, where a single generic implementation
+          operates correctly across multiple concrete types [6]. Earlier modular reconfigurable
+          systems such as M-TRAN II [29] demonstrated the hardware side of the same idea, showing
+          that distributed adaptive locomotion could be sustained across many morphologies using locally
+          coupled controllers. Evolving control for modular robotic units [30] and automated gait
+          adaptation for legged robots [31] explored similar reuse patterns using evolutionary
+          search and policy gradient methods respectively, with each embodiment instantiating the shared
+          controller template. The evidence for this approach is compelling but comes with a significant
+          caveat. The works cited here evaluate primarily on locomotion tasks, and it remains an open
+          question whether the same modular architecture scales to manipulation, navigation, or
+          multi-modal behaviors involving richer inter-module dependencies.
+        </p>
+
+        <h3>4.2 Online Adaptation and Structure-Agnostic Optimization</h3>
+
+        <p>
+          A software library's value depends not only on the quality of its components but on the ease
+          with which those components can be configured for new contexts. In modular robotics this
+          configuration challenge takes the form of adapting skill parameters to unknown morphologies at
+          deployment time. Sproewitz et al. [5] addressed this by combining modular CPG
+          controllers with gradient-free online optimization (Powell's method), enabling locomotion
+          skills to adapt to arbitrary robot morphologies without stopping or resetting, and later work
+          on online optimization of modular robot locomotion [32] systematized the approach.
+          Whitman et al. [6] advanced the line of work by demonstrating that graph-structured
+          policies with shared parameters can generalize zero-shot to new configurations, reducing the
+          need for online optimization in many cases while still permitting fine-tuning when the
+          morphological mismatch is large.
+        </p>
+
+        <p>
+          The progression from online optimization [5, 32] to zero-shot generalization
+          [6] illustrates a trajectory common in software engineering. Early systems require
+          extensive runtime configuration, while mature systems embed enough structural knowledge to
+          operate correctly out of the box, with configuration reserved for edge cases. A related
+          trajectory is visible in the study of adaptive frequency oscillators [33], which
+          add self-tuning to CPG primitives so that a standard library of oscillators can entrain to
+          unknown body dynamics without explicit tuning. It is worth noting, however, that this trajectory
+          has been demonstrated only within the locomotion domain, and the gap between the 2006 to 2008
+          foundations [5, 28, 33] and the 2023 resurgence [6] suggests that modular
+          skill transfer has proven harder than initially hoped. The evidence base is modest and
+          concentrated in a small community.
+        </p>
+
+        <h3>4.3 Skill Composition, Option Hierarchies, and Modern Skill Libraries</h3>
+
+        <p>
+          Beyond modular hardware, a parallel programme has treated skills themselves as first-class
+          software objects to be named, parameterized, and combined. Options, the temporally extended
+          actions of Sutton, Precup, and Singh [16], provided the formal substrate. An option has
+          an initiation set (precondition), a policy (method body), and a termination condition
+          (postcondition), mirroring the signature of a function with guards. Subsequent work on
+          hierarchical reinforcement learning operationalized this interface. MAXQ [17] decomposes a
+          value function over a user-specified task graph, so that each subtask looks like a procedure
+          call returning a value. Hierarchical Abstract Machines [18] go further, using partial
+          programs to constrain the policy space. More recent reviews of hierarchical reinforcement
+          learning [19] trace the evolution of these APIs, and the notion of multiple-goal
+          reinforcement learning [20, 24] generalized the signature to tasks with multiple
+          simultaneously active sub-goals. The common thread is that a skill library admits a clean
+          compositional interface only when each skill advertises its domain of applicability, its
+          expected outcome, and its cost, information that must either be hand-specified or learned.
+        </p>
+
+        <p>
+          Classical work on transfer by composing elemental tasks [21] already argued that many
+          complex behaviours could be expressed as compositions of previously learned sub-solutions,
+          provided a suitable recombination mechanism. Learning multiple goal behavior via task
+          decomposition and dynamic policy merging [22] developed a variant in which policies are
+          merged at runtime using learned merging weights, anticipating later modular RL integration
+          rules. Action selection methods using reinforcement learning [23] surveyed the
+          alternative, treating the arbitration of competing skills as itself a learned function, a
+          choice Wang et al. [10] revisit in a deep-learning setting. Across these papers the
+          compositional abstractions are clear, but the evidence base is largely simulation, and the
+          empirical study of skill libraries on real robots remains limited.
+        </p>
+
+        <p>
+          In the manipulation setting, object-centric skill libraries have taken concrete form. Learning
+          to compose hierarchical object-centric controllers [44] defines per-object-axis
+          controllers and then learns a meta-policy that composes them for each task, producing a small
+          library whose API is expressed in object coordinates. Dexterous grasping with object-centric
+          visual affordances [41] similarly exposes each object's affordance as a reusable
+          module inside a deep RL policy. A comparable pattern appears in Horde [45], which
+          maintains a large collection of independent general value functions (GVFs), each playing the
+          role of a prediction primitive. Each GVF is an autonomous learning sub-agent with its own
+          reward, policy, and value estimate, so the system as a whole resembles a runtime populated by
+          many small learned procedures. This sets an important precedent for modern skill libraries.
+          Horde demonstrates that scalable real-time architectures for skill reuse are feasible at
+          scale, and that the software engineering concept of a process-oriented runtime maps cleanly
+          onto reinforcement learning [45].
+        </p>
+
+        <h3>4.4 Foundation Models as Implicit Skill Libraries</h3>
+
+        <p>
+          Recent work on large pre-trained policies has begun to challenge the explicit-library picture.
+          End-to-end deep visuomotor policies [14] showed that a single network could absorb
+          perception, state estimation, and low-level control, apparently collapsing the library into a
+          monolithic binary. Yet even here the structure of modular skill libraries reappears, either in
+          the form of task-conditioned policy heads or in behaviour cloning objectives that encode
+          demonstrations as reusable exemplars. Practitioners increasingly treat large visuomotor models
+          as implicit libraries, where a multimodal foundation model such as ManipLLM [43]
+          retrieves the manipulation parameters appropriate to a given object and instruction, with the
+          language channel serving as the library index. The ADAPT architecture [46] makes this
+          explicit, using a memory-guided LLM as a module coordinator over classical task and motion
+          planning, so that high-level task reasoning and low-level skill execution remain decoupled
+          while the LLM plays the role of a dynamic skill broker.
+        </p>
+
+        <p>
+          The emerging question is whether skill libraries should be manifest data structures with
+          inspectable entries [6, 44, 45] or implicit structures absorbed into a large model's
+          weights [43, 46]. Manifest libraries offer auditability, reuse, and predictable
+          behaviour under composition, but require careful interface design. Implicit libraries offer
+          scale and generalization but sacrifice the ability to inspect or replace an individual skill.
+          The honest answer from the evidence reviewed here is that both work for some regimes, and
+          hybrid systems, where an LLM indexes a manifest library [46], seem to be the most
+          promising near-term synthesis.
+        </p>
+
+        <h2>5. Decoupled and Layered Robot System Architectures</h2>
+
+        <h3>5.1 Physical Decoupling of Sensor and Kinematics</h3>
+
+        <p>
+          The most literal application of separation of concerns in robotics occurs at the hardware
+          level, where sensor capabilities and robot kinematics are physically decoupled to enable
+          independent optimization. Chen et al. [11] proposed an adaptive lightweight LiDAR system
+          that uses mechanically steerable MEMS mirrors to make the sensor's field of view geometrically
+          independent of the robot's pose and motion. The design offloads what is conventionally a
+          software concern, stabilizing sensor readings against egomotion, to the physical mechanism
+          itself, embodying the SoC principle that each layer should handle its own concern in the most
+          natural medium. Additionally, the approach places expensive or heavy sensor subsystem
+          components off-robot so the mobile platform carries only a minimal scanning head. That
+          off-robot placement decouples the robot's size and power constraints from full sensor
+          capability and enables deployment on platforms that could not otherwise carry the full sensor
+          stack [11].
+        </p>
+
+        <p>
+          The work stands somewhat apart from the learning-centric focus of other reviewed studies, but
+          it illustrates an important architectural point. Decoupling can be pursued at any layer of the
+          system, and hardware-level decoupling can simplify or eliminate the need for software-level
+          compensation. Resilient machines through continuous self-modeling [47] provide a
+          complementary example at the system level, arguing that robots should maintain an explicit
+          internal self-model decoupled from their forward controller so that damage to one layer does
+          not disable the other. The limitation is that these approaches have been demonstrated only for
+          specific sensing modalities and morphologies, and the generality of hardware-mediated SoC to
+          tactile, auditory, or multi-spectral sensors has not been established.
+        </p>
+
+        <h3>5.2 Behavioural Decomposition Through Modular Reinforcement Learning</h3>
+
+        <p>
+          At the behavioural level, separation of concerns has been operationalized through modular
+          reinforcement learning, where complex tasks are decomposed into independently learnable
+          sub-problems. The line of work, spanning from Uchibe [9] through Oyama et al. [12] to
+          Wang et al. [10], applies a consistent architectural pattern. Train separate RL modules
+          for individual subtasks, then coordinate their outputs at runtime to produce coherent composite
+          behaviour. Uchibe [9] established a foundational formulation for mobile robot behaviour
+          coordination, demonstrating that independently learned modules could be composed for tasks
+          whose joint state space would be intractable to learn monolithically. Oyama et al. [12]
+          introduced a distinct rationale for modular decomposition, function-space partitioning, in
+          which the boundaries between modules are dictated not by task structure but by mathematical
+          discontinuities in the solution space (such as the multi-valuedness of inverse kinematics),
+          with dedicated expert modules assigned to each continuous sub-domain. Q-decomposition for
+          reinforcement learning agents [48] formalized the arithmetic of such decomposition,
+          giving an algebraic account of how independently trained agents can be combined under a shared
+          arbitrator.
+        </p>
+
+        <p>
+          The critical evolution in this line of work concerns how independently trained modules are
+          integrated at runtime. Early approaches relied on fixed, manually specified mixing weights, a
+          design that is fragile and task-specific, and early critiques of modular RL for real-world
+          partial programming [49] documented the resulting brittleness. Wang et al. [10]
+          and Oyama et al. [12] advanced beyond this by introducing state-value-dependent adaptive
+          integration, where the mixing weight of each module is computed dynamically based on its
+          current value estimate. That mechanism allows each module's influence to scale automatically
+          with its confidence in the current state, enabling more principled runtime coordination without
+          manual tuning. Wang et al. [10] further contributed a neuroscience-informed perspective,
+          drawing on evidence that animal brains employ separate reward and punishment systems, which
+          suggests that the modular decomposition pattern in robotics may have biological as well as
+          software engineering antecedents.
+        </p>
+
+        <h3>5.3 From Fixed Decomposition to Adaptive Coordination</h3>
+
+        <p>
+          The trajectory across two decades of modular RL research, from Uchibe's fixed coordination
+          [9] through Oyama's function-space partitioning [12] and Wang's adaptive
+          integration [10], reveals a recurring pattern. The initial architectural decomposition
+          (which modules exist and what each handles) proves easier to get right than the runtime
+          integration (how modules should interact given the current state). This mirrors the software
+          engineering experience that interface design is the hardest part of modular architecture. The
+          internal implementation of each module matters less than the protocol governing their
+          composition. The implication is that future work on decoupled robot architectures should devote
+          at least as much attention to integration mechanisms as to the decomposition strategy itself.
+        </p>
+
+        <p>
+          A notable gap in the existing literature is the absence of systematic comparisons between
+          decomposition strategies. Uchibe [9] decomposes by subtask, Oyama [12] decomposes
+          by function-space geometry, and Wang [10] decomposes by reward signal polarity. Each
+          strategy is evaluated independently on different tasks with different metrics, making it
+          impossible to determine which decomposition principle is most effective under what conditions.
+          Q-decomposition [48] offers an algebraic framework that could unify these comparisons,
+          but has not been widely adopted in empirical robotics. This methodological limitation weakens
+          the field's ability to offer principled architectural guidance. Complementary evidence from
+          MAXQ-style hierarchical RL [17] and HAMs [18] suggests that decomposition
+          principles are often most effective when they match the compositional structure of the task.
+          Whether that structure can be inferred automatically from data remains a central open
+          question.
+        </p>
+
+        <h3>5.4 Abstraction Hierarchies for Task Planning and Execution</h3>
+
+        <p>
+          Closely related to decoupled architectures is the classical idea of an abstraction hierarchy,
+          in which high-level symbolic specifications are progressively refined into low-level
+          executable commands. The options framework [16] is the foundational formalism, treating
+          temporally extended actions as elements of a generalized action space whose composition can be
+          reasoned about at multiple levels. MAXQ [17] decomposes the value function along a task
+          hierarchy with both procedural and declarative semantics, exactly the dual view that software
+          engineers use for interfaces, with both as code-to-execute and as contract-to-satisfy.
+          Hierarchies of abstract machines [18] add partial programs as a way to constrain the
+          policy search space, a mechanism resembling type annotations in statically typed languages.
+          Recent advances in hierarchical reinforcement learning [19] trace the intellectual
+          evolution across these formalisms, while action selection methods [23] survey the
+          space of arbitration mechanisms that join the layers together. Although much of this work
+          pre-dates 2015, it remains the intellectual foundation upon which modern hierarchical policies
+          are built, and the ADAPT architecture [46] is essentially a contemporary
+          re-implementation of the same abstraction hierarchy, with LLMs substituted for hand-engineered
+          arbitrators.
+        </p>
+
+        <p>
+          Cyber-physical modelling of modular robot cells [50] applies the same hierarchical
+          pattern at the factory level, describing how modular robot cells can be decomposed into
+          planning and execution layers whose interfaces are machine-interpretable specifications. The
+          through-line from Horde's independent demons [45] via Q-decomposition [48] to
+          ADAPT's memory-guided LLM [46] is the steady elevation of abstraction. Each generation
+          of systems lets the programmer specify less and pushes more responsibility onto learned or
+          searched layers, at the price of increasingly opaque coordination mechanisms.
+        </p>
+
+        <h2>6. Cross-Cutting Analysis</h2>
+
+        <h3>6.1 Convergence Toward Structure-Aware Representations</h3>
+
+        <p>
+          Across all three themes, a shared trajectory is visible. The field has moved from unstructured,
+          monolithic representations toward representations that embed structural assumptions about the
+          world. Object-centric slot attention [1, 2, 3] imposes entity-level structure on visual
+          perception. Graph-mirrored policies [6] impose kinematic structure on control. Modular
+          RL [9, 10, 12] imposes task or function-space structure on behavioural learning. In
+          each case the structural assumption acts as an inductive bias that improves sample efficiency
+          and generalization at the cost of flexibility, precisely the trade-off software engineers
+          navigate when choosing between generic and domain-specific abstractions. The same pattern
+          extends to modern foundation-model-based systems [43, 46], where the structure is
+          embedded in a prompt or a program template rather than in the learned weights.
+        </p>
+
+        <div class="blog-table-wrapper">
+          <table class="blog-table">
+            <thead>
+              <tr>
+                <th>Theme</th>
+                <th>SE analogue</th>
+                <th>Unit of reuse</th>
+                <th>Composition mechanism</th>
+                <th>Representative works</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Object-centric representations</td>
+                <td>Object-oriented encapsulation</td>
+                <td>Slot or object model</td>
+                <td>Slot aggregation, attention</td>
+                <td>[1], [2], [3], [4], [8], [38]</td>
+              </tr>
+              <tr>
+                <td>Modular skills</td>
+                <td>Standard libraries, parametric polymorphism</td>
+                <td>Per-module controller or policy</td>
+                <td>Graph-shared parameters, option arbitration</td>
+                <td>[5], [6], [16], [17], [44], [45]</td>
+              </tr>
+              <tr>
+                <td>Decoupled architectures</td>
+                <td>Separation of concerns, layered design</td>
+                <td>Subtask RL module or hardware layer</td>
+                <td>Q-decomposition, learned arbitration, MEMS steering</td>
+                <td>[9], [10], [11], [12], [48]</td>
+              </tr>
+              <tr>
+                <td>Abstraction hierarchies</td>
+                <td>Language-level abstraction</td>
+                <td>Option, macro, or symbol</td>
+                <td>MAXQ-style hierarchy, HAM machines, LLM reasoning</td>
+                <td>[16], [17], [18], [19], [46]</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>6.2 The Composition Problem as a Unifying Challenge</h3>
+
+        <p>
+          The most persistent difficulty across themes is composition, the question of how to combine
+          independently designed components into a coherent system. In object-centric perception it
+          appears as slot aggregation, how to pool information from multiple slots for downstream tasks,
+          a design choice that Yoon et al. [3] identified as critically underexamined and that
+          recent manipulation work [8, 38] partially re-examines through task-relevance
+          weighting. In modular skill libraries it appears as the coordination of per-module controllers
+          across a kinematic graph [5, 6, 28], or as the arbitration between option policies
+          [16, 17, 23]. In decoupled RL it appears as the runtime integration of independently
+          trained behavioural modules [9, 10, 12, 48]. Software engineering offers a rich
+          vocabulary for composition (pipes and filters, publish-subscribe, mediator patterns, dependency
+          injection), yet the robotics literature has engaged with this vocabulary only superficially. A
+          more deliberate borrowing of composition patterns from software architecture could accelerate
+          progress on what is arguably the field's central open problem.
+        </p>
+
+        <p>
+          A second cross-cutting observation is that the field has a stable grammar for decomposition
+          but a fragmented grammar for composition. Object-centric systems agree on what a slot is, and
+          modular robot systems agree on what a module is, and modular RL systems agree on what a
+          sub-policy is. None of these traditions agree on how to combine such units. Category-theoretic
+          treatments of composition operators, already common in functional programming, are almost
+          entirely absent from robotics. This is a concrete opportunity for cross-disciplinary transfer
+          of a kind distinct from the decomposition side, which has been thoroughly mined.
+        </p>
+
+        <h3>6.3 Tensions Between Integration and Modularity</h3>
+
+        <p>
+          End-to-end learned systems [14] and modular learned systems sit in a long-running
+          tension. End-to-end systems optimize a single loss across the full pipeline, enabling tight
+          perception-control coupling at the cost of auditability and reuse. Modular systems decompose
+          the pipeline into independently trainable components at the cost of a potential optimality gap
+          at the interfaces. The arrival of foundation models has partially defused this tension. Large
+          multimodal models such as ManipLLM [43] and LLM-coordinated planners such as ADAPT
+          [46] retain the end-to-end advantage inside a single learned block while re-introducing
+          modular interfaces at the boundary. Hybrid architectures that wrap an end-to-end learned core
+          inside a modular harness now appear across manipulation, navigation, and planning, and are
+          probably the near-term winning design.
+        </p>
+
+        <p>
+          The same tension reappears at the skill level. Per-module CPG-based controllers [5, 6,
+          38] offer elegance and provable reuse across embodiments, but the richest behavioural
+          repertoires tend to emerge from end-to-end learned policies with no explicit modularity.
+          Horde-style architectures [45] attempt to have both, letting a large number of small
+          learned demons coexist inside one runtime. This is close in spirit to an operating system
+          scheduling many user-space programs, and it is worth noting that the operating-system analogy
+          (processes, queues, arbitration) has been explored far less than the object-oriented analogy
+          (classes, interfaces, methods). An open direction is whether runtime engineering concepts,
+          rather than only code structure concepts, will become the next wave of software-to-robotics
+          transfer.
+        </p>
+
+        <h3>6.4 Methodological Trends and Limitations</h3>
+
+        <p>
+          Several methodological patterns warrant attention. First, the evidence base remains thin. Most
+          of the reviewed results are demonstrated in simulation or on a single hardware platform, with
+          limited replication across groups [6, 8, 40]. The strongest cross-validation comes
+          from object-centric representations, where three independent groups [1, 2, 3]
+          converge on the value of identity-extrinsic disentanglement, though they evaluate on different
+          benchmarks. Second, the field lacks standardized evaluation protocols for architectural claims.
+          When Whitman et al. [6] demonstrate zero-shot transfer to unseen morphologies, the set of
+          test morphologies is idiosyncratic to their experimental setup, making comparison with earlier
+          results [5] difficult. Recent object-centric benchmarks [39, 40] improve this
+          situation for manipulation perception, but comparable benchmarks for modular skills and
+          decoupled architectures are lacking.
+        </p>
+
+        <p>
+          Third, there is a notable temporal clustering. The object-centric and reconstruction-based
+          methods reviewed here are from 2023 to 2025 [1, 2, 3, 4, 8, 38, 43], while the modular
+          RL foundations date to 2002 to 2005 [9, 12] with a resurgence in 2020 [10]. The
+          CPG-based modular locomotion literature peaked in 2006 to 2008 [5, 28, 33]. This
+          suggests the modular RL community may benefit from revisiting its foundational ideas with
+          modern deep learning tools, and the modular robotics community may benefit from re-connecting
+          its hardware-first perspective with the learning-centric mainstream [6, 46].
+        </p>
+
+        <h3>6.5 Taxonomy of Software Engineering Abstractions in Robotics</h3>
+
+        <div class="taxonomy-tree">
+          <div class="taxonomy-root">
+            <span class="branch-label">SE concepts adopted in robotics</span>
+          </div>
+          <div class="taxonomy-branch">
+            <span class="branch-id">A</span>
+            <span class="branch-label">Object-oriented encapsulation</span>
+            <div class="taxonomy-leaves">
+              <span class="leaf-id">A1 slot-based perception [1, 2, 3, 38]</span>
+              <span class="leaf-id">A2 object-as-state-machine dynamics [35, 36, 37]</span>
+              <span class="leaf-id">A3 object-indexed affordances [8, 41, 42, 43]</span>
+              <span class="leaf-id">A4 geometric object reconstruction [4]</span>
+              <span class="leaf-id">A5 object-centric benchmarks and sims [39, 40]</span>
+            </div>
+          </div>
+          <div class="taxonomy-branch">
+            <span class="branch-id">B</span>
+            <span class="branch-label">Modularity and reuse</span>
+            <div class="taxonomy-leaves">
+              <span class="leaf-id">B1 per-module CPG primitives [5, 28, 29, 33]</span>
+              <span class="leaf-id">B2 graph-shared policies [6]</span>
+              <span class="leaf-id">B3 option and HRL libraries [16, 17, 18, 19]</span>
+              <span class="leaf-id">B4 skill composition on manipulators [44]</span>
+              <span class="leaf-id">B5 foundation-model skill indexing [43, 46]</span>
+            </div>
+          </div>
+          <div class="taxonomy-branch">
+            <span class="branch-id">C</span>
+            <span class="branch-label">Separation of concerns</span>
+            <div class="taxonomy-leaves">
+              <span class="leaf-id">C1 hardware sensor-robot decoupling [11]</span>
+              <span class="leaf-id">C2 self-modelling resilience layer [47]</span>
+              <span class="leaf-id">C3 subtask RL modules [9, 12]</span>
+              <span class="leaf-id">C4 value-adaptive module arbitration [10, 48]</span>
+              <span class="leaf-id">C5 manufacturing-layer modular cells [50]</span>
+            </div>
+          </div>
+          <div class="taxonomy-branch">
+            <span class="branch-id">D</span>
+            <span class="branch-label">Abstraction hierarchies</span>
+            <div class="taxonomy-leaves">
+              <span class="leaf-id">D1 options as extended actions [16]</span>
+              <span class="leaf-id">D2 MAXQ and HAM [17, 18]</span>
+              <span class="leaf-id">D3 multiple-goal RL [20, 22, 24]</span>
+              <span class="leaf-id">D4 Q-decomposition [48]</span>
+              <span class="leaf-id">D5 LLM-coordinated task planning [46]</span>
+            </div>
+          </div>
+          <div class="taxonomy-branch">
+            <span class="branch-id">E</span>
+            <span class="branch-label">Runtime and library analogs</span>
+            <div class="taxonomy-leaves">
+              <span class="leaf-id">E1 Horde demons [45]</span>
+              <span class="leaf-id">E2 action-selection arbiters [23]</span>
+              <span class="leaf-id">E3 end-to-end policy monoliths [14]</span>
+              <span class="leaf-id">E4 transfer by composition [21]</span>
+            </div>
+          </div>
+        </div>
+
+        <h2>7. Open Problems and Future Directions</h2>
+
+        <p>
+          <strong>Scaling object-centric representations to open-world complexity.</strong> Current
+          slot-based methods degrade in visually complex environments [3], and the assumption of a
+          fixed number of slots limits applicability to scenes with variable object counts. Future work
+          should investigate dynamic slot allocation mechanisms, potentially drawing on memory management
+          concepts from operating systems, that can adaptively scale representational capacity to scene
+          complexity while maintaining the identity-extrinsic disentanglement that enables cross-scene
+          generalization [1]. Task-relevance weighting over slots [8, 38] hints at the
+          ingredient a principled allocator needs, namely a runtime signal of which entities matter for
+          the current decision.
+        </p>
+
+        <p>
+          <strong>Bridging learned and geometric object representations.</strong> The divide between
+          latent slot representations [1, 2] and explicit geometric reconstructions [4]
+          presents an unnecessary dichotomy. A promising direction is hybrid architectures that maintain
+          learned slots for fast amortized inference while grounding them in explicit geometry for
+          physical interaction, analogous to the software pattern of maintaining both cached abstract
+          representations and authoritative concrete data. ARMBench [39] and iGibson 2.0
+          [40] provide natural evaluation surfaces for such hybrid designs, because both represent
+          scenes in explicitly object-indexed form and expose manipulation outcomes as ground truth.
+        </p>
+
+        <p>
+          <strong>Automatic module discovery for behavioural decomposition.</strong> Existing modular RL
+          approaches require the decomposition strategy to be specified a priori, by subtask
+          [9], by function-space geometry [12], or by reward polarity [10]. Future
+          work should investigate automated module discovery, where the system infers the optimal
+          decomposition from task structure and data, analogous to how software refactoring tools
+          identify opportunities for modular extraction from monolithic codebases. Q-decomposition
+          [48] provides an algebraic framework that could serve as the theoretical substrate for
+          this programme, and HAM-style partial programs [18] offer a mechanism to express
+          partially specified decompositions that can then be completed by learning.
+        </p>
+
+        <p>
+          <strong>Principled composition operators for modular robot systems.</strong> The field urgently
+          needs a systematic study of composition mechanisms. Yoon et al.'s observation that
+          slot-aggregation pooling method critically affects downstream performance [3], combined
+          with the two-decade struggle over module integration in modular RL [9, 10, 12],
+          suggests that composition, not decomposition, is the binding constraint on modular robot
+          architectures. Research programmes should draw on the rich formal theory of software
+          composition (algebraic composition operators, category-theoretic interfaces, typed effect
+          systems) to develop composition mechanisms with provable properties, and should treat runtime
+          arbitration as a central object of study rather than a downstream engineering concern
+          [23, 48].
+        </p>
+
+        <p>
+          <strong>Reusable skill libraries that survive foundation models.</strong> It is tempting to
+          treat ManipLLM [43] and ADAPT [46] as the final form of robot skill libraries,
+          absorbing previously explicit modules into implicit model weights. But the auditability and
+          reuse properties of manifest libraries remain important for safety-critical deployment. A
+          specific research direction is the design of skill libraries whose entries are both callable
+          by a foundation-model broker and replaceable without retraining the broker. Horde's demon
+          architecture [45] and MAXQ's procedural semantics [17] both point toward such
+          interfaces, but the combination with modern language-model coordination is essentially
+          unexplored.
+        </p>
+
+        <p>
+          <strong>Standardized benchmarks for architectural evaluation.</strong> None of the surveyed
+          themes has a community-accepted benchmark suite for evaluating architectural claims. Without
+          such benchmarks progress is measured by isolated demonstrations rather than by systematic
+          comparisons. Recent benchmarks such as ARMBench [39] and iGibson 2.0 [40] fill
+          part of the gap for object-centric manipulation, but the community should develop benchmarks
+          that specifically test generalization across embodiments [6], scenes [1], and task
+          structures [10] under controlled conditions, and that report the behaviour of each
+          architectural variant under the same evaluation.
+        </p>
+
+        <p>
+          <strong>Beyond design patterns to software engineering practice.</strong> A final direction,
+          partly flagged in the self-review of this survey, is to extend the transfer of software
+          engineering ideas beyond design patterns to cover testing, debugging, continuous integration,
+          version control of learned models, and reproducibility. These practices are arguably more
+          consequential than compositional design in the day-to-day work of building robot systems, and
+          they are largely under-theorized in robotics research. A robot skill library without regression
+          tests is less useful than a software library without regression tests. That fact alone suggests
+          a rich research programme waiting to be formulated.
+        </p>
+
+        <h2>8. Conclusion</h2>
+
+        <p>
+          This scoping review has traced how several foundational software engineering principles, namely
+          object-oriented encapsulation, modular library design, separation of concerns, and abstraction
+          hierarchies, have been adapted to structure robot perception, skill learning, and behavioural
+          control over the 2015 to 2026 period, with selected foundational work from earlier periods
+          supplying intellectual context [16, 17, 28, 33]. Across all three thematic pillars the
+          literature converges on a shared insight. Imposing structural assumptions derived from software
+          architecture yields measurable gains in sample efficiency, generalization, and transferability
+          [1, 2, 3, 6, 10], but the central challenge has shifted from decomposition, how to factor
+          a system into parts, to composition, how to integrate those parts into coherent behaviour
+          [3, 10, 12].
+        </p>
+
+        <p>
+          The evidence base, while promising, remains thin and methodologically fragmented, with limited
+          cross-group replication and no standardized architectural benchmarks beyond the recent
+          object-centric efforts [39, 40]. The most recent wave of work on foundation-model
+          coordination [43, 46] reframes the modular-versus-monolithic debate rather than
+          resolving it, re-introducing modular interfaces at the boundary of a large learned block. The
+          single most important direction for the field is the development of principled, formally
+          grounded composition mechanisms that match the sophistication of the decomposition strategies
+          already in hand. Progress on that direction will determine whether robotics inherits the
+          compositional payoff that software engineering has enjoyed for half a century, or whether the
+          analogy stops at the level of metaphor.
+        </p>
+
+        </section>
+
+        <div class="citation-section">
+          <h2 class="citation-header">Citation</h2>
+          <p class="citation-text">
+            If you find this survey useful, please cite it as
+          </p>
+          <pre class="citation-pre">
+@misc{stru_robot_survey_2026,
+  author    = {Hu Tianrun},
+  title     = {Programming Paradigms in Robotics},
+  year      = {2026},
+  publisher = {GitHub},
+  url       = {https://h-tr.github.io/blog/surveys/programming-paradigms-robotics.html}
+}
+          </pre>
+        </div>
+
+        <div class="references-section">
+          <h2 class="references-header">References</h2>
+          <ol class="references-list">
+            <li id="ref-1">Chen, T., Huang, Y., Shen, Z., Huang, J., Li, B., &amp; Xue, X. (2024). &ldquo;Learning Global Object-Centric Representations via Disentangled Slot Attention.&rdquo; <em>arXiv:2410.18809</em>.</li>
+            <li id="ref-2">Klepach, A., Nikulin, A., Zisman, I., Tarasov, D., Derevyagin, A., Polubarov, A., Lyubaykin, N., Kiselev, I., &amp; Kurenkov, V. (2025). &ldquo;Object-Centric Latent Action Learning.&rdquo; <em>arXiv:2502.09680</em>.</li>
+            <li id="ref-3">Yoon, J., Wu, Y.-F., Bae, H., &amp; Ahn, S. (2023). &ldquo;An Investigation into Pre-Training Object-Centric Representations for Reinforcement Learning.&rdquo; <em>arXiv:2302.04419</em>.</li>
+            <li id="ref-4">Rogge, M., &amp; Stricker, D. (2025). &ldquo;Object-Centric 2D Gaussian Splatting. Background Removal and Occlusion-Aware Pruning for Compact Object Models.&rdquo; <em>arXiv:2501.08174</em>.</li>
+            <li id="ref-5">Sproewitz, A., Moeckel, R., Maye, J., &amp; Ijspeert, A. J. (2008). &ldquo;Learning to Move in Modular Robots using Central Pattern Generators and Online Optimization.&rdquo; <em>The International Journal of Robotics Research</em>, 27(3-4), 423&ndash;443.</li>
+            <li id="ref-6">Whitman, J., Travers, M., &amp; Choset, H. (2023). &ldquo;Learning Modular Robot Control Policies.&rdquo; <em>IEEE Transactions on Robotics</em>.</li>
+            <li id="ref-7">Ijspeert, A. J., Crespi, A., Ryczko, D., &amp; Cabelguen, J.-M. (2007). &ldquo;From Swimming to Walking with a Salamander Robot Driven by a Spinal Cord Model.&rdquo; <em>Science</em>, 315(5817), 1416&ndash;1420.</li>
+            <li id="ref-8">Chapin, A., Brandoli Machado, B., Dellandr&eacute;a, E., &amp; Chen, L. (2025). &ldquo;Object-Centric Representations Improve Policy Generalization in Robot Manipulation.&rdquo; <em>arXiv:2505.11563</em>.</li>
+            <li id="ref-9">Uchibe, E., Asada, M., &amp; Hosoda, K. (2002). &ldquo;Behavior Coordination for a Mobile Robot using Modular Reinforcement Learning.&rdquo; <em>IROS 1996 / Autonomous Robots</em>.</li>
+            <li id="ref-10">Wang, J., Elfwing, S., &amp; Uchibe, E. (2020). &ldquo;Modular Deep Reinforcement Learning from Reward and Punishment for Robot Navigation.&rdquo; <em>Neural Networks</em>, 135, 115&ndash;126.</li>
+            <li id="ref-11">Chen, Y., Wang, D., Thomas, L., Dantu, K., &amp; Koppal, S. J. (2023). &ldquo;Design of an Adaptive Lightweight LiDAR to Decouple Robot-Camera Geometry.&rdquo; <em>arXiv:2302.14334</em>.</li>
+            <li id="ref-12">Oyama, E., Maeda, T., Gan, J. Q., Rosales, E. M., MacDorman, K. F., Tachi, S., &amp; Agah, A. (2005). &ldquo;Inverse Kinematics Learning for Robotic Arms with Fewer Degrees of Freedom by Modular Neural Network Systems.&rdquo; <em>IROS 2005</em>.</li>
+            <li id="ref-13">Liu, C., Xu, X., &amp; Hu, D. (2014). &ldquo;Multiobjective Reinforcement Learning. A Comprehensive Overview.&rdquo; <em>IEEE Transactions on Systems, Man, and Cybernetics. Systems</em>, 45(3), 385&ndash;398.</li>
+            <li id="ref-14">Levine, S., Finn, C., Darrell, T., &amp; Abbeel, P. (2015). &ldquo;End-to-End Training of Deep Visuomotor Policies.&rdquo; <em>arXiv:1504.00702 / JMLR</em> (2016), 17(39), 1&ndash;40.</li>
+            <li id="ref-15">Mnih, V., Kavukcuoglu, K., Silver, D., Rusu, A. A., Veness, J., Bellemare, M. G., Graves, A., Riedmiller, M., Fidjeland, A., Ostrovski, G., et al. (2015). &ldquo;Human-Level Control through Deep Reinforcement Learning.&rdquo; <em>Nature</em>, 518(7540), 529&ndash;533.</li>
+            <li id="ref-16">Sutton, R. S., Precup, D., &amp; Singh, S. (1999). &ldquo;Between MDPs and Semi-MDPs. A Framework for Temporal Abstraction in Reinforcement Learning.&rdquo; <em>Artificial Intelligence</em>, 112(1-2), 181&ndash;211.</li>
+            <li id="ref-17">Dietterich, T. G. (1998). &ldquo;The MAXQ Method for Hierarchical Reinforcement Learning.&rdquo; <em>ICML 1998</em>.</li>
+            <li id="ref-18">Parr, R., &amp; Russell, S. (1997). &ldquo;Reinforcement Learning with Hierarchies of Machines.&rdquo; <em>NeurIPS 1997</em>.</li>
+            <li id="ref-19">Barto, A. G., &amp; Mahadevan, S. (2003). &ldquo;Recent Advances in Hierarchical Reinforcement Learning.&rdquo; <em>Discrete Event Dynamic Systems</em>, 13(4), 341&ndash;379.</li>
+            <li id="ref-20">Sprague, N., &amp; Ballard, D. H. (2003). &ldquo;Multiple-Goal Reinforcement Learning with Modular Sarsa(0).&rdquo; <em>IJCAI 2003</em>.</li>
+            <li id="ref-21">Singh, S. P. (1992). &ldquo;Transfer of Learning by Composing Solutions of Elemental Sequential Tasks.&rdquo; <em>Machine Learning</em>, 8(3-4), 323&ndash;339.</li>
+            <li id="ref-22">Whitehead, S. D., Karlsson, J., &amp; Tenenberg, J. (1993). &ldquo;Learning Multiple Goal Behavior via Task Decomposition and Dynamic Policy Merging.&rdquo; In <em>Robot Learning</em> (Springer), 45&ndash;78.</li>
+            <li id="ref-23">Humphrys, M. (1996). &ldquo;Action Selection Methods using Reinforcement Learning.&rdquo; In <em>From Animals to Animats 4</em> (MIT Press), 135&ndash;144.</li>
+            <li id="ref-24">Karlsson, J. (1997). &ldquo;Learning to Solve Multiple Goals.&rdquo; <em>PhD Thesis, University of Rochester</em>.</li>
+            <li id="ref-25">Moeckel, R., Jaquier, C., Drapel, K., Dittrich, E., Upegui, A., &amp; Ijspeert, A. J. (2006). &ldquo;Exploring Adaptive Locomotion with YaMoR, a Novel Autonomous Modular Robot with Bluetooth Interface.&rdquo; <em>Industrial Robot</em>.</li>
+            <li id="ref-26">Duff, D. G., &amp; Yim, M. (2002). &ldquo;Evolution of PolyBot. A Modular Reconfigurable Robot.&rdquo; <em>Proceedings of the Harmonic Drive International Symposium</em>.</li>
+            <li id="ref-27">Yim, M. (1995). &ldquo;Locomotion with a Unit-Modular Reconfigurable Robot.&rdquo; <em>PhD Thesis, Stanford University</em>.</li>
+            <li id="ref-28">Ijspeert, A. J. (2008). &ldquo;Central Pattern Generators for Locomotion Control in Animals and Robots. A Review.&rdquo; <em>Neural Networks</em>, 21(4), 642&ndash;653.</li>
+            <li id="ref-29">Kurokawa, H., Yoshida, E., Tomita, K., Kamimura, A., Murata, S., &amp; Kokaji, S. (2005). &ldquo;Distributed Adaptive Locomotion by a Modular Robotic System, M-TRAN II.&rdquo; <em>IROS 2004</em>.</li>
+            <li id="ref-30">Ostergaard, E. H., &amp; Lund, H. H. (2004). &ldquo;Evolving Control for Modular Robotic Units.&rdquo; <em>CIRA 2003</em>.</li>
+            <li id="ref-31">Weingarten, J. D., Lopes, G. A. D., Buehler, M., Groff, R. E., &amp; Koditschek, D. E. (2004). &ldquo;Automated Gait Adaptation for Legged Robots.&rdquo; <em>ICRA 2004</em>.</li>
+            <li id="ref-32">Marbach, D., &amp; Ijspeert, A. J. (2006). &ldquo;Online Optimization of Modular Robot Locomotion.&rdquo; <em>ICMA 2005</em>.</li>
+            <li id="ref-33">Buchli, J., Iida, F., &amp; Ijspeert, A. J. (2006). &ldquo;Finding Resonance. Adaptive Frequency Oscillators for Dynamic Legged Locomotion.&rdquo; <em>IROS 2006</em>.</li>
+            <li id="ref-34">Devin, C., Abbeel, P., Darrell, T., &amp; Levine, S. (2018). &ldquo;Deep Object-Centric Representations for Generalizable Robot Learning.&rdquo; <em>ICRA 2018</em>.</li>
+            <li id="ref-35">Wang, J., Hu, C., Wang, Y., &amp; Zhu, Y. (2021). &ldquo;Dynamics Learning with Object-Centric Interaction Networks for Robot Manipulation.&rdquo; <em>IEEE Access</em>, 9, 68277&ndash;68287.</li>
+            <li id="ref-36">Wang, Y., Wang, J., Li, Y., Hu, C., &amp; Zhu, Y. (2022). &ldquo;Learning Latent Object-Centric Representations for Visual-Based Robot Manipulation.&rdquo; <em>ICARM 2022</em>.</li>
+            <li id="ref-37">King, J. E., Cognetti, M., &amp; Srinivasa, S. S. (2016). &ldquo;Rearrangement Planning using Object-Centric and Robot-Centric Action Spaces.&rdquo; <em>ICRA 2016</em>.</li>
+            <li id="ref-38">Chapin, A., Brandoli Machado, B., Dellandr&eacute;a, E., &amp; Chen, L. (2026). &ldquo;Spotlighting Task-Relevant Features. Object-Centric Representations for Better Generalization in Robotic Manipulation.&rdquo; <em>Open MIND / arXiv:2601.21416</em>.</li>
+            <li id="ref-39">Mitash, C., Wang, F., Lu, S., Terhuja, V., Garaas, T. W., Polido, F., &amp; Nambi, M. (2023). &ldquo;ARMBench. An Object-Centric Benchmark Dataset for Robotic Manipulation.&rdquo; <em>ICRA 2023</em>.</li>
+            <li id="ref-40">Li, C., Xia, F., Mart&iacute;n-Mart&iacute;n, R., Lingelbach, M., Srivastava, S., Shen, B., Vainio, K., G&ouml;kmen, C., Dharan, G., Jain, T., Kurenkov, A., et al. (2021). &ldquo;iGibson 2.0. Object-Centric Simulation for Robot Learning of Everyday Household Tasks.&rdquo; <em>CoRL 2021</em>.</li>
+            <li id="ref-41">Mandikal, P., &amp; Grauman, K. (2020). &ldquo;Dexterous Robotic Grasping with Object-Centric Visual Affordances.&rdquo; <em>ICRA 2021</em>.</li>
+            <li id="ref-42">Jain, A., &amp; Kemp, C. C. (2013). &ldquo;Improving Robot Manipulation with Data-Driven Object-Centric Models of Everyday Forces.&rdquo; <em>Autonomous Robots</em>, 35(2-3), 143&ndash;159.</li>
+            <li id="ref-43">Li, X., Zhang, M., Geng, Y., Geng, H., Long, Y., Shen, Y., Zhang, R., Liu, J., &amp; Dong, H. (2024). &ldquo;ManipLLM. Embodied Multimodal Large Language Model for Object-Centric Robotic Manipulation.&rdquo; <em>CVPR 2024</em>.</li>
+            <li id="ref-44">Sharma, M., Liang, J., Zhao, J., LaGrassa, A., &amp; Kroemer, O. (2020). &ldquo;Learning to Compose Hierarchical Object-Centric Controllers for Robotic Manipulation.&rdquo; <em>arXiv:2011.04627 / CoRL 2020</em>.</li>
+            <li id="ref-45">Sutton, R. S., Modayil, J., Delp, M., Degris, T., Pilarski, P. M., White, A., &amp; Precup, D. (2011). &ldquo;Horde. A Scalable Real-Time Architecture for Learning Knowledge from Unsupervised Sensorimotor Interaction.&rdquo; <em>AAMAS 2011</em>.</li>
+            <li id="ref-46">Saeed, M. (2026). &ldquo;ADAPT. A Modular Architecture for LLM-Driven Robotic Task and Motion Planning with Memory-Guided Execution.&rdquo; <em>SSRN Electronic Journal</em>.</li>
+            <li id="ref-47">Bongard, J., Zykov, V., &amp; Lipson, H. (2006). &ldquo;Resilient Machines through Continuous Self-Modeling.&rdquo; <em>Science</em>, 314(5802), 1118&ndash;1121.</li>
+            <li id="ref-48">Russell, S., &amp; Zimdars, A. (2003). &ldquo;Q-Decomposition for Reinforcement Learning Agents.&rdquo; <em>ICML 2003</em>.</li>
+            <li id="ref-49">Bhat, S., Isbell, C. L., &amp; Mateas, M. (2006). &ldquo;On the Difficulty of Modular Reinforcement Learning for Real-World Partial Programming.&rdquo; <em>AAAI 2006</em>.</li>
+            <li id="ref-50">Michniewicz, J., &amp; Reinhart, G. (2015). &ldquo;Cyber-Physical-Robotics. Modelling of Modular Robot Cells for Automated Planning and Execution of Assembly Tasks.&rdquo; <em>Mechatronics</em>, 34, 170&ndash;180.</li>
+          </ol>
+        </div>
+
+      </article>
+    </div>
+
+    <!-- Blog styling and spacing script -->
+    <script defer src="/js/blog.js"></script>
+    <script defer src="/js/katex-init.js"></script>
+    <script defer src="/js/references.js"></script>
+  </body>
+</html>

@@ -1,0 +1,1382 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contact-Rich Manipulation and Contact Planning | Hu Tianrun</title>
+
+    <!-- Fonts -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Prism.js initialization -->
+    <script src="/js/prism-init.js"></script>
+
+    <!-- KaTeX Math Support -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Site Assets -->
+    <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg" />
+    <link href="/css/blog.css" rel="stylesheet" />
+    <link href="/css/references.css" rel="stylesheet" />
+
+    <!-- KaTeX Scripts -->
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"
+    ></script>
+  </head>
+  <body>
+    <div class="blog-post">
+      <a href="../?tab=survey" class="back-button">
+        <i class="fas fa-arrow-left"></i>Back
+      </a>
+
+      <header class="blog-post-header">
+        <h1 class="blog-post-title">Contact-Rich Manipulation and Contact Planning</h1>
+        <div class="blog-post-date">April 23, 2026</div>
+      </header>
+
+      <article class="blog-post-content">
+        <section class="blog-section">
+
+        <h2>1. Introduction</h2>
+
+        <p>
+          Robotic manipulation in unstructured environments demands sustained, purposeful contact between the
+          robot and objects in its workspace. Unlike pick-and-place in structured settings, where contact is
+          confined to brief grasping events, tasks such as in-hand reorientation, tool use, assembly, and
+          object rearrangement among clutter involve sequences of contacts that must be planned, established,
+          maintained, and broken in a coordinated fashion. The difficulty of this problem stems from a
+          confluence of challenges that are individually hard and collectively formidable. Contact dynamics
+          are hybrid, switching between continuous motion phases and discrete mode transitions. The space of
+          possible contact sequences is combinatorially vast. Contact forces are governed by nonsmooth
+          complementarity conditions. Real-world deployment demands robustness to geometric, material, and
+          state-estimation uncertainty.
+        </p>
+
+        <p>
+          The past few years have seen a convergence of advances that make a comprehensive review timely.
+          Trajectory optimization has matured from methods requiring pre-specified contact schedules
+          [101] to contact-implicit formulations that discover contact sequences as part of the
+          optimization [7, 58, 59, 75], with recent work achieving real-time
+          model predictive control rates [32, 34, 39, 43, 45, 47].
+          Concurrently, deep reinforcement learning has progressed from learning simple contact tasks in
+          simulation [50, 51] to zero-shot sim-to-real transfer of dexterous in-hand
+          manipulation [69], while tactile sensing technology has advanced from laboratory
+          prototypes to low-cost, open-source designs that can be retrofitted to commercial grippers
+          [76, 110]. These developments have been accompanied by a conceptual shift.
+          Contact is increasingly framed not as an obstacle to be avoided or a constraint to be satisfied,
+          but as a resource to be deliberately exploited [16, 53, 93].
+        </p>
+
+        <p>
+          This review addresses the following research question. What are the current approaches,
+          representations, and algorithms for contact-rich manipulation and contact planning in robotics, and
+          how do they address the challenges of hybrid dynamics, contact sequencing, and real-world
+          deployment? We adopt a scoping review of the period 2018 to 2026, with selected foundational works
+          from earlier years where they are essential for contextualizing recent advances. The review spans
+          trajectory optimization, discrete planning, machine learning, and tactile sensing, unified by their
+          shared concern with the physics and computation of contact.
+        </p>
+
+        <div class="blog-callout">
+          <p>
+            <strong>The single most important takeaway.</strong> The implicit-explicit and
+            optimization-learning dichotomies that historically organized contact-rich manipulation are
+            dissolving. The most effective recent methods are hybrids. Staged optimizers combine implicit
+            mode discovery with explicit refinement. Guided reinforcement learning uses model-based
+            optimization to shape learned policies. Mode-guided samplers use discrete contact structure to
+            direct continuous planning. The future of contact-rich manipulation lies not in resolving these
+            dichotomies in favor of one side, but in developing principled frameworks that integrate
+            discrete contact reasoning, continuous optimization, data-driven learning, and multi-modal
+            sensing into unified systems.
+          </p>
+        </div>
+
+        <p>
+          The remainder of this survey is organized as follows. Section 2 establishes background definitions
+          and delineates scope. Section 3 reviews contact models and representations that underpin planning
+          and control. Section 4 analyzes contact-implicit trajectory optimization. Section 5 covers contact
+          mode and sequence planning. Section 6 examines learning-based approaches, including reinforcement
+          learning, imitation learning, and their hybrids. Section 7 discusses tactile sensing and feedback
+          integration. Section 8 treats dexterous multi-finger manipulation as an integrative application.
+          Section 9 surveys sim-to-real transfer as a cross-cutting deployment concern. Section 10 offers a
+          cross-cutting analysis, Section 11 identifies open problems with concrete methodological
+          directions, and Section 12 concludes.
+        </p>
+
+        <h2>2. Background and Definitions</h2>
+
+        <h3>2.1 Contact-Rich Manipulation</h3>
+
+        <p>
+          We define <strong>contact-rich manipulation</strong> as robotic manipulation in which the task
+          objective requires establishing, maintaining, modulating, or transitioning through multiple
+          contacts between the robot, the manipulated object, and the environment. This definition
+          encompasses both tasks that inherently require force-controlled contact (assembly, polishing,
+          massage) and tasks that opportunistically leverage environmental contact to reduce uncertainty or
+          extend capability (using a table edge to reorient an object) [93]. The distinction
+          matters. In the former category, contact control is the task. In the latter, contact is an
+          intentional robustness strategy.
+        </p>
+
+        <h3>2.2 Hybrid Dynamics and Contact Modes</h3>
+
+        <p>
+          Contact induces <strong>hybrid dynamics</strong>. The system alternates between continuous motion
+          phases governed by differential equations and discrete transitions at contact events (impacts,
+          mode switches). A <strong>contact mode</strong> specifies, for each potential contact point,
+          whether it is in separation, sticking, or sliding, and if sliding, in which direction. The number
+          of contact modes grows combinatorially with the number of contact points, which renders exhaustive
+          enumeration intractable for all but the simplest systems. The mathematical encoding of unilateral
+          contact requires a non-negative normal force (\(\lambda_n \ge 0\)), a non-negative separation gap
+          (\(\phi_n \ge 0\)), and their <em>complementarity</em> so that at least one is zero at any
+          instant. This gives rise to <strong>complementarity constraints</strong> that are inherently
+          nonsmooth [2, 75].
+        </p>
+
+        <div class="math-block">
+          $0 \le \lambda_n \perp \phi_n(q) \ge 0, \qquad |\lambda_t| \le \mu \lambda_n$
+        </div>
+
+        <p>
+          The first relation is the normal complementarity condition. The second is the Coulomb friction
+          cone, where (\(\lambda_t\)) is the tangential force and (\(\mu\)) the friction coefficient. The
+          entire nonsmooth apparatus of contact mechanics flows from these two simple inequalities, and most
+          of the methodological variety in this review is a response to their awkwardness for standard
+          optimization and learning.
+        </p>
+
+        <h3>2.3 Quasistatic Versus Dynamic Formulations</h3>
+
+        <p>
+          A recurring modeling choice across the literature is whether to adopt <strong>quasistatic</strong>
+          (force-balance) dynamics, which neglect inertial effects and assume instantaneous force
+          equilibrium, or full <strong>dynamic</strong> models that include acceleration and impact
+          phenomena. Quasistatic models dramatically reduce computational complexity and have proven
+          sufficient for slow manipulation tasks [15, 38, 71], but they exclude
+          tasks involving throwing, catching, dynamic regrasping, or fast locomotion maneuvers where
+          inertial effects are dominant.
+        </p>
+
+        <h3>2.4 Implicit Versus Explicit Contact Reasoning</h3>
+
+        <p>
+          The literature reveals a fundamental methodological dichotomy. <strong>Contact-implicit</strong>
+          methods encode contact physics through complementarity constraints or smooth approximations and
+          allow contact sequences to emerge from optimization [75]. <strong>Contact-explicit</strong>
+          methods enumerate, search over, or learn discrete contact mode sequences, then plan continuous
+          motions within each mode [16, 23]. The dichotomy is not absolute. Hybrid approaches
+          combine elements of both, but it provides a useful organizing axis throughout this survey.
+        </p>
+
+        <h3>2.5 Scope Boundaries</h3>
+
+        <p>
+          This review focuses on manipulation tasks involving planned or emergent multi-contact
+          interactions. We exclude pure grasp synthesis (extensively surveyed elsewhere), locomotion without
+          manipulation, soft material design, and industrial assembly in fully structured settings. We
+          include <em>loco-manipulation</em>, the combined locomotion and manipulation setting, where
+          contact planning for the manipulation component is central.
+        </p>
+
+        <h2>3. Contact Models and Representations</h2>
+
+        <p>
+          The choice of contact model is not merely a modeling convenience. It fundamentally constrains
+          what planning and optimization algorithms can achieve, because the mathematical properties of the
+          contact representation determine which solvers are applicable and what guarantees they can
+          provide. The dominant paradigm for rigid-body contact has been the <strong>linear complementarity
+          problem</strong> (LCP) formulation, which encodes Coulomb friction and unilateral constraints as
+          complementarity conditions between contact forces and velocities [2]. This formulation is
+          physically principled and admits efficient solution for forward simulation, as implemented in
+          physics engines such as MuJoCo [95] and in analyses of rigid-body dynamics with friction and
+          impact [89]. Its nonsmoothness, however, creates difficulties for gradient-based optimization and
+          learning. The LCP structure means that contact forces are piecewise-linear functions of state
+          with discontinuous derivatives at mode boundaries, and gradient-based methods receive
+          uninformative or misleading gradient information precisely at the contact transitions that matter
+          most.
+        </p>
+
+        <p>
+          Recent work has pursued <strong>complementarity-free</strong> formulations that replace the LCP
+          structure with smooth, differentiable representations amenable to gradient-based optimization
+          [4, 35]. The motivation is pragmatic. If contact models are to be embedded within
+          trajectory optimization or differentiable simulation for learning, they must provide useful
+          gradients everywhere in state space, not just within contact modes. Jin and colleagues [35]
+          proposed a complementarity-free multi-contact model for dexterous manipulation that handles
+          simultaneous heterogeneous contact modes (fingertip, edge, and face contacts) within a unified
+          smooth framework. Beker [4] developed algorithms for smoothly differentiable contact manifold
+          construction that are additionally vectorizable, targeting the computational throughput needed for
+          GPU-accelerated simulation and optimization. These complementarity-free approaches represent a
+          significant departure from the classical formulation. Their physical fidelity relative to LCP
+          models, particularly for impacts and Coulomb friction corners, requires further empirical
+          validation.
+        </p>
+
+        <p>
+          An alternative representational strategy uses <strong>signed distance functions</strong> (SDFs) to
+          encode both collision detection and contact force computation within a unified geometric
+          framework. ContactSDF [100] approximates multi-contact models using SDFs derived from the
+          supporting-plane representation of objects, achieving smooth contact transitions without explicit
+          mode enumeration. This geometric approach offers natural compatibility with modern shape
+          representations (neural implicit surfaces, point clouds) but introduces approximation errors whose
+          magnitude depends on object geometry complexity. A complementary line of work develops convex,
+          smooth, and invertible contact models for trajectory optimization, as well as convex quasistatic
+          time-stepping schemes for rigid multibody systems [72, 95]. These contributions blur the line
+          between simulation and planning by providing contact representations whose solution structure is
+          amenable to both.
+        </p>
+
+        <p>
+          The experimental validation of contact models against real physical interactions remains limited.
+          Kolbert and colleagues [42] conducted one of the few systematic comparisons, evaluating
+          state-of-the-art contact models against measured motions and forces for primitive in-hand
+          manipulation actions (sliding, pivoting, rolling). Their findings revealed significant
+          discrepancies between predicted and observed contact behavior, particularly for pivoting, a
+          cautionary result that underscores the gap between contact modeling theory and physical reality.
+          Comparative analyses of contact models in trajectory optimization for manipulation [18, 68]
+          confirm that no single model dominates across tasks, and that the relevant fidelity criteria
+          depend on whether the model is used for simulation, planning, or policy learning. Taken together,
+          these results motivate the recent turn toward model-agnostic formulations that absorb contact
+          uncertainty through learning or robust planning rather than through a single carefully tuned
+          model.
+        </p>
+
+        <p>
+          The conceptual framing of contact itself has also evolved. A comprehensive survey by Suomalainen
+          [93] proposed a taxonomy that distinguishes tasks <em>inherently requiring</em> contact
+          (force-controlled operations such as polishing, massage, and insertion) from those that
+          <em>opportunistically leverage</em> environmental contact to reduce uncertainty or extend
+          manipulation capability. This distinction reframes contact as an intentional planning resource
+          rather than solely a physical constraint, and has influenced subsequent work on extrinsic contact
+          exploitation [53, 64], whole-body contact manipulation [49, 62], and
+          multi-contact loco-manipulation [52, 86, 87].
+        </p>
+
+        <div class="taxonomy-tree">
+          <div class="taxonomy-root">
+            <span class="branch-label">Contact Representations</span>
+          </div>
+          <div class="taxonomy-branch">
+            <span class="branch-id">3.1</span>
+            <span class="branch-label">Linear Complementarity (LCP) and rigid-body</span>
+            <div class="taxonomy-leaves">
+              <span class="leaf-id">Anitescu [2]</span>
+              <span class="leaf-id">Stewart [89]</span>
+              <span class="leaf-id">MuJoCo [95]</span>
+              <span class="leaf-id">Todorov convex [95]</span>
+              <span class="leaf-id">Kolbert validation [42]</span>
+            </div>
+          </div>
+          <div class="taxonomy-branch">
+            <span class="branch-id">3.2</span>
+            <span class="branch-label">Complementarity-free smooth models</span>
+            <div class="taxonomy-leaves">
+              <span class="leaf-id">Jin [35]</span>
+              <span class="leaf-id">Beker [4]</span>
+              <span class="leaf-id">Onol VSCM [66]</span>
+              <span class="leaf-id">Onol tuning-free [71]</span>
+            </div>
+          </div>
+          <div class="taxonomy-branch">
+            <span class="branch-id">3.3</span>
+            <span class="branch-label">Geometric (SDF and hydroelastic)</span>
+            <div class="taxonomy-leaves">
+              <span class="leaf-id">ContactSDF [100]</span>
+              <span class="leaf-id">Kurtz hydroelastic [44]</span>
+              <span class="leaf-id">Chatzinikolaidis analytical [8]</span>
+            </div>
+          </div>
+          <div class="taxonomy-branch">
+            <span class="branch-id">3.4</span>
+            <span class="branch-label">Quasidynamic and convex time-stepping</span>
+            <div class="taxonomy-leaves">
+              <span class="leaf-id">Pang [71]</span>
+              <span class="leaf-id">Todorov convex [95]</span>
+              <span class="leaf-id">Suomalainen survey [93]</span>
+            </div>
+          </div>
+        </div>
+
+        <h2>4. Contact-Implicit Trajectory Optimization</h2>
+
+        <h3>4.1 From Mode Pre-Specification to Implicit Discovery</h3>
+
+        <p>
+          Contact-implicit trajectory optimization eliminates the need to pre-specify contact sequences by
+          encoding contact physics directly within the optimization constraints, allowing the solver to
+          discover when and where contacts occur as part of the solution. The foundational formulation by
+          Posa and colleagues [75] cast multi-contact dynamics as a mathematical program with
+          complementarity constraints (MPCC) and demonstrated that rigid-body trajectories involving
+          impacts and friction could be optimized directly without enumerating contact modes. This built on
+          earlier work treating MPCCs as nonlinear programs [24, 89] and explorations of trajectory
+          optimization for structure-variant mechanical systems [106]. The approach was transformative. It
+          converted a combinatorial problem (which mode sequence?) into a continuous optimization problem
+          (what forces and motions satisfy complementarity?), though the resulting nonlinear programs are
+          nonconvex, nonsmooth, and notoriously difficult to solve reliably.
+        </p>
+
+        <p>
+          Early demonstrations showed the promise and limitations of this paradigm. Mordatch and colleagues
+          [61] and Tassa and colleagues [94] applied contact-invariant optimization to synthesize complex
+          humanoid behaviors (getting up from the ground, climbing, recovering from disturbances),
+          demonstrating that contact-implicit methods could discover behaviors that would be extremely
+          difficult to specify manually. Xi [103] used the framework to discover optimal gaits for legged
+          robots, while Mastalli [60] extended it to hierarchical planning of dynamic movements with rich
+          contact interactions. Schultz [82] independently applied optimal-control formulations to
+          human-like running on articulated robots. These early methods required careful initialization,
+          extensive parameter tuning, and were far from real-time execution.
+        </p>
+
+        <h3>4.2 Numerical Conditioning and Physical Fidelity</h3>
+
+        <p>
+          A central challenge for contact-implicit optimization is the tension between physical fidelity
+          and numerical tractability. Complementarity constraints introduce non-differentiable points into
+          the feasible set, causing standard NLP solvers to struggle with convergence. Two principal
+          strategies have emerged. The first improves the underlying discretization to produce
+          better-conditioned optimization problems. The second develops smooth approximations that
+          preserve essential contact physics while enabling reliable gradient-based solution.
+        </p>
+
+        <p>
+          Grounding contact-implicit optimization in <strong>discrete mechanics</strong>, by discretizing
+          the Lagrangian rather than the equations of motion, yields variational integrators that
+          inherently conserve momentum maps and exhibit superior long-horizon energy behavior [58, 59]. The
+          variational approach improves trajectory quality and optimization conditioning independently of
+          contact mode handling, because the symplectic structure of the integrator prevents the artificial
+          energy drift that plagues standard discretizations and confounds the optimizer. Building on this
+          foundation, Patel and colleagues [73] demonstrated that higher-order orthogonal collocation
+          polynomials can be integrated into contact-implicit optimization to substantially improve
+          trajectory accuracy, with the key insight that impacts can be assumed localized within a single
+          finite element, decoupling accuracy gains from the combinatorial complexity of contact modes.
+        </p>
+
+        <p>
+          The alternative strategy of smooth contact models has yielded several practical advances. Onol
+          [66] proposed a variable smooth contact model (VSCM) combined with successive convexification
+          that facilitates gradient-based convergence without compromising physical fidelity at the
+          solution. To address parameter sensitivity, Onol [67] developed a tuning-free framework using a
+          relaxed contact model with automatic parameter scheduling, which enables planning across
+          different robot architectures and tasks from trivial initial guesses. Chatzinikolaidis [8]
+          introduced an analytically solvable contact model that permits closed-form computation while
+          satisfying friction cone constraints, enabling planning on variable ground surfaces (hard, soft,
+          slippery). Kurtz [44] combined hydroelastic contact modeling with iLQR, leveraging the
+          compliance-based contact formulation from Drake and MuJoCo to provide smooth gradients while
+          maintaining physical realism.
+        </p>
+
+        <h3>4.3 Bilevel and Structured Formulations</h3>
+
+        <p>
+          Rather than smoothing complementarity constraints, an alternative line of work preserves hard
+          contact physics through <strong>bilevel optimization</strong> structures that separate the contact
+          force computation from trajectory optimization. Carius and colleagues [7] treated the contact
+          force solve as an inner problem and computed gradients through implicit differentiation, enabling
+          unconstrained gradient-based optimizers such as iLQR to perform contact-implicit optimization
+          with physically correct hard contacts. This approach avoids the approximation errors introduced
+          by relaxation and the convergence difficulties of direct MPCC solution, at the cost of requiring
+          the inner contact problem to be solved to sufficient accuracy at each iteration. Chatzinikolaidis
+          and colleagues [9] extended the implicit-dynamics approach using sensitivity analysis within a
+          Differential Dynamic Programming framework, demonstrating compatibility with inverse-dynamics,
+          variational, and implicit integrators. Related work has explored relaxed complementarity within
+          contact-implicit DDP for model predictive control [40], and trajectory optimization with
+          optimization-based dynamics that treats the equations of motion themselves as an implicit layer
+          [117].
+        </p>
+
+        <p>
+          Computational efficiency has been addressed through structural exploitation. Sleiman [85]
+          reformulated contact-implicit optimization as a multi-staged multiple-shooting program whose
+          sparse block structure can be exploited by structure-aware solvers, yielding efficiency gains
+          without relaxing complementarity constraints. Neunert [65] demonstrated that whole-body
+          trajectory optimization through contacts could discover diverse gaits for quadruped robots
+          without pre-specifying contact schedules, though computational cost limited the approach to
+          offline planning.
+        </p>
+
+        <h3>4.4 Trust Regions and Local Approximation Quality</h3>
+
+        <p>
+          A recent and conceptually important contribution addresses the <strong>quality of local
+          approximations</strong> in contact-implicit optimization. Suh [90] argued that standard
+          ellipsoidal trust regions, inherited from unconstrained optimization, are structurally
+          inconsistent with unilateral contact constraints. Because contact constraints are inherently
+          one-sided (a foot can push the ground but not pull it), symmetric trust regions include
+          infeasible directions that corrupt the local model. The proposed <em>Contact Trust Region</em>
+          (CTR) is asymmetric, respects the one-sided nature of contact, and yields more faithful local
+          approximations of contact dynamics. This represents a rare instance of the optimization
+          methodology being adapted to the specific structure of contact physics, rather than applying
+          generic optimization tools unchanged. The CTR framework demonstrates improved convergence and
+          solution quality on dexterous manipulation benchmarks, though its computational overhead relative
+          to standard trust regions remains to be characterized at scale.
+        </p>
+
+        <h3>4.5 Real-Time and Model Predictive Control</h3>
+
+        <p>
+          The progression from offline optimization to real-time model predictive control (MPC) represents
+          a major practical advance. Kong and colleagues [43] proposed hybrid iLQR-MPC for contact-implicit
+          stabilization of legged robots, combining the mode-discovery capability of contact-implicit
+          optimization with the feedback properties of MPC. Kurtz and colleagues [45] achieved real-time
+          contact-implicit MPC through a surprisingly simple approach. Inverse-dynamics trajectory
+          optimization avoids explicitly computing forward dynamics and contact forces. A concurrent line
+          of work has delivered fast contact-implicit MPC through careful solver design [47], adaptive
+          contact-implicit MPC with online residual learning to correct model error during deployment [32],
+          and linear contact-implicit MPC that exploits LQR-like structure for extremely high control rates
+          [48]. Kim and colleagues [39] extended contact-implicit MPC to diverse quadruped motions without
+          pre-planned contact modes or trajectories, demonstrating that the paradigm is now mature enough
+          for deployed locomotion. Jiang and colleagues [34] demonstrated long-horizon contact-implicit MPC
+          for dexterous in-hand manipulation, showing that real-time operation is achievable even for the
+          high-dimensional state spaces of multi-finger hands.
+        </p>
+
+        <h3>4.6 Global Planning and Mode Coverage</h3>
+
+        <p>
+          Global planning, finding trajectories that traverse multiple local optima separated by contact
+          mode boundaries, remains significantly more challenging than local optimization. Pang and
+          colleagues [71] addressed this through local smoothing of quasi-dynamic contact models, drawing
+          connections between the empirical success of reinforcement learning and the structure of
+          smoothed contact dynamics landscapes. A related global quasi-dynamic model for contact-trajectory
+          optimization [14] pre-computes a manipulation-specific reachability representation that frames
+          local planners as refinements within a globally consistent envelope. Suh and colleagues [91]
+          proposed composing local contact-implicit MPC plans into a global manipulation policy by
+          stitching them together in a roadmap structure, enabling efficient dexterous manipulation without
+          full re-optimization from scratch. Turski [98] developed a staged approach that combines the
+          mode-discovery capability of contact-implicit optimization with the trajectory quality of
+          multi-phase hybrid optimization, using the former to initialize the latter.
+        </p>
+
+        <h3>4.7 Whole-Body and Loco-Manipulation Applications</h3>
+
+        <p>
+          Contact-implicit optimization has increasingly been applied beyond point-contact locomotion to
+          <strong>whole-body manipulation</strong>, where the robot exploits contacts across its entire
+          body surface. Leve and colleagues [49] parameterized the robot body surface as a continuous
+          explicit representation, converting the combinatorially intractable contact-location enumeration
+          problem into a smooth continuous optimization. This hierarchical co-optimization of contact
+          location and motion achieved dramatic reductions in planning time compared to discrete contact
+          search approaches. Salagame and colleagues [80, 81] and Gangaraju [26] applied non-impulsive
+          contact-implicit planning to snake-robot loco-manipulation, demonstrating the generality of the
+          framework beyond legged and manipulator systems. Doshi and colleagues [21] pushed the approach
+          to microrobotics, optimizing locomotion trajectories for a quadrupedal microrobot where
+          high-frequency passive dynamics and discontinuous contacts make analytical modeling particularly
+          challenging. Winkler [101], while not strictly contact-implicit, demonstrated that gait sequence,
+          step timings, footholds, swing-leg motions, and body motion could be simultaneously optimized
+          within a single trajectory optimization formulation, evidence that the boundaries between
+          contact-implicit and contact-explicit methods are increasingly blurred.
+        </p>
+
+        <div class="blog-table-wrapper">
+          <table class="blog-table">
+            <thead>
+              <tr>
+                <th>Approach</th>
+                <th>Contact handling</th>
+                <th>Scale</th>
+                <th>Representative work</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>MPCC (hard complementarity)</td>
+                <td>Exact, nonsmooth</td>
+                <td>Offline</td>
+                <td>Posa [75], Sleiman [85]</td>
+              </tr>
+              <tr>
+                <td>Smoothed / relaxed contact</td>
+                <td>Approximate, gradient-friendly</td>
+                <td>Near real-time</td>
+                <td>Onol [66], Kurtz [44], Pang [71]</td>
+              </tr>
+              <tr>
+                <td>Bilevel / implicit differentiation</td>
+                <td>Exact, iLQR-compatible</td>
+                <td>Offline / MPC</td>
+                <td>Carius [7], Chatzinikolaidis [9]</td>
+              </tr>
+              <tr>
+                <td>Variational integrators</td>
+                <td>Symplectic, energy-preserving</td>
+                <td>Offline</td>
+                <td>Manchester [58, 59], Patel [73]</td>
+              </tr>
+              <tr>
+                <td>Inverse-dynamics MPC</td>
+                <td>Implicit via dynamics residual</td>
+                <td>Real-time</td>
+                <td>Kurtz [45], Jiang [34]</td>
+              </tr>
+              <tr>
+                <td>Trust-region aware</td>
+                <td>Asymmetric region for unilateral constraints</td>
+                <td>Real-time prototype</td>
+                <td>Suh CTR [90]</td>
+              </tr>
+              <tr>
+                <td>Global / roadmap composition</td>
+                <td>Mode coverage via stitching</td>
+                <td>Dexterous manipulation</td>
+                <td>Suh [91], Turski [98]</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2>5. Contact Mode and Sequence Planning</h2>
+
+        <h3>5.1 The Case for Explicit Mode Reasoning</h3>
+
+        <p>
+          While contact-implicit methods sidestep mode enumeration by embedding contact physics in
+          continuous optimization, an alternative tradition explicitly reasons about discrete contact mode
+          switches and plans contact sequences before or alongside continuous trajectory generation.
+          Explicit mode reasoning remains valuable when the task structure permits it, because discrete
+          search can exploit combinatorial structure (pruning, heuristics, symmetries) that continuous
+          optimization cannot. The key tradeoff is between the generality of implicit methods and the
+          structural efficiency of explicit search on problems where mode transitions are sparse and
+          well-characterized.
+        </p>
+
+        <h3>5.2 Mixed-Integer Convex Programming</h3>
+
+        <p>
+          <strong>Mixed-integer convex programming</strong> (MICP) provides a principled framework for
+          simultaneous optimization of discrete contact decisions and continuous trajectories by encoding
+          contact mode selection as integer variables within a convex relaxation. Aceituno-Cabezas and
+          colleagues [1] demonstrated this for multi-legged locomotion, jointly optimizing contact
+          sequence, gait, and motion without pre-specified gait patterns or flat-terrain assumptions. The
+          MICP framework guarantees global optimality within the convex relaxation and naturally handles
+          combinatorial constraints (at most (\(k\)) contacts active simultaneously), but computational
+          cost grows exponentially with the number of integer variables, limiting scalability to moderate
+          numbers of candidate contact locations and short planning horizons. Escande and colleagues [23]
+          applied a related formulation to humanoid contact-point planning, combining integer programming
+          with kinematic reachability analysis. More recently, Dhedin and colleagues [19] extended
+          MICP-style reasoning within a pipeline that uses Monte Carlo tree search (MCTS) to handle the
+          combinatorial explosion, a hybrid between pure integer programming and heuristic search.
+        </p>
+
+        <h3>5.3 Graph Search and Heuristic Methods</h3>
+
+        <p>
+          Heuristic graph-search methods offer a computationally cheaper alternative to MICP by exploring
+          candidate contact configurations through problem-specific feasibility checks rather than solving
+          an integer program. Escande and colleagues [23] proposed a search over candidate contact
+          locations on environmental surfaces with per-stance kinematic reachability and static-equilibrium
+          checks, a combinatorial search at the planning layer that avoids the computational burden of
+          integer programming. Zhu [111] extended contact-point search to <strong>deformable linear
+          objects</strong>, introducing a <em>contact mobility index</em>, a scalar metric quantifying how
+          effectively an environmental contact can reshape a cable. This metric guides contact location
+          selection for cable manipulation, extending contact-point feasibility reasoning from rigid-body
+          systems to deformable objects, a domain where MICP formulations become particularly unwieldy due
+          to the high-dimensional deformation state. Murooka and colleagues [63] developed a graph-search
+          loco-manipulation planner for humanoid robots using reachability maps, achieving efficient
+          planning for object-transport tasks.
+        </p>
+
+        <h3>5.4 Sampling-Based and Mode-Guided Planning</h3>
+
+        <p>
+          Sampling-based methods provide a third route to contact mode discovery, one that neither solves
+          integer programs nor requires problem-specific heuristics but instead relies on randomized
+          exploration to uncover feasible contact sequences. Nakatsuru and colleagues [64] proposed a
+          probabilistic roadmap-based method that uses an expanded object mesh model to plan manipulation
+          motions with environment support. Contact modes and transitions emerge from the sampling process
+          itself rather than from explicit enumeration or complementarity constraints, offering a
+          planning-side route to implicit contact mode determination.
+        </p>
+
+        <p>
+          A conceptually distinct approach uses explicit contact mode enumeration not to directly plan
+          motions but to <strong>guide</strong> sampling-based tree expansion. Cheng and colleagues [15, 16]
+          developed Contact Mode Guided Manipulation Planning (CMGMP), which automatically enumerates all
+          feasible contact modes of environment-object contacts and uses them to bias RRT-style tree
+          expansion. Contact modes serve as automatically synthesized manipulation primitives that the
+          planner sequences into hybrid plans combining discrete mode switches and continuous trajectories.
+          CMGMP was demonstrated for both 2D quasistatic [15] and 3D quasidynamic dexterous manipulation
+          [16], showing that mode guidance substantially improves planning efficiency compared to naive
+          sampling. The reliance on quasistatic or quasidynamic models restricts applicability to slow
+          manipulation tasks, but the framework requires no pre-designed motion primitives, a significant
+          advance over earlier template-based approaches. Related ideas appear in planar in-hand motion
+          cones [11], where analytical cone constructions serve as mode-aware primitives, and in reactive
+          planar non-prehensile manipulation with hybrid MPC [113], where mode selection becomes part of an
+          online control law.
+        </p>
+
+        <h3>5.5 Hybrid Discrete-Continuous Planning</h3>
+
+        <p>
+          Several recent methods explicitly combine discrete search over contact sequences with continuous
+          trajectory optimization, capturing the strengths of both paradigms. Dhedin and colleagues [19]
+          paired MCTS with whole-body trajectory optimization for simultaneous contact sequence and contact
+          <em>patch</em> (area) selection in dynamic locomotion. MCTS drives combinatorial search using
+          trajectory-optimization-evaluated rollouts, enabling acyclic multi-contact locomotion planning
+          with full rigid-body dynamics. This approach is distinguished from MICP (no integer program),
+          heuristic graph search (uses learned rollout value rather than static feasibility), and
+          point-contact planners (explicitly selects contact patch geometry). Chen and colleagues [12]
+          proposed TrajectoTree, which augments contact-implicit trajectory optimization with a high-level
+          tree search for multi-contact dexterous manipulation, using tree search to provide initialization
+          diversity that helps the local optimizer escape poor local minima. Tsikelis and colleagues [97]
+          presented a bi-level optimization framework integrating contact sequence discovery with
+          SE(3)-tangent-space trajectory optimization for agile whole-body motion planning.
+        </p>
+
+        <h3>5.6 Complementarity-Based Implicit Mode Determination</h3>
+
+        <p>
+          Bridging the implicit-explicit divide, several contact mode planning methods encode mode
+          transitions through complementarity constraints while retaining an explicit planning structure.
+          Katayama and colleagues [38] proposed a Linear Complementarity Quadratic Program (LCQP) that
+          determines contact modes implicitly as part of a quadratic programming solution, achieving
+          real-time contact-rich manipulation control without mode enumeration. The quasistatic dynamics
+          assumption is central to tractability. Li and colleagues [52] developed multi-contact MPC for
+          humanoid loco-manipulation capable of capturing various contact modes, while Sleiman and
+          colleagues [86] proposed a versatile multi-contact planning and control framework for legged
+          loco-manipulation that coordinates complex holistic movements with multiple contact interactions.
+        </p>
+
+        <h3>5.7 Task-Level Integration</h3>
+
+        <p>
+          The integration of contact mode planning with higher-level task planning represents an emerging
+          frontier. Ciebielski and colleagues [17] presented a task and motion planning (TAMP) framework
+          that unifies locomotion and manipulation through a shared representation of contact modes,
+          defining symbolic actions as contact mode changes and grounding high-level planning in low-level
+          motion feasibility. Le and colleagues [46] developed SPONGE, a sequence planning pipeline for
+          deformable-on-rigid contact prediction, using deep learning to predict contact outcomes and guide
+          manipulation sequence generation. Arreguit and colleagues [3] proposed a fast multi-contact
+          planning method based on a five-mass model formulated in Cartesian space rather than joint
+          angles, achieving efficient encoding of internal dynamics without full-model computation.
+          Chavan-Dafle [10] and Sahin [78] demonstrated contact mode planning for specialized in-hand
+          manipulation primitives, namely stable prehensile pushing and within-hand manipulation via
+          variable-friction fingers with extrinsic contacts, showing that targeted mode reasoning remains
+          effective for well-characterized task classes.
+        </p>
+
+        <h2>6. Learning-Based Contact-Rich Manipulation</h2>
+
+        <h3>6.1 Guided Policy Search and End-to-End Visuomotor Learning</h3>
+
+        <p>
+          Learning-based approaches to contact-rich manipulation offer an alternative to model-based
+          optimization. Rather than explicitly modeling contact physics, the robot learns control policies
+          from data that implicitly encode contact behavior. The foundational work by Levine and colleagues
+          [50] demonstrated that Guided Policy Search (GPS) with iteratively refitted time-varying
+          linear-Gaussian models could learn contact-rich manipulation skills directly on real robots
+          without demonstrations or known dynamics. By fitting <em>local</em> linear approximations to
+          dynamics around each trajectory rather than learning a global model, GPS achieved the sample
+          efficiency needed for real-robot learning of precision tasks (peg insertion, bottle-cap
+          screwing) in minutes of interaction. Levine [51] extended this to end-to-end training of deep
+          visuomotor policies, integrating perception and control into a single learned system. These
+          early results established the feasibility of learning contact-rich skills, but left open
+          questions of safety, generalization, and scaling.
+        </p>
+
+        <h3>6.2 Structured Action Spaces and Variable Impedance</h3>
+
+        <p>
+          A critical insight from the learning-for-contact literature is that the <strong>action
+          space</strong> in which the policy operates profoundly affects learning efficiency, safety, and
+          transferability. Embedding traditional force control schemes as the structured action space of an
+          RL agent provides inherent compliance and safety guarantees that end-to-end learning in
+          joint-position or joint-torque space does not. Beltran-Hernandez and colleagues [5] demonstrated
+          that combining RL with an admittance control interface enables contact-rich manipulation learning
+          on rigid position-controlled industrial robots, hardware that would otherwise be unsuitable for
+          contact tasks due to lack of inherent compliance. This approach was subsequently adopted and
+          extended across multiple studies [22, 83, 104], establishing force-control-structured action
+          spaces as a design pattern for safe contact-rich RL.
+        </p>
+
+        <p>
+          The progression from fixed to <strong>variable impedance</strong> parameters represents a
+          significant advance in expressiveness. Yang and colleagues [104] proposed learning variable
+          impedance (stiffness and damping) as part of the RL policy's action output, initialized from
+          impedance-space information extracted from suboptimal demonstrations. This enables adaptive
+          compliance that modulates throughout task execution (stiff during free-space motion, compliant
+          during contact transitions), going beyond the fixed compliance of admittance or parallel
+          force/position control. Shaw and colleagues [83] integrated Riemannian Motion Policies as a
+          geometric safety layer within a variable-impedance RL framework, replacing reward-penalty-based
+          safety with structural constraint enforcement. Gao and colleagues [27] and Zhang and colleagues
+          [108] further explored compliance adaptation, with Zhang specifically addressing efficient
+          sim-to-real transfer through online admittance residual learning. Adjacent lines of work learn
+          variable impedance control via inverse reinforcement learning for force-related tasks [115] and
+          propose deep-RL variable-compliance controllers for peg-in-hole assembly [116], showing that
+          compliance-as-action is a broadly effective inductive bias.
+        </p>
+
+        <h3>6.3 Learning from Demonstrations and Residual Policies</h3>
+
+        <p>
+          Pure reinforcement learning from scratch is sample-inefficient for contact-rich tasks because
+          contact interactions are sparse in the exploration space. The probability of randomly discovering
+          a useful contact sequence decreases rapidly with task complexity. Demonstration data provides a
+          strong prior that concentrates learning on the relevant regions of state-action space. Rajeswaran
+          and colleagues [77] showed that augmenting deep RL with demonstrations dramatically accelerates
+          learning of complex dexterous manipulation. Vecerik and colleagues [99] proposed using both
+          demonstrations and actual interactions to fill a replay buffer for DDPG, enabling learning on real
+          robotic tasks with sparse rewards.
+        </p>
+
+        <p>
+          A particularly effective paradigm combines demonstration-extracted motor primitives with
+          <strong>residual</strong> learning. Davchev and colleagues [18] used Dynamic Movement Primitives
+          extracted via behavior cloning as a base policy, then trained a residual RL policy in task space
+          to correct DMP failures at contact. This residual learning from demonstration enables few-shot
+          transfer to new geometries and friction conditions. Si and colleagues [84] extended this with a
+          human-in-the-loop component, using teleoperation correction of pre-trained DMP models to handle
+          tasks with complex or unpredictable physical properties. The human serves as an active update
+          mechanism rather than a one-time demonstrator. Stepputtis and colleagues [88] developed a
+          bimanual manipulation imitation system combining admittance control with human demonstrations,
+          addressing coordination of two arms during contact-rich tasks. TossingBot [107] independently
+          illustrated residual physics in a dynamic non-prehensile setting, learning a correction atop a
+          nominal projectile model to throw arbitrary objects.
+        </p>
+
+        <h3>6.4 Exploration, Reward, and Safety</h3>
+
+        <p>
+          The exploration-exploitation tradeoff is particularly acute in contact-rich domains because the
+          reward landscape is typically sparse and discontinuous. The robot receives no useful signal until
+          it achieves contact, and the transition from no-contact to successful-contact is abrupt. Hoppe
+          and colleagues [31] addressed this with UCB-based trajectory optimization as a global exploration
+          strategy, planning approximate trajectories by optimizing over an upper confidence bound of the
+          advantage function with ensemble-based uncertainty estimation. This principled exploration
+          generates informative data that accelerates discovery of contact-exploiting solutions
+          independently of demonstrations. Wu and colleagues [102] tackled the reward-design problem
+          directly, learning dense reward functions for contact-rich manipulation to replace hand-crafted
+          sparse rewards.
+        </p>
+
+        <p>
+          Safety during learning is a growing concern as contact-rich RL moves toward real-robot
+          deployment. Zhu and colleagues [112] proposed a contact-safe RL framework that explicitly manages
+          collision risks during training and in unseen scenarios. Liang and colleagues [54] learned
+          preconditions of hybrid force-velocity controllers, enabling the robot to determine when
+          contact-rich strategies are applicable and when to fall back to safer behaviors. The trend is
+          toward <em>structural</em> safety, building safety into the policy architecture, action space,
+          or dynamics model, rather than relying solely on reward penalties, which sufficiently expressive
+          policies can circumvent.
+        </p>
+
+        <h3>6.5 Dexterous Policies and Sim-to-Real</h3>
+
+        <p>
+          Deep RL has achieved impressive results on dexterous in-hand manipulation, but these results
+          depend critically on simulation fidelity and transfer mechanisms. The landmark OpenAI result [69]
+          demonstrated that domain randomization over physical parameters during simulated training is
+          sufficient for zero-shot sim-to-real transfer of block reorientation on a Shadow Hand. Extending
+          this approach to more complex tasks has proven difficult. Domain randomization provides
+          robustness through diversity but does not guarantee that the simulation distribution covers
+          real-world conditions [36]. Liu and colleagues [55] proposed contact-coverage-guided exploration
+          for general-purpose dexterous manipulation, using contact pattern diversity as an intrinsic
+          motivation signal that does not require task-specific reward design.
+        </p>
+
+        <p>
+          Saito and colleagues [79] decomposed in-hand tool manipulation into <em>action primitives based
+          on contact-state transitions</em> (APriCoT), using contact mode structure to guide RL rather than
+          learning end-to-end. Kannan and colleagues [37] addressed the gap between simulated and real
+          dexterous manipulation through fine-tuning, enabling transfer to soft, deformable objects and
+          long-horizon tasks. Sleiman [87] proposed guided RL for multi-contact loco-manipulation, using
+          model-based trajectory optimization to systematically shape the RL exploration, bridging the
+          optimization-learning divide. Portela [74] addressed force-control learning for legged
+          manipulation, proposing explicit force regulation within an RL framework rather than relying on
+          implicit force control through position tracking. Elguea-Aguinaco and colleagues [22] provided a
+          comprehensive review noting that RL for contact-rich manipulation extends beyond rigid objects to
+          deformable-object manipulation (cloth, cables, soft materials), requiring distinct reward
+          formulations, state representations, and sim-to-real strategies that rigid-body domain
+          randomization does not address.
+        </p>
+
+        <h2>7. Tactile Sensing and Feedback for Contact Planning</h2>
+
+        <h3>7.1 Tactile Sensing as Compensation for Occlusion</h3>
+
+        <p>
+          Contact-rich manipulation inherently involves occlusion. The robot's own body and the grasped
+          object block visual observation of the contact state that is most relevant for control. Tactile
+          sensing provides a complementary modality that directly observes contact information unavailable
+          to vision. Ichiwara and colleagues [33] demonstrated this concretely in a flexible-object
+          (zipper) manipulation task, where the gripper hides the bag deformation state from cameras.
+          Adding tactile feedback to an end-to-end deep-predictive-learning model improved task success
+          from 56.7% to 93.3%, with the tactile signal recovering the hidden contact information that
+          vision could not access. This result illustrates a general principle. For contact-rich tasks
+          involving deformable objects or occluded contact geometry, tactile sensing is not merely
+          beneficial but may be <em>necessary</em> for reliable closed-loop control [33, 57, 110].
+        </p>
+
+        <h3>7.2 Low-Cost and Accessible Contact Feedback</h3>
+
+        <p>
+          Contact feedback for manipulation has historically relied on expensive six-axis force/torque
+          (F/T) sensors, creating a cost barrier that has limited adoption in research and industry. A
+          promising recent finding is that <em>relative</em> force changes, rather than precise absolute
+          force magnitudes, are sufficient for many contact-rich manipulation tasks. Zhu and colleagues
+          [110] demonstrated this with ShapeForce, a low-cost compliant wrist sensor using soft-body
+          deformation and marker tracking that matches six-axis F/T sensor performance for contact-rich
+          tasks. Proesmans [76] developed open-source tactile fingertip designs that augment off-the-shelf
+          industrial grippers, providing readily interpretable tactile outputs without custom hardware
+          development. Han [30] introduced low-cost, lightweight compliant force-sensing gripping pads for
+          humanoid robots measuring normal forces and center of pressure. Ford [25] demonstrated
+          shear-based grasp control using miniature biomimetic tactile sensors on an anthropomorphic soft
+          hand, showing that shear information (not just normal force) enables delicate object
+          manipulation. These contributions collectively lower the instrumentation barrier for
+          contact-rich manipulation research, though the diversity of sensing modalities (resistive,
+          capacitive, optical, magnetic) highlights the fragmentation problem discussed below.
+        </p>
+
+        <h3>7.3 Tactile Sensing in Reinforcement Learning</h3>
+
+        <p>
+          Tactile sensing can serve a dual role in RL for dexterous manipulation. As a <em>reward-shaping
+          signal</em> it explicitly incentivizes desired contact patterns. As an <em>observation</em> it
+          provides the policy with contact-state information. Kim and colleagues [41] proposed Tac2Motion,
+          which uses tactile sensing for both reward shaping (incentivizing firm grasping and smooth
+          finger gaiting) and observation embedding, demonstrating improved data efficiency and robustness
+          for in-hand manipulation across varying object geometries. Chen and colleagues [13] developed a
+          general-purpose sim-to-real protocol for marker-based visuotactile sensors, showing that
+          FEM-based elastic deformation simulation, not rigid-body physics, is required for accurate
+          tactile simulation during RL training. Yin and colleagues [105] proposed a complementary
+          approach, <em>signal discretization</em> as a sim-to-real bridging strategy. Representing
+          tactile feedback as low-resolution categorical values (ternary shear, binary normal) restricts
+          the signal space to what both simulator and real sensor reliably agree on, enabling zero-shot
+          transfer without accurate physics simulation. George and colleagues [29] demonstrated that
+          visuotactile pretraining improves both tactile and non-tactile manipulation policies, suggesting
+          that tactile experience provides transferable representations of contact physics.
+        </p>
+
+        <h3>7.4 Sim-to-Real Transfer for Tactile Manipulation</h3>
+
+        <p>
+          The sim-to-real gap for tactile sensing presents unique challenges distinct from visual or
+          proprioceptive transfer, because tactile signals depend on contact mechanics (material
+          deformation, friction, surface texture) that are difficult to simulate accurately. Three
+          strategies have emerged. First, <strong>high-fidelity simulation</strong>. Chen and colleagues
+          [13] showed that FEM-based elastic deformation modeling combined with self-supervised
+          pre-training of marker-coordinate features bridges the gap for visuotactile sensors, enabling
+          generalization across contact-rich tasks. Second, <strong>signal discretization</strong>. Yin and
+          colleagues [105] demonstrated that restricting tactile signals to categorical values eliminates
+          the need for accurate continuous simulation, achieving zero-shot transfer for in-hand
+          manipulation. Third, <strong>domain randomization over approximate simulation</strong>. Ding and
+          colleagues [20] showed that randomizing physical parameters during approximate soft-body
+          simulation enables zero-shot sim-to-real transfer for optical tactile sensors, achieving
+          sub-millimeter edge-detection accuracy without real-world training data. These three strategies
+          represent complementary points on the simulation accuracy-cost tradeoff, and the field has not
+          yet converged on which is most effective for which task classes.
+        </p>
+
+        <h3>7.5 Temporal Models and Whole-Body Sensing</h3>
+
+        <p>
+          The temporal structure of tactile signals carries information that instantaneous measurements do
+          not. Bhattacharjee and colleagues [6] demonstrated that temporal sequence models (HMMs, LSTMs)
+          over tactile time series generalize to novel robot motion parameters where instance-based
+          methods fail, because the <em>temporal shape</em> of a contact event, not its peak magnitude,
+          encodes transferable contact properties. This result suggests that tactile representations for
+          contact planning should be fundamentally sequential, not frame-based. The same work showed that
+          whole-arm (forearm) tactile sensing enables mechanical-property inference (compliance, mobility)
+          from incidental contact during reaching motions, extending contact-based perception beyond
+          end-effectors to the full arm surface. Ma and colleagues [57] demonstrated <em>extrinsic
+          contact sensing</em>, localizing contacts between a grasped object and the environment from
+          distributed tactile measurements on the robot hand, using relative-motion tracking rather than
+          absolute force measurement. Tactile intrinsic motivation [114] leverages tactile signatures to
+          drive exploration in RL, completing the loop between sensing, planning, and learning.
+        </p>
+
+        <h3>7.6 The Standardization Challenge</h3>
+
+        <p>
+          Hardware fragmentation across tactile sensing systems presents a significant barrier to
+          cumulative progress. Each research group tends to design custom sensors with incompatible
+          outputs, physical form factors, and measurement modalities, preventing cross-system benchmarking
+          and hindering reproducibility [76]. Unlike computer vision, where standardized cameras and
+          datasets enabled rapid algorithmic progress, tactile manipulation research lacks both
+          standardized hardware and shared evaluation benchmarks. The open-source designs proposed by
+          Proesmans [76] and the low-cost approaches of Zhu [110] and Han [30] represent steps toward
+          accessibility, but a community-wide standardization effort comparable to the YCB object set for
+          grasping has not yet materialized.
+        </p>
+
+        <h2>8. Dexterous and Multi-Finger Contact Manipulation</h2>
+
+        <p>
+          Dexterous manipulation with multi-fingered hands represents an integrative challenge that draws
+          on contact modeling, planning, learning, and sensing simultaneously. The high dimensionality of
+          the joint space, the multiplicity of simultaneous contact points, and the need for coordinated
+          finger motions make this domain a stringent test for all the approaches surveyed in preceding
+          sections. Explicit multi-finger analyses trace back to classic kinematic and force-closure
+          frameworks [96], and subsequent deep-RL systems have catalyzed a shift toward learned policies
+          [69, 70].
+        </p>
+
+        <p>
+          Deliberate exploitation of sliding contacts as a manipulation primitive, rather than treating
+          slip as a failure mode, has a long history. Trinkle [96] developed quasi-static contact
+          kinematics models for planning sequences in which controlled sliding transitions the hand from
+          an initial grasp to a more secure enveloping grasp. This work introduced <em>liftability
+          regions</em>, geometric characterizations of which initial grasps permit successful object
+          liftoff given contact and force constraints, providing a principled basis for decomposing
+          in-hand manipulation into grasp selection and continuous grasp alteration phases. While the
+          quasi-static assumption and 2D restriction limit direct applicability, the conceptual framework
+          (contact transitions as deliberate primitives rather than disturbances) has influenced
+          subsequent work on extrinsic contact exploitation [10, 53, 78].
+        </p>
+
+        <p>
+          The landmark result of OpenAI [69] demonstrated that domain randomization during simulated RL
+          training is sufficient for zero-shot sim-to-real transfer of dexterous in-hand object
+          reorientation on a physical Shadow Hand, without any real-world data or human demonstrations.
+          This result shifted the field's focus from analytical contact modeling toward learned policies,
+          though it relied on extensive domain randomization over physical parameters (friction, object
+          appearance, dynamics) and a carefully designed observation space. The gap between this
+          demonstration and general-purpose dexterous manipulation remains substantial. The task was
+          single-object reorientation with a fixed initial grasp, and extensions to diverse objects,
+          multi-step manipulation, and tool use have proven significantly more difficult [37, 55].
+        </p>
+
+        <p>
+          Hand morphology itself is a design variable that affects manipulation capability. Sun [92]
+          demonstrated that non-anthropomorphic hand configurations (specifically dual symmetric
+          thumb-index designs) can outperform human-mimicking single-thumb designs for dexterous
+          manipulation of deformable objects (cables). This suggests that hand topology should be derived
+          from task-specific coordination requirements rather than anatomical analogy, a finding that
+          challenges the predominant design philosophy of anthropomorphic robotic hands. Sun additionally
+          showed that long-horizon dexterous manipulation of deformable objects can be systematically
+          decomposed into short-horizon action primitives via a task taxonomy, with thumb-index
+          coordination identified as the critical structural bottleneck.
+        </p>
+
+        <p>
+          Real-time collision-free motion planning for multi-fingered hands presents a specific
+          computational challenge, as the configuration space of multiple fingers plus a manipulated
+          object is high-dimensional and the collision geometry is complex. Gao and colleagues [28]
+          addressed this by learning a neural network representation of the collision-free configuration
+          space that is efficiently queryable at runtime, then integrating it with closed-loop dynamical
+          system control and sampling-based planning. This learned C-space representation decouples
+          expensive geometric collision computation from online replanning, enabling dynamic obstacle
+          avoidance among fingers in real time. Lundell and colleagues [56] proposed Multi-FinGAN, a
+          generative adversarial network trained on a grasp taxonomy that synthesizes diverse
+          multi-finger grasp poses directly from RGB-D images in approximately one second, replacing slow
+          analytical grasp sampling with learned approximation and enabling feedback-based online grasp
+          re-planning.
+        </p>
+
+        <p>
+          Robustness to parametric uncertainty in contact-rich in-hand manipulation has received
+          increasing attention. Liang and colleagues [53] proposed a two-stage motion-cone framework for
+          robust in-hand manipulation with extrinsic contacts. Compute a nominal motion cone assuming
+          precise parameters, then refine it to the largest subset of motions that guarantee the desired
+          contact mode across the full range of parametric errors. This principled approach to robustness
+          decouples nominal mechanics from robust constraint tightening and provides stronger guarantees
+          than domain randomization, which offers statistical robustness but no worst-case bounds. The
+          work additionally demonstrates that extrinsic contacts can be deliberately incorporated as a
+          planning resource for simultaneous in-hand pose adjustment and environmental contact
+          maintenance.
+        </p>
+
+        <h2>9. Sim-to-Real Transfer for Contact-Rich Manipulation</h2>
+
+        <p>
+          Sim-to-real transfer is not a standalone subfield so much as a cross-cutting deployment concern
+          that shapes every preceding theme. Contact-rich tasks are particularly unforgiving here because
+          three sources of reality gap compound. Contact geometry (the fingertip-object normal and gap
+          functions) is sensitive to small model errors. Friction and compliance are routinely
+          miscalibrated. Soft sensor deformations and their dependence on surface texture are difficult
+          to simulate accurately. The dominant strategies in the literature can be read as different
+          theories of what aspect of this gap matters most.
+        </p>
+
+        <p>
+          <strong>Domain randomization</strong> treats the gap as a distributional shift and responds with
+          policy robustness. OpenAI's in-hand reorientation result [69] established this as the canonical
+          approach. Randomize friction, masses, object appearance, and actuator noise broadly enough, and
+          a policy trained only in simulation will generalize to the real Shadow Hand. Kaidanov and
+          colleagues [36] revisited the approach for diffusion policies in whole-body humanoid control,
+          emphasizing that randomization is not a free lunch and that its benefit depends on the
+          distribution covering plausible real-world conditions. Follow-up work on pre- and post-contact
+          policy decomposition for non-prehensile manipulation [109] further exposes when randomization
+          suffices and when sub-task decomposition is required.
+        </p>
+
+        <p>
+          <strong>Residual and adaptive correction</strong> treats the gap as a model residual and tackles
+          it by learning or online-estimating the difference between simulation and reality. Zhang and
+          colleagues [108] learned an online admittance residual that corrects a nominal compliance model
+          during deployment. Davchev and colleagues [18] used a residual policy atop DMPs to handle
+          contact-specific corrections. Adaptive contact-implicit MPC with online residual learning [32]
+          extends the idea to model-based control, merging planning and learning for a single deployed
+          controller. TossingBot [107] is a historically influential example of residual physics applied
+          to a dynamic non-prehensile task.
+        </p>
+
+        <p>
+          <strong>Structure-preserving transfer</strong> uses model-based substructure that is known to
+          generalize, and limits learning to the components that do not. Sleiman [87] guides RL exploration
+          with a model-based trajectory optimizer so that the learned component has a narrow, physically
+          sensible search space. Portela [74] imposes explicit force regulation on top of RL for legged
+          manipulation, ensuring that the low-level contact interaction respects a physically principled
+          force law. Saito [79] decomposes dexterous manipulation into action primitives indexed by
+          contact-state transitions, which transfer more readily than end-to-end trajectories because the
+          discrete structure is invariant across domains.
+        </p>
+
+        <p>
+          <strong>Tactile sim-to-real</strong> stands apart because tactile observations depend on soft
+          material deformation that is expensive to simulate. The three strategies identified in Section 7
+          (FEM-based high-fidelity simulation [13], signal discretization [105], and domain randomization
+          over approximate soft-body simulation [20]) each attack a different link of the tactile pipeline.
+          The field has not converged on a dominant approach, and the right choice appears to depend on
+          whether the task is dominated by fine normal force discrimination, by shear direction, or by
+          coarse contact presence.
+        </p>
+
+        <p>
+          Finally, <strong>real-to-sim</strong> is beginning to complement sim-to-real. Model-predictive
+          contact controllers that learn online residuals from real data [32] and pre- and post-contact
+          policy decompositions that bootstrap from a small number of real rollouts [109] narrow the gap
+          from the real side. Roadmap-based policy composition in dexterous manipulation [91] offers a
+          related route, since stitching local real-transferable plans can reduce reliance on any single
+          accurate global simulation. The cumulative picture is that the sim-to-real gap for contact-rich
+          manipulation is not one gap but several, and effective deployment usually requires more than one
+          of the above strategies applied in combination.
+        </p>
+
+        <h2>10. Cross-Cutting Analysis</h2>
+
+        <h3>10.1 The Implicit-Explicit Continuum</h3>
+
+        <p>
+          The dichotomy between contact-implicit and contact-explicit methods, while useful for
+          organization, obscures a more nuanced reality. Most successful recent methods occupy intermediate
+          positions on a continuum. Staged optimization [98] uses contact-implicit methods for mode
+          discovery and contact-explicit methods for trajectory refinement. Mode-guided sampling [15, 16]
+          explicitly enumerates modes but uses them to guide continuous sampling rather than solving an
+          integer program. MCTS with trajectory optimization [19] searches discrete contact sequences but
+          evaluates them through continuous optimization. Complementarity-based planning [38] uses implicit
+          complementarity within an explicit MPC structure. The convergence suggests that the field is
+          moving toward <em>hybrid</em> methods that match the level of discrete-continuous reasoning to
+          the problem structure, rather than committing a priori to either pure paradigm.
+        </p>
+
+        <h3>10.2 The Optimization-Learning Convergence</h3>
+
+        <p>
+          A parallel convergence is occurring between optimization-based and learning-based approaches. On
+          the optimization side, contact-implicit MPC has achieved real-time rates [34, 39, 45, 47] that
+          approach the control frequencies at which learned policies operate. On the learning side,
+          structured action spaces [5, 104], residual policies [18, 108], and guided RL [87] increasingly
+          incorporate model-based structure. Pang and colleagues [71] explicitly connected the success of
+          RL in contact-rich manipulation to the smoothing properties of stochastic policies on
+          discontinuous contact dynamics, suggesting a theoretical link between the two paradigms. The
+          emerging pattern is that model-based methods provide structure and sample efficiency while
+          learning provides robustness and adaptability, and the most effective systems combine both.
+        </p>
+
+        <h3>10.3 The Quasistatic Simplification</h3>
+
+        <p>
+          The quasistatic assumption (neglecting inertial effects and assuming instantaneous force
+          equilibrium) appears as a recurring enabler across themes. In contact-implicit optimization for
+          global planning [71], in mode-guided sampling for dexterous manipulation [15, 16, 38], and
+          implicitly in many learning-based approaches that operate at low control frequencies. This
+          assumption is powerful because it eliminates impact dynamics and reduces the hybrid character of
+          the system, but it fundamentally limits the tasks that can be addressed. Dynamic manipulation
+          (throwing, catching, fast regrasping, impact-based assembly) requires inertial reasoning that
+          quasistatic models cannot provide. The field would benefit from principled criteria for when
+          quasistatic approximations are valid and when dynamic models are necessary, rather than the
+          current practice of choosing based on tractability preferences.
+        </p>
+
+        <h3>10.4 Sim-to-Real as a Universal Challenge</h3>
+
+        <p>
+          Simulation-to-reality transfer, discussed as its own theme in Section 9, is simultaneously a
+          cross-cutting concern that affects optimization (model accuracy), learning (training environment
+          fidelity), and sensing (tactile simulation). For optimization the gap manifests as model mismatch
+          between the contact dynamics used for planning and real contact physics [42]. For learning,
+          domain randomization [36, 69] and residual adaptation [18, 108] dominate. For tactile sensing,
+          three distinct approaches (high-fidelity FEM simulation [13], signal discretization [105], and
+          domain randomization over approximate simulation [20]) have emerged without consensus. The
+          multiplicity of transfer strategies, each effective in its own domain, suggests that no single
+          approach will suffice. The appropriate transfer mechanism depends on which aspects of contact
+          physics are most task-critical.
+        </p>
+
+        <h3>10.5 From Point Contact to Whole-Body and Deformable Contact</h3>
+
+        <p>
+          A clear trend in the literature is the expansion of contact reasoning from idealized point
+          contacts to richer contact representations. Whole-body manipulation [49, 62] exploits contact
+          across the robot's entire surface. Contact patch selection [19] reasons about contact area
+          geometry rather than points. Deformable object manipulation [33, 46, 92, 111] requires contact
+          models that handle material deformation. This expansion creates opportunities, richer contact
+          capabilities, but also challenges, higher-dimensional contact state spaces that stress all
+          existing computational methods.
+        </p>
+
+        <h2>11. Open Problems and Future Directions</h2>
+
+        <p>
+          <strong>Scalable long-horizon multi-contact planning.</strong> Current methods either plan short
+          horizons in real time (MPC) or long horizons offline (global optimization). Tasks requiring
+          dozens of contact transitions (furniture assembly, cooking, dressing) demand planning methods
+          that scale gracefully with horizon length. Future work should investigate hierarchical
+          decomposition approaches that combine task-level discrete search with local contact-implicit
+          optimization, building on staged [98] and roadmap-stitching [91] approaches while extending to
+          much longer task horizons.
+        </p>
+
+        <p>
+          <strong>Unified optimization-learning frameworks.</strong> The convergence of optimization and
+          learning (Section 10.2) suggests that principled integration, not ad hoc combination, should be
+          a priority. Specifically, differentiable contact-implicit optimization embedded within policy
+          gradient computation would allow end-to-end training of systems that combine the physical
+          reasoning of optimization with the adaptability of learning. Complementarity-free contact
+          models [4, 35] may be essential enablers for this direction.
+        </p>
+
+        <p>
+          <strong>Contact-rich manipulation of deformable objects.</strong> Deformable objects remain
+          under-addressed relative to rigid-body manipulation, despite their prevalence in human
+          environments (clothing, food, cables, packaging). The contact mobility index [111] and SPONGE
+          [46] represent initial steps, but systematic contact planning for deformable objects requires
+          new representations that capture the coupling between contact forces, material deformation, and
+          object configuration. Combining learned deformation models with contact-implicit optimization is
+          a promising but largely unexplored direction.
+        </p>
+
+        <p>
+          <strong>Standardized tactile benchmarks and hardware.</strong> The hardware fragmentation
+          identified in Section 7.6 can only be resolved through community coordination. A concrete next
+          step would be developing a standardized benchmark suite (analogous to the YCB grasping
+          benchmarks) that specifies tasks, metrics, and reference implementations for tactile
+          manipulation, designed to be sensor-agnostic while requiring contact feedback for successful
+          completion. The open-source designs of Proesmans [76] provide a starting point.
+        </p>
+
+        <p>
+          <strong>Multi-modal sensing integration in planning loops.</strong> Current methods typically
+          use vision for state estimation and tactile feedback for reactive control, with limited
+          integration between the two in the planning loop itself. Future planning algorithms should
+          jointly reason about visual predictions (what will happen) and tactile observations (what is
+          happening at contact), using tactile information not only for feedback but for online plan
+          adaptation and contact model refinement.
+        </p>
+
+        <p>
+          <strong>Formal safety and robustness guarantees.</strong> Structural safety approaches [53, 83, 112] represent progress, but formal guarantees for contact-rich manipulation policies remain
+          elusive. The robust motion cone framework [53] provides worst-case bounds for specific contact
+          modes, but extending such guarantees to learned policies operating across multiple contact
+          transitions is an open theoretical challenge with significant practical implications for
+          human-robot interaction.
+        </p>
+
+        <p>
+          <strong>Real-time performance for complex multi-contact systems.</strong> Despite progress
+          toward real-time contact-implicit MPC [34, 39, 45, 47, 48, 32], performance degrades with the
+          number of contact points and the complexity of the contact geometry. Complementarity-free
+          models [35] and GPU-accelerated contact manifold computation [4] offer promising computational
+          substrates, but achieving reliable real-time planning for whole-body multi-contact manipulation
+          remains an engineering and algorithmic challenge.
+        </p>
+
+        <h2>12. Conclusion</h2>
+
+        <p>
+          Contact-rich manipulation has progressed from a niche concern of dexterous hand research to a
+          central challenge spanning trajectory optimization, discrete planning, machine learning, and
+          tactile sensing. The period 2018 to 2026 has seen three transformative developments.
+          Contact-implicit trajectory optimization has matured from offline planning tools to real-time
+          MPC controllers capable of discovering contact sequences online. Reinforcement learning has
+          progressed from simple contact tasks to dexterous in-hand manipulation with sim-to-real
+          transfer, with structured action spaces and variable impedance control emerging as essential
+          design patterns. Tactile sensing has moved from expensive laboratory instruments to low-cost,
+          accessible designs that demonstrably improve contact-rich task performance.
+        </p>
+
+        <p>
+          The most important insight from this survey is that the implicit-explicit and
+          optimization-learning dichotomies that have historically organized the field are dissolving. The
+          most effective recent methods are hybrids. Staged optimizers combine implicit mode discovery
+          with explicit trajectory refinement. Guided RL uses model-based optimization to shape learned
+          policies. Mode-guided samplers use discrete contact structure to direct continuous planning.
+          The future of contact-rich manipulation lies not in resolving these dichotomies in favor of
+          one side, but in developing principled frameworks for integrating discrete contact reasoning,
+          continuous optimization, data-driven learning, and multi-modal sensing into unified systems
+          capable of robust, real-time, long-horizon manipulation in unstructured environments.
+        </p>
+
+        </section>
+
+        <div class="citation-section">
+          <h2 class="citation-header">Citation</h2>
+          <p class="citation-text">
+            If you find this survey useful, please cite it as
+          </p>
+          <pre class="citation-pre">
+@misc{contact_planning_survey_2026,
+  author    = {Hu Tianrun},
+  title     = {Contact-Rich Manipulation and Contact Planning},
+  year      = {2026},
+  publisher = {GitHub},
+  url       = {https://h-tr.github.io/blog/surveys/contact-planning.html}
+}
+          </pre>
+        </div>
+
+        <div class="references-section">
+          <h2 class="references-header">References</h2>
+          <ol class="references-list">
+            <li id="ref-1">Aceituno-Cabezas, B., Mastalli, C., Dai, H., et al. (2017). &ldquo;Simultaneous Contact, Gait and Motion Planning for Robust Multi-Legged Locomotion via Mixed-Integer Convex Optimization.&rdquo; <em>IEEE Robotics and Automation Letters</em>.</li>
+            <li id="ref-2">Anitescu, M., &amp; Potra, F. A. (1997). &ldquo;Formulating Dynamic Multi-Rigid-Body Contact Problems with Friction as Solvable Linear Complementarity Problems.&rdquo; <em>Nonlinear Dynamics</em>.</li>
+            <li id="ref-3">Arreguit, J., et al. (2018). &ldquo;Fast Multi-Contact Whole-Body Motion Planning with Limb Dynamics.&rdquo; <em>ICRA Workshop</em>.</li>
+            <li id="ref-4">Beker, O. (2026). &ldquo;Novel Algorithms for Smoothly Differentiable and Efficiently Vectorizable Contact Manifold Construction.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-5">Beltran-Hernandez, C. C., Petit, D., Ramirez-Alpizar, I. G., &amp; Harada, K. (2020). &ldquo;Learning Force Control for Contact-Rich Manipulation Tasks With Rigid Position-Controlled Robots.&rdquo; <em>IEEE Robotics and Automation Letters</em>.</li>
+            <li id="ref-6">Bhattacharjee, T., Rehg, J. M., &amp; Kemp, C. C. (2014). &ldquo;Inferring Object Properties with a Tactile Sensing Array Given Varying Joint Stiffness and Velocity.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-7">Carius, J., Ranftl, R., Koltun, V., &amp; Hutter, M. (2018). &ldquo;Trajectory Optimization With Implicit Hard Contacts.&rdquo; <em>IEEE Robotics and Automation Letters</em>.</li>
+            <li id="ref-8">Chatzinikolaidis, I., &amp; Li, Z. (2020). &ldquo;Contact-Implicit Trajectory Optimization Using an Analytically Solvable Contact Model for Locomotion on Variable Ground.&rdquo; <em>IEEE Robotics and Automation Letters</em>.</li>
+            <li id="ref-9">Chatzinikolaidis, I., &amp; Li, Z. (2021). &ldquo;Trajectory Optimization of Contact-Rich Motions Using Implicit Differential Dynamic Programming.&rdquo; <em>IEEE Robotics and Automation Letters</em>.</li>
+            <li id="ref-10">Chavan-Dafle, N., Holladay, R., &amp; Rodriguez, A. (2017). &ldquo;Stable Prehensile Pushing. In-Hand Manipulation with Alternating Sticking Contacts.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-11">Chavan-Dafle, N., Holladay, R., &amp; Rodriguez, A. (2019). &ldquo;Planar In-Hand Manipulation via Motion Cones.&rdquo; <em>The International Journal of Robotics Research</em>.</li>
+            <li id="ref-12">Chen, C., Culbertson, P., Lepert, M., Schwager, M., &amp; Bohg, J. (2021). &ldquo;TrajectoTree. Trajectory Optimization Meets Tree Search for Planning Multi-Contact Dexterous Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-13">Chen, W., Xu, Y., Chen, F., Wang, P., &amp; Shi, L. (2024). &ldquo;General-Purpose Sim2Real Protocol for Learning Contact-Rich Manipulation With Marker-Based Visuotactile Sensors.&rdquo; <em>IEEE Transactions on Robotics</em>.</li>
+            <li id="ref-14">Aceituno-Cabezas, B., &amp; Rodriguez, A. (2020). &ldquo;A Global Quasi-Dynamic Model for Contact-Trajectory Optimization in Manipulation.&rdquo; <em>RSS 2020</em>.</li>
+            <li id="ref-15">Cheng, X., Huang, E., Hou, Y., &amp; Mason, M. T. (2020). &ldquo;Contact Mode Guided Sampling-Based Planning for Quasistatic Dexterous Manipulation in 2D.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-16">Cheng, X., Huang, E., Hou, Y., &amp; Mason, M. T. (2021). &ldquo;Contact Mode Guided Motion Planning for Quasidynamic Dexterous Manipulation in 3D.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-17">Ciebielski, M., et al. (2025). &ldquo;Task and Motion Planning for Humanoid Loco-manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-18">Davchev, T., Luck, K. S., Burke, M., Meier, F., Schaal, S., &amp; Ramamoorthy, S. (2022). &ldquo;Residual Learning From Demonstration. Adapting DMPs for Contact-Rich Manipulation.&rdquo; <em>IEEE Robotics and Automation Letters</em>.</li>
+            <li id="ref-19">Dhedin, V., et al. (2025). &ldquo;Simultaneous Contact Sequence and Patch Planning for Dynamic Locomotion.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-20">Ding, Z., et al. (2020). &ldquo;Sim-to-Real Transfer for Optical Tactile Sensing.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-21">Doshi, N., Jayaram, K., Goldberg, B., Manchester, Z., Wood, R. J., &amp; Kuindersma, S. (2018). &ldquo;Contact-Implicit Optimization of Locomotion Trajectories for a Quadrupedal Microrobot.&rdquo; <em>Robotics. Science and Systems</em>.</li>
+            <li id="ref-22">Elguea-Aguinaco, I., Serrano-Munoz, A., Chrysostomou, D., Inziarte-Hidalgo, I., B&oslash;gh, S., &amp; Arana-Arexolaleiba, N. (2022). &ldquo;A Review on Reinforcement Learning for Contact-Rich Robotic Manipulation Tasks.&rdquo; <em>Robotics and Computer-Integrated Manufacturing</em>.</li>
+            <li id="ref-23">Escande, A., Kheddar, A., &amp; Miossec, S. (2013). &ldquo;Planning Contact Points for Humanoid Robots.&rdquo; <em>Robotics and Autonomous Systems</em>.</li>
+            <li id="ref-24">Fletcher, R., &amp; Leyffer, S. (2004). &ldquo;Solving Mathematical Programs with Complementarity Constraints as Nonlinear Programs.&rdquo; <em>Optimization Methods and Software</em>.</li>
+            <li id="ref-25">Ford, C. J., et al. (2025). &ldquo;Shear-Based Grasp Control for Multi-Fingered Underactuated Tactile Robotic Hands.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-26">Gangaraju, K. (2024). &ldquo;A Thesis on Loco-Manipulation with Non-Impulsive Contact-Implicit Planning in a Slithering Robot.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-27">Gao, J., Tao, X., &amp; Vincze, M. (2020). &ldquo;Learning Compliance Adaptation in Contact-Rich Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-28">Gao, X., Silverio, J., Pignat, E., Calinon, S., Li, M., &amp; Xiao, X. (2023). &ldquo;Enhancing Dexterity in Confined Spaces. Real-Time Motion Planning for Multi-Fingered In-Hand Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-29">George, A., et al. (2024). &ldquo;VITaL Pretraining. Visuo-Tactile Pretraining for Tactile and Non-Tactile Manipulation Policies.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-30">Han, Y., et al. (2024). &ldquo;Design, Calibration, and Control of Compliant Force-Sensing Gripping Pads for Humanoid Robots.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-31">Hoppe, S., Lou, Z., Hennes, D., &amp; Toussaint, M. (2019). &ldquo;Planning Approximate Exploration Trajectories for Model-Free Reinforcement Learning in Contact-Rich Manipulation.&rdquo; <em>IEEE Robotics and Automation Letters</em>.</li>
+            <li id="ref-32">Huang, W., Aydinoglu, A., Jin, W., &amp; Posa, M. (2024). &ldquo;Adaptive Contact-Implicit Model Predictive Control with Online Residual Learning.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-33">Ichiwara, H., Ito, H., Yamamoto, K., Mori, H., &amp; Ogata, T. (2022). &ldquo;Contact-Rich Manipulation of a Flexible Object Based on Deep Predictive Learning Using Vision and Tactility.&rdquo; <em>ICRA 2022</em>.</li>
+            <li id="ref-34">Jiang, Y., Yu, M., Zhu, X., Tomizuka, M., &amp; Li, X. (2024). &ldquo;Contact-Implicit Model Predictive Control for Dexterous In-Hand Manipulation. A Long-Horizon and Robust Approach.&rdquo; <em>RSS 2024</em>.</li>
+            <li id="ref-35">Jin, W. (2025). &ldquo;Complementarity-Free Multi-Contact Modeling and Optimization for Dexterous Manipulation.&rdquo; <em>RSS 2025</em>.</li>
+            <li id="ref-36">Kaidanov, O., et al. (2024). &ldquo;The Role of Domain Randomization in Training Diffusion Policies for Whole-Body Humanoid Control.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-37">Kannan, A., et al. (2023). &ldquo;DEFT. Dexterous Fine-Tuning for Real-World Hand Policies.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-38">Katayama, S., &amp; Ohtsuka, T. (2022). &ldquo;Quasistatic Contact-Rich Manipulation via Linear Complementarity Quadratic Programming.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-39">Kim, G., Kang, D., Kim, J.-H., Hong, S., &amp; Park, H.-W. (2024). &ldquo;Contact-Implicit Model Predictive Control. Controlling Diverse Quadruped Motions Without Pre-Planned Contact Modes or Trajectories.&rdquo; <em>The International Journal of Robotics Research</em>.</li>
+            <li id="ref-40">Kim, G., Kang, D., Kim, J.-H., &amp; Park, H.-W. (2022). &ldquo;Contact-Implicit Differential Dynamic Programming for Model Predictive Control with Relaxed Complementarity Constraints.&rdquo; <em>IROS 2022</em>.</li>
+            <li id="ref-41">Kim, Y., et al. (2025). &ldquo;Tac2Motion. Contact-Aware Reinforcement Learning with Tactile Feedback for Robotic Hand Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-42">Kolbert, R., Chavan-Dafle, N., &amp; Rodriguez, A. (2017). &ldquo;Experimental Validation of Contact Dynamics for In-Hand Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-43">Kong, N. J., Council, G., &amp; Johnson, A. M. (2022). &ldquo;Hybrid iLQR Model Predictive Control for Contact Implicit Stabilization on Legged Robots.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-44">Kurtz, V., Li, A., Wensing, P. M., &amp; Lin, H. (2022). &ldquo;Contact-Implicit Trajectory Optimization with Hydroelastic Contact and iLQR.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-45">Kurtz, V., Castro, A., Permenter, F., &amp; Lin, H. (2023). &ldquo;Inverse Dynamics Trajectory Optimization for Contact-Implicit Model Predictive Control.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-46">Le, T. N., Verdoja, F., Abu-Dakka, F. J., &amp; Kyrki, V. (2023). &ldquo;SPONGE. Sequence Planning with Deformable-On-Rigid Contact Prediction from Geometric Features.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-47">Le Cleac&rsquo;h, S., Howell, T. A., Yang, S., Lee, C.-Y., Zhang, J. Z., Bishop, A. L., Schwager, M., &amp; Manchester, Z. (2024). &ldquo;Fast Contact-Implicit Model Predictive Control.&rdquo; <em>IEEE Transactions on Robotics</em>.</li>
+            <li id="ref-48">Le Cleac&rsquo;h, S., Howell, T. A., Schwager, M., &amp; Manchester, Z. (2021). &ldquo;Linear Contact-Implicit Model-Predictive Control.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-49">Leve, V., Escande, A., Abi-Farraj, F., Sugihara, T., Watanabe, T., &amp; Kheddar, A. (2024). &ldquo;Explicit Contact Optimization in Whole-Body Contact-Rich Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-50">Levine, S., Wagener, N., &amp; Abbeel, P. (2015). &ldquo;Learning Contact-Rich Manipulation Skills with Guided Policy Search.&rdquo; <em>ICRA 2015</em>.</li>
+            <li id="ref-51">Levine, S., Finn, C., Darrell, T., &amp; Abbeel, P. (2015). &ldquo;End-to-End Training of Deep Visuomotor Policies.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-52">Li, J., Ma, J., Kolt, O., &amp; Nguyen, Q. (2022). &ldquo;Multi-Contact MPC for Dynamic Loco-Manipulation on Humanoid Robots.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-53">Liang, B., et al. (2024). &ldquo;Robust In-Hand Manipulation with Extrinsic Contacts.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-54">Liang, J., Mahler, J., Goldberg, K., et al. (2022). &ldquo;Learning Preconditions of Hybrid Force-Velocity Controllers for Contact-Rich Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-55">Liu, Z., et al. (2026). &ldquo;Contact Coverage-Guided Exploration for General-Purpose Dexterous Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-56">Lundell, J., Corona, E., Le, T. N., Verdoja, F., Weinzaepfel, P., Rogez, G., Moreno-Noguer, F., &amp; Kyrki, V. (2020). &ldquo;Multi-FinGAN. Generative Coarse-To-Fine Sampling of Multi-Finger Grasps.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-57">Ma, D., Dong, S., &amp; Rodriguez, A. (2021). &ldquo;Extrinsic Contact Sensing with Relative-Motion Tracking from Distributed Tactile Measurements.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-58">Manchester, Z., &amp; Kuindersma, S. (2019). &ldquo;Variational Contact-Implicit Trajectory Optimization.&rdquo; <em>Springer Proceedings in Advanced Robotics</em>.</li>
+            <li id="ref-59">Manchester, Z., Doshi, N., Wood, R. J., &amp; Kuindersma, S. (2019). &ldquo;Contact-Implicit Trajectory Optimization Using Variational Integrators.&rdquo; <em>The International Journal of Robotics Research</em>.</li>
+            <li id="ref-60">Mastalli, C., et al. (2016). &ldquo;Hierarchical Planning of Dynamic Movements Without Scheduled Contact Sequences.&rdquo; <em>ICRA 2016</em>.</li>
+            <li id="ref-61">Mordatch, I., Todorov, E., &amp; Popovic, Z. (2012). &ldquo;Discovery of Complex Behaviors Through Contact-Invariant Optimization.&rdquo; <em>ACM Transactions on Graphics</em>.</li>
+            <li id="ref-62">Murooka, M., Okada, K., &amp; Inaba, M. (2025). &ldquo;Optimization-Based Posture Generation for Whole-Body Contact Motion by Contact Point Search on the Body Surface.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-63">Murooka, M., Okada, K., &amp; Inaba, M. (2025). &ldquo;Humanoid Loco-Manipulation Planning Based on Graph Search and Reachability Maps.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-64">Nakatsuru, K., Wan, W., &amp; Harada, K. (2023). &ldquo;Implicit Contact-Rich Manipulation Planning for a Manipulator with Insufficient Payload.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-65">Neunert, M., Farshidian, F., Winkler, A. W., &amp; Buchli, J. (2017). &ldquo;Trajectory Optimization Through Contacts and Automatic Gait Discovery for Quadrupeds.&rdquo; <em>IEEE Robotics and Automation Letters</em>.</li>
+            <li id="ref-66">&Ouml;n&ouml;l, A. &Ouml;., Long, P., &amp; Padir, T. (2019). &ldquo;Contact-Implicit Trajectory Optimization Based on a Variable Smooth Contact Model and Successive Convexification.&rdquo; <em>IROS 2019</em>.</li>
+            <li id="ref-67">&Ouml;n&ouml;l, A. &Ouml;., Corcodel, R. I., Long, P., &amp; Padir, T. (2020). &ldquo;Tuning-Free Contact-Implicit Trajectory Optimization.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-68">&Ouml;n&ouml;l, A. &Ouml;., Long, P., &amp; Padir, T. (2018). &ldquo;A Comparative Analysis of Contact Models in Trajectory Optimization for Manipulation.&rdquo; <em>IROS 2018</em>.</li>
+            <li id="ref-69">OpenAI, Andrychowicz, M., Baker, B., Chociej, M., J&oacute;zefowicz, R., McGrew, B., Pachocki, J., Petron, A., Plappert, M., Powell, G., Ray, A., Schneider, J., Sidor, S., Tobin, J., Welinder, P., Weng, L., &amp; Zaremba, W. (2018). &ldquo;Learning Dexterous In-Hand Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-70">OpenAI, Andrychowicz, M., et al. (2019). &ldquo;Learning Dexterous In-Hand Manipulation.&rdquo; <em>The International Journal of Robotics Research</em>.</li>
+            <li id="ref-71">Pang, T., Suh, H. J. T., Yang, L., &amp; Tedrake, R. (2023). &ldquo;Global Planning for Contact-Rich Manipulation via Local Smoothing of Quasi-Dynamic Contact Models.&rdquo; <em>IEEE Transactions on Robotics</em>.</li>
+            <li id="ref-72">Pang, T., &amp; Tedrake, R. (2021). &ldquo;A Convex Quasistatic Time-Stepping Scheme for Rigid Multibody Systems with Contact and Friction.&rdquo; <em>RSS 2021</em>.</li>
+            <li id="ref-73">Patel, A., Shield, S. L., Kazi, S., Johnson, A. M., &amp; Biegler, L. T. (2019). &ldquo;Contact-Implicit Trajectory Optimization Using Orthogonal Collocation.&rdquo; <em>IEEE Robotics and Automation Letters</em>.</li>
+            <li id="ref-74">Portela, T., et al. (2024). &ldquo;Learning Force Control for Legged Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-75">Posa, M., Cantu, C., &amp; Tedrake, R. (2013). &ldquo;A Direct Method for Trajectory Optimization of Rigid Bodies Through Contact.&rdquo; <em>The International Journal of Robotics Research</em>.</li>
+            <li id="ref-76">Proesmans, R., et al. (2023). &ldquo;Augmenting Off-the-Shelf Grippers with Tactile Sensing.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-77">Rajeswaran, A., Kumar, V., Gupta, A., Vezzani, G., Schulman, J., Todorov, E., &amp; Levine, S. (2017). &ldquo;Learning Complex Dexterous Manipulation with Deep Reinforcement Learning and Demonstrations.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-78">Sahin, A., et al. (2020). &ldquo;Region-Based Planning for 3D Within-Hand-Manipulation via Variable Friction Robot Fingers and Extrinsic Contacts.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-79">Saito, D., et al. (2024). &ldquo;APriCoT. Action Primitives Based on Contact-State Transition for In-Hand Tool Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-80">Salagame, A., et al. (2024). &ldquo;Loco-Manipulation with Nonimpulsive Contact-Implicit Planning in a Slithering Robot.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-81">Salagame, A., et al. (2024). &ldquo;Non-Impulsive Contact-Implicit Motion Planning for Morpho-Functional Loco-Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-82">Schultz, G., &amp; Mombaur, K. (2009). &ldquo;Modeling and Optimal Control of Human-Like Running.&rdquo; <em>IEEE/ASME Transactions on Mechatronics</em>.</li>
+            <li id="ref-83">Shaw, S., et al. (2021). &ldquo;RMPs for Safe Impedance Control in Contact-Rich Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-84">Si, W., et al. (2022). &ldquo;Adaptive Compliant Skill Learning for Contact-Rich Manipulation With Human in the Loop.&rdquo; <em>IEEE Robotics and Automation Letters</em>.</li>
+            <li id="ref-85">Sleiman, J.-P., Farshidian, F., &amp; Hutter, M. (2019). &ldquo;Contact-Implicit Trajectory Optimization for Dynamic Object Manipulation.&rdquo; <em>IROS 2019</em>.</li>
+            <li id="ref-86">Sleiman, J.-P., Farshidian, F., &amp; Hutter, M. (2023). &ldquo;Versatile Multi-Contact Planning and Control for Legged Loco-Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-87">Sleiman, J.-P., Mittal, M., &amp; Hutter, M. (2024). &ldquo;Guided Reinforcement Learning for Robust Multi-Contact Loco-Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-88">Stepputtis, S., et al. (2022). &ldquo;A System for Imitation Learning of Contact-Rich Bimanual Manipulation Policies.&rdquo; <em>IROS 2022</em>.</li>
+            <li id="ref-89">Stewart, D. E. (2000). &ldquo;Rigid-Body Dynamics with Friction and Impact.&rdquo; <em>SIAM Review</em>.</li>
+            <li id="ref-90">Suh, H. J. T., et al. (2025). &ldquo;Dexterous Contact-Rich Manipulation via the Contact Trust Region.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-91">Suh, H. J. T., et al. (2025). &ldquo;Roadmap-Based Policy Composition for Contact-Implicit MPC.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-92">Sun, Z., et al. (2025). &ldquo;Dexterous Cable Manipulation. Taxonomy, Multi-Fingered Hand Design, and Long-Horizon Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-93">Suomalainen, M., Karayiannidis, Y., &amp; Kyrki, V. (2021). &ldquo;A Survey of Robot Manipulation in Contact.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-94">Tassa, Y., Erez, T., &amp; Todorov, E. (2012). &ldquo;Synthesis and Stabilization of Complex Behaviors Through Online Trajectory Optimization.&rdquo; <em>IROS 2012</em>.</li>
+            <li id="ref-95">Todorov, E., Erez, T., &amp; Tassa, Y. (2012). &ldquo;MuJoCo. A Physics Engine for Model-Based Control.&rdquo; <em>IROS 2012</em>.</li>
+            <li id="ref-96">Trinkle, J. C., &amp; Hunter, J. J. (1990). &ldquo;Planning for Dexterous Manipulation with Sliding Contacts.&rdquo; <em>The International Journal of Robotics Research</em>.</li>
+            <li id="ref-97">Tsikelis, I., et al. (2025). &ldquo;Multi-Contact Agile Whole-Body Motion Planning via Contact Sequence Discovery and SE(3) Tangent-Space Trajectory Optimization.&rdquo; <em>SPIRE</em>.</li>
+            <li id="ref-98">Turski, M. R., et al. (2023). &ldquo;Staged Contact Optimization. Combining Contact-Implicit and Multi-Phase Hybrid Trajectory Optimization.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-99">Vecerik, M., Hester, T., Scholz, J., Wang, F., Pietquin, O., Piot, B., Heess, N., Roth&ouml;rl, T., Lampe, T., &amp; Riedmiller, M. (2017). &ldquo;Leveraging Demonstrations for Deep Reinforcement Learning on Robotics Problems with Sparse Rewards.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-100">Wen, Y., et al. (2025). &ldquo;ContactSDF. Signed Distance Functions as Multi-Contact Models for Dexterous Manipulation.&rdquo; <em>IEEE Robotics and Automation Letters</em>.</li>
+            <li id="ref-101">Winkler, A. W., Bellicoso, C. D., Hutter, M., &amp; Buchli, J. (2018). &ldquo;Gait and Trajectory Optimization for Legged Systems Through Phase-Based End-Effector Parameterization.&rdquo; <em>IEEE Robotics and Automation Letters</em>.</li>
+            <li id="ref-102">Wu, Z., Lian, W., Wang, C., Li, M., &amp; Schaal, S. (2021). &ldquo;Learning Dense Rewards for Contact-Rich Manipulation Tasks.&rdquo; <em>CoRL 2021</em>.</li>
+            <li id="ref-103">Xi, W., &amp; Sreenath, K. (2014). &ldquo;Optimal Gaits and Motions for Legged Robots.&rdquo; <em>ICRA 2014</em>.</li>
+            <li id="ref-104">Yang, Q., Stork, J. A., &amp; Stoyanov, T. (2022). &ldquo;Variable Impedance Skill Learning for Contact-Rich Manipulation.&rdquo; <em>IEEE Robotics and Automation Letters</em>.</li>
+            <li id="ref-105">Yin, J., et al. (2024). &ldquo;Learning In-Hand Translation Using Tactile Skin With Shear and Normal Force Sensing.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-106">Yunt, K., &amp; Glocker, C. (2006). &ldquo;Trajectory Optimization of Mechanical Hybrid Systems Using SUMT.&rdquo; <em>Technical Report, ETH Zurich</em>.</li>
+            <li id="ref-107">Zeng, A., Song, S., Lee, J., Rodriguez, A., &amp; Funkhouser, T. (2020). &ldquo;TossingBot. Learning to Throw Arbitrary Objects with Residual Physics.&rdquo; <em>IEEE Transactions on Robotics</em>.</li>
+            <li id="ref-108">Zhang, X., et al. (2023). &ldquo;Efficient Sim-to-Real Transfer of Contact-Rich Manipulation Skills with Online Admittance Residual Learning.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-109">Kim, M., Han, J., Kim, J.-H., &amp; Kim, B. (2023). &ldquo;Pre- and Post-Contact Policy Decomposition for Non-Prehensile Manipulation with Zero-Shot Sim-to-Real Transfer.&rdquo; <em>IROS 2023</em>.</li>
+            <li id="ref-110">Zhu, J., et al. (2025). &ldquo;ShapeForce. Low-Cost Soft Robotic Wrist for Contact-Rich Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-111">Zhu, J., Navarro-Alarcon, D., Passama, R., &amp; Cherubini, A. (2019). &ldquo;Robotic Manipulation Planning for Shaping Deformable Linear Objects With Environmental Contacts.&rdquo; <em>IEEE Robotics and Automation Letters</em>.</li>
+            <li id="ref-112">Zhu, X., Li, R., Tao, X., &amp; Ding, H. (2022). &ldquo;A Contact-Safe Reinforcement Learning Framework for Contact-Rich Robot Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-113">Hogan, F. R., &amp; Rodriguez, A. (2020). &ldquo;Reactive Planar Non-Prehensile Manipulation with Hybrid Model Predictive Control.&rdquo; <em>The International Journal of Robotics Research</em>.</li>
+            <li id="ref-114">Vulin, N., Christen, S., Stev&scaron;i&cacute;, S., &amp; Hilliges, O. (2021). &ldquo;Improved Learning of Robot Manipulation Tasks via Tactile Intrinsic Motivation.&rdquo; <em>IEEE Robotics and Automation Letters</em>.</li>
+            <li id="ref-115">Zhang, X., Sun, L., Kuang, Z., &amp; Tomizuka, M. (2021). &ldquo;Learning Variable Impedance Control via Inverse Reinforcement Learning for Force-Related Tasks.&rdquo; <em>IEEE Robotics and Automation Letters</em>.</li>
+            <li id="ref-116">Beltran-Hernandez, C. C., Petit, D., Ramirez-Alpizar, I. G., &amp; Harada, K. (2020). &ldquo;Variable Compliance Control for Robotic Peg-in-Hole Assembly. A Deep-Reinforcement-Learning Approach.&rdquo; <em>Applied Sciences</em>.</li>
+            <li id="ref-117">Howell, T. A., Le Cleac&rsquo;h, S., Singh, S., Florence, P., Manchester, Z., &amp; Sindhwani, V. (2022). &ldquo;Trajectory Optimization with Optimization-Based Dynamics.&rdquo; <em>IEEE Robotics and Automation Letters</em>.</li>
+          </ol>
+        </div>
+      </article>
+    </div>
+
+    <!-- Blog styling and spacing script -->
+    <script defer src="/js/blog.js"></script>
+    <script defer src="/js/katex-init.js"></script>
+    <script defer src="/js/references.js"></script>
+  </body>
+</html>

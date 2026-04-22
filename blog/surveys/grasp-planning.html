@@ -1,0 +1,1306 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Grasp Planning for Robotic Manipulation | Hu Tianrun</title>
+
+    <!-- Fonts -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Prism.js initialization -->
+    <script src="/js/prism-init.js"></script>
+
+    <!-- KaTeX Math Support -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Site Assets -->
+    <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg" />
+    <link href="/css/blog.css" rel="stylesheet" />
+    <link href="/css/references.css" rel="stylesheet" />
+
+    <!-- KaTeX Scripts -->
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"
+    ></script>
+  </head>
+  <body>
+    <div class="blog-post">
+      <a href="../?tab=survey" class="back-button">
+        <i class="fas fa-arrow-left"></i>Back
+      </a>
+
+      <header class="blog-post-header">
+        <h1 class="blog-post-title">Grasp Planning for Robotic Manipulation</h1>
+        <div class="blog-post-date">April 23, 2026</div>
+      </header>
+
+      <article class="blog-post-content">
+        <section class="blog-section">
+
+        <h2>1. Introduction</h2>
+
+        <p>
+          Robots increasingly operate in unstructured human environments where objects rarely present themselves
+          in configurations amenable to direct grasping. A mug wedged against a wall, a coin flat on a table, a
+          long elastic cable that must be coiled into a narrow box, a heavy workpiece that no single arm can lift
+          alone. Each of these scenes demands a preparatory action, a push, a slide, a tilt, a regrasp, a
+          handover, or an explicit assignment of one arm to hold while the other acts. These auxiliary actions
+          are not the task itself. They are the enabling moves that make the task achievable. After a decade of
+          rapid progress on single-shot grasp synthesis for isolated objects [72, 71], the computational
+          orchestration of such pre-manipulation actions has emerged as the dominant bottleneck for
+          general-purpose manipulation in realistic settings.
+        </p>
+
+        <p>
+          The urgency of this problem has grown along two axes. Hardware has expanded from single-arm industrial
+          cells to bimanual humanoids, dexterous multi-fingered hands, quadrupeds that repurpose a leg for
+          manipulation [23], and multi-robot teams. Each additional end-effector multiplies the opportunities
+          for enabling actions (more intermediate states, richer role assignment) while also multiplying the
+          combinatorial difficulty of planning them. At the same time, foundation models have begun to serve as
+          front-ends for robot planners [8, 29, 30, 31], promising zero-shot generalization to novel
+          enabling-action scenarios. This promise sits uneasily alongside the formal and physical guarantees
+          that classical planning has historically provided [27, 47], and the resulting tension between
+          open-world flexibility and physical reliability now shapes much of the field's research agenda.
+        </p>
+
+        <p>
+          This survey addresses one question. What computational methods have been proposed for planning and
+          executing auxiliary pre-manipulation actions (pushing, sliding, re-orienting, regrasping, handing
+          off, and arm-role assignment) that enable a primary grasp when the target object is not directly
+          graspable because of kinematic, contact, or environmental constraints, particularly in bimanual and
+          multi-agent robotic settings. The scope is a scoping review of work from 2016 to 2026, drawing on
+          robotic manipulation planning, bimanual and dual-arm robotics, multi-agent manipulation, task and
+          motion planning (TAMP), and grasp planning under constraints. Foundational works from the preceding
+          decade are included where they anchor the computational ideas that the recent literature extends
+          [55, 56, 57, 58, 59, 69].
+        </p>
+
+        <p>
+          The field is unusually heterogeneous. It sits at the intersection of contact mechanics, combinatorial
+          planning, reinforcement learning, imitation learning, and foundation-model reasoning. To impose
+          structure, this survey organizes work by the principal type of enabling action addressed, mirroring
+          the thematic decomposition adopted by contemporary reviews of nonprehensile manipulation [70] and
+          neighboring surveys on robotic tool use. Section 3 covers pre-grasp non-prehensile manipulation
+          (pushing, sliding, toppling to repose objects before grasping). Section 4 covers regrasping,
+          handover, and in-hand re-orientation. Section 5 covers bimanual role assignment and coordination.
+          Section 6 covers integrated task and motion planning frameworks that reason jointly over discrete
+          action sequences and continuous trajectories. Section 7 covers learning-based sequential
+          manipulation under kinematic, contact, and environmental constraints. Sections 8 through 10 examine
+          cross-cutting themes, open problems, and the central takeaway.
+        </p>
+
+        <div class="blog-callout">
+          <p>
+            <strong>The single most important takeaway.</strong> Over the decade covered here, enabling
+            actions have moved from a peripheral concern of grasp planning to its conceptual center. The hard
+            computational problem for a robot in a realistic scene is rarely the grasp itself. It is the chain
+            of pushes, slides, regrasps, handovers, and role assignments that must occur before the grasp
+            becomes feasible. The most capable recent systems are neither pure planners nor pure learners but
+            hybrids that use foundation models for open-world task decomposition, classical planners for
+            discrete sequencing and formal guarantees, and learned policies for contact-rich low-level
+            execution. Grasp planning is no longer a single question of pose synthesis. It is a
+            sequential decision problem about the actions that make a grasp possible.
+          </p>
+        </div>
+
+
+
+        <h2>2. Background and Definitions</h2>
+
+        <p>
+          The literature on enabling actions draws vocabulary from several communities with partially
+          overlapping usage. This section establishes working definitions used throughout the survey and
+          demarcates the scope.
+        </p>
+
+        <p>
+          <strong>Enabling (auxiliary pre-manipulation) actions</strong> are deliberate robot actions whose
+          primary purpose is to transform the state of the object, the robot, or the environment so that a
+          subsequent <em>primary manipulation action</em> (typically a grasp, a tool application, or a
+          transport) becomes kinematically, dynamically, or geometrically feasible. Their value is entirely
+          instrumental. Examples include pushing an object to a graspable pose [1, 6], regrasping to change
+          grasp configuration [9, 10], handing an object between arms [15, 16, 17], and assigning one arm to
+          stabilize while the other manipulates [20, 22]. The term is not universally adopted. Different
+          communities use "pre-grasp manipulation" [63, 64, 66], "in-hand manipulation" [10], "extrinsic
+          dexterity" [11, 41], "shared grasping" [48], or "bridge actions" to refer to overlapping
+          phenomena. Treating these as variants of a single computational category is one of the
+          framing choices of this survey.
+        </p>
+
+        <p>
+          <strong>Non-prehensile manipulation</strong> encompasses actions that alter an object's state
+          without forming a stable grasp closure. These include pushing, sliding, toppling, tilting, pivoting,
+          and dynamic transport [69, 70]. Non-prehensile actions are a principal class of enabling action
+          because they can repose objects that are initially ungraspable, such as thin plates flat on a
+          surface [43, 45] or large flat items in dense clutter [38, 40]. The boundary between non-prehensile
+          manipulation as a standalone capability and as a pre-grasp enabling action is fluid. This survey
+          attends to work that treats non-prehensile actions as means toward a downstream grasp, while the
+          neighboring survey on robotic tool use and non-prehensile manipulation covers the non-prehensile
+          literature whose end goal is not a grasp.
+        </p>
+
+        <p>
+          <strong>Regrasping</strong> denotes a planned change of grasp configuration on an object,
+          potentially involving placing the object on a support surface [12, 13], transferring it between
+          hands [9], pressing it against an environmental contact [11], or executing finger-gaiting motions
+          [10]. <strong>In-hand re-orientation</strong> is the special case in which the object's pose
+          relative to the hand is changed without releasing it [10, 61]. Both serve as enabling actions when
+          the current grasp is incompatible with a required downstream manipulation. The bottleneck problem
+          for multi-step regrasping is predicting diverse geometrically valid stable placements [12, 13].
+        </p>
+
+        <p>
+          <strong>Handover</strong> is the transfer of an object between two agents. Robot-to-robot,
+          robot-to-human, and human-to-robot handovers have been studied, with reactive partner-adaptive
+          policies displacing earlier static handoffs [15, 16, 17]. A handover is an enabling action when a
+          single agent lacks the kinematic reach, dexterity, or workspace access to complete the task alone.
+        </p>
+
+        <p>
+          <strong>Bimanual role assignment</strong> is the allocation of asymmetric functional roles (holder
+          versus actor, leader versus follower, stabilizer versus manipulator) to the two arms of a dual-arm
+          system [18, 19, 20, 62]. Role assignment is an enabling action at the planning level. It
+          determines which arm performs auxiliary stabilization and which executes the primary task, and
+          empirical and computational work converges on the view that role assignment cannot be resolved
+          independently per arm [21, 22, 23].
+        </p>
+
+        <p>
+          <strong>Task and motion planning (TAMP)</strong> is a family of frameworks that jointly reason over
+          discrete action sequences (task planning) and continuous motion trajectories (motion planning)
+          subject to kinematic, geometric, and increasingly dynamic constraints [24, 27, 49, 50, 56, 57].
+          TAMP provides a natural substrate for enabling-action planning because the need for such actions
+          often emerges from the infeasibility of direct motion plans. Classical TAMP assumes fixed object
+          geometry. Extending TAMP to forceful [24, 65] and deformable [25] manipulation is an active thrust.
+        </p>
+
+        <p>
+          <strong>Multi-modal motion planning</strong> treats manipulation as a search through configuration
+          spaces that consist of intersecting submanifolds of varying dimensionality, corresponding to
+          different contact modes [58, 59]. This formalism underlies modern treatments of grasp transitions,
+          regrasps, and non-prehensile actions, because each contact mode change is a transition between
+          manifolds.
+        </p>
+
+        <p>
+          <strong>Scope boundaries.</strong> This survey covers computational methods (algorithms,
+          representations, architectures) rather than hardware design, sensing modalities per se, or human
+          factors outside handover and shared autonomy. Manipulation of fully unconstrained objects where
+          direct grasping suffices is excluded. Locomotion planning is excluded except where limbs are
+          explicitly repurposed for manipulation [23]. Grasp quality metrics and force-closure analysis
+          appear only as constraints or objectives within enabling-action planners. Deformable object
+          manipulation is covered where enabling actions are involved [25], but not comprehensively.
+        </p>
+
+
+
+        <h2>3. Pre-Grasp Non-Prehensile Manipulation</h2>
+
+        <p>
+          When an object cannot be directly grasped because of its geometry, its pose on a support surface,
+          or the presence of obstacles, the robot must first modify the scene. The methods developed for this
+          purpose have evolved from hand-tuned pushing controllers in the foundational era [55, 69] to
+          generative and learning-based policies [1, 2, 3, 39, 41] and most recently to vision-language
+          models that select non-prehensile primitives from natural language instructions [8, 31]. The
+          structure of the literature reflects a consistent division between the low-level question of how
+          to execute a non-prehensile motion reliably and the high-level question of when to invoke one.
+        </p>
+
+        <h3>3.1 From Contact Mechanics to Learned Repositioning</h3>
+
+        <p>
+          The pre-deep-learning literature treated pushing and sliding as contact-mechanics problems, where
+          friction cones, limit surfaces, and quasi-static contact assumptions yielded analytic controllers
+          whose reliability depended on accurate parameter estimates [69, 55]. Dogar and Srinivasa [55]
+          demonstrated that deliberate push-grasps, where the hand pushes the object rather than avoids it,
+          extend a manipulator's reachable grasp set substantially in cluttered tabletop settings, and their
+          framework remains one of the clearest statements of the enabling-action view of pushing. Templates
+          for pre-grasp sliding interactions [63] and representations of pre-grasp manipulation strategies
+          [64] established the terminology and showed that a small library of primitives (rotate-in-place,
+          slide-to-edge, tilt-against-wall) covers a substantial fraction of household scenes. Planning
+          pre-grasp manipulation for transport tasks [66] tied these primitives to downstream goals by
+          demonstrating that human-inspired pre-grasp rotations and slides improve load-supporting postures
+          and task success. This thread also produced the extrinsic-dexterity principle, where
+          environmental contacts are exploited deliberately. Chavan-Dafle and Rodriguez [11] formalized
+          fixtureless fixturing for regrasping, and later work [41] extended the principle to grasping
+          otherwise ungraspable objects through emergent exploitation of walls and edges in reinforcement
+          learning.
+        </p>
+
+        <p>
+          Beginning around 2019, end-to-end learning replaced analytic contact controllers as the default
+          approach for non-prehensile repositioning. Haustein et al. [1] proposed a hybrid architecture that
+          trained a GAN-based generative model to propose <em>manipulation states</em>, configurations from
+          which non-prehensile actions can transport an object toward a target, coupled with a reinforcement-learning
+          action policy for planar pushing and sliding. By treating the graspable pose as the target, this
+          framework implicitly defined pre-grasp manipulation as goal-conditioned non-prehensile rearrangement.
+          Cho et al. [2] extended this class of approaches to general household environments through a
+          hierarchical and modular network that generalizes across geometries, directly addressing the
+          narrow object-category and planar-surface restrictions of earlier systems. Del Aguila Ferrandis
+          et al. [3] attacked a complementary weakness, the perceptual failure of vision-only pushing when
+          the object is occluded by the gripper, by proposing a Bayesian deep-learning framework for
+          visuotactile state estimation that supports uncertainty-aware control under occlusions after
+          sim-to-real transfer with a simple onboard camera. Taken together, these works establish that
+          learned non-prehensile policies can handle geometric diversity, perceptual degradation, and
+          contact-rich dynamics. No single system yet combines all three simultaneously.
+        </p>
+
+        <h3>3.2 Pre-Grasp Manipulation in Clutter and Dense Scenes</h3>
+
+        <p>
+          Pre-grasp manipulation is particularly hard in dense clutter, where the target object is surrounded
+          by immovable and movable obstacles and direct grasps are blocked. Learning-based retrieval policies
+          have become the dominant response. Sun and colleagues [38] learned a pre-grasp manipulation policy
+          that strategically pushes surrounding objects to open collision-free grasp affordances for a
+          target, treating clutter rearrangement and grasp selection as an integrated pipeline. Liu et al.
+          [40] specialized this idea for flat objects in cluttered scenes by learning sliding primitives
+          that rearrange neighboring items while keeping the target pushable toward a graspable pose. Liu
+          et al. [43] introduced a binary-mask representation of wide and flat objects for pre-grasp pushing,
+          showing that compact shape descriptors suffice for learned pushing policies that generalize across
+          aspect ratios. Sun et al. [44] addressed objects in ungraspable poses (large flat boxes lying on a
+          table) by framing pre-grasp manipulation as a lift-and-secure problem solved jointly by two arms,
+          an early demonstration that bimanual coordination is central to pre-grasp manipulation in
+          realistic settings. Earlier work by Kim and Park [42] showed that pre-grasp manipulation can be
+          necessary even for moderately cluttered single-object scenes when power grasps are required,
+          because the finger's wrap-around motion needs a pocket of free space that must first be
+          generated. The progression across these works is instructive. Early pre-grasp systems assumed
+          that the target's surround was fixed and only the target was manipulated. The current generation
+          treats the entire scene as actionable and learns where to act.
+        </p>
+
+        <p>
+          Analytic and hierarchical planning approaches continue to mature alongside learning. He et al.
+          [4] introduced LDHP, a library-driven hierarchical planning framework that decouples object-motion
+          planning (via contact-state primitives) from grasp-sequence feasibility (via gripper-aware
+          adjustment primitives), with executability certified by quasi-static mechanics and collision
+          constraints. This decoupling yields a training-free pipeline that transfers across object
+          geometries and task types, directly addressing the class of thin, flat, or otherwise ungraspable
+          objects that motivated pre-grasp manipulation in the first place. The philosophical contrast with
+          end-to-end learning [1, 2, 3] is clear. Hierarchical decoupling sacrifices the potential for
+          globally optimal action sequences in exchange for modularity, interpretability, and zero-shot
+          transfer, properties that may be more valuable in safety-critical or low-data deployment
+          scenarios. Hou et al. [45] attacked an adjacent analytic corner of the problem by showing that
+          soft, compliant, and underactuated hands enable pre-grasp sliding manipulation of thin objects
+          with integrated motion-and-control plans, because passive reconfigurability of the fingers
+          absorbs contact uncertainties that rigid fingers cannot. The combined lesson is that pre-grasp
+          manipulation is sensitive to the gripper's mechanical properties, and planners that ignore this
+          sensitivity produce infeasible motions on real hardware.
+        </p>
+
+        <h3>3.3 Human-in-the-Loop and Mixed-Initiative Planning</h3>
+
+        <p>
+          When the search space for non-prehensile pre-grasp plans is intractably large, as in cluttered
+          environments with many movable obstacles, autonomous planners often fail or require prohibitive
+          computation. Two distinct mixed-initiative strategies have emerged. Papallas and Dogar [6]
+          demonstrated that minimal human operator input integrated into a randomized control-based
+          planner substantially reduces planning time and improves success rates for non-prehensile
+          manipulation in clutter, establishing a human-in-the-loop planning paradigm distinct from full
+          autonomy and direct teleoperation. Ghalamzan Esfahani et al. [7] approached the problem from the
+          opposite direction. In a shared-autonomy teleoperation setting, an autonomous agent guided human
+          grasp selection via haptic force cues during the reach-to-grasp phase, coupling pre-grasp pose
+          choice to post-grasp manipulation capability through a task-relevant velocity manipulability
+          metric (TOV). The contrast reveals the same underlying insight from two angles. Papallas and
+          Dogar [6] use the human to reduce search complexity. Ghalamzan Esfahani et al. [7] use autonomy
+          to improve grasp quality. Both point to mixed-initiative architectures that allocate reasoning
+          between human and robot according to their complementary strengths. Neither work has yet been
+          extended to dynamic, changing scenes.
+        </p>
+
+        <h3>3.4 Physics-Based Randomized Planning</h3>
+
+        <p>
+          A parallel line of research retains planning-first structure while replacing purely kinematic
+          constraints with physics-based feasibility checks. Randomized physics-based motion planning
+          [73] uses a simulator to evaluate proposed motions under contact dynamics, moving obstacles,
+          and friction, so the planner can consider actions that deliberately collide with or push movable
+          obstacles. Kinodynamic randomized rearrangement planning [53] extends this principle with
+          nonprehensile actions that cover a wider range of dynamic transitions between statically stable
+          states, explicitly lifting the monotonicity assumption that had restricted earlier rearrangement
+          planners. Rearrangement planning with object-centric and robot-centric action spaces [54] showed
+          that mixing the two action parameterizations yields stronger performance than either alone, a
+          lesson that foreshadowed the hybrid symbolic-continuous action spaces that TAMP now relies on
+          [49, 50]. These physics-based planners deliver the formal guarantees that learned policies lack
+          and the efficiency that purely symbolic planners lack, but their reliance on accurate simulation
+          remains their main liability, because friction and multi-contact dynamics are exactly the regime
+          where simulators are least accurate.
+        </p>
+
+        <h3>3.5 Non-Prehensile Transport and Tray-Based Carrying</h3>
+
+        <p>
+          Not all pre-grasp enabling actions involve contact with the target object's surface. When the
+          object must be moved rapidly across a workspace before it can be grasped at a new location,
+          tray-based non-prehensile transport provides an alternative. Chen et al. [5] developed a
+          time-optimal trajectory planner for non-prehensile 3D object transportation that exploits tray
+          rotation as an additional degree of freedom, achieving faster transport speeds than
+          translation-only approaches while satisfying a derived physical object-stability model and robot
+          motion constraints. This work extends the repertoire of pre-grasp enabling actions beyond the
+          canonical push-and-slide and exposes a subtle point. The dominant pre-grasp literature has
+          implicitly restricted itself to planar contact actions, leaving significant capabilities (rapid
+          non-contact transport, controlled tilting during carry, dynamic throws and catches) underexplored.
+        </p>
+
+        <h3>3.6 Vision-Language Models as Pre-Grasp Planners</h3>
+
+        <p>
+          The most recent development in this theme is the deployment of vision-language models (VLMs) as
+          high-level planners that decide when non-prehensile primitives are needed and which to invoke.
+          Zhu et al. [8] proposed AdaptPNP, a unified framework that uses a VLM to interpret visual scenes
+          and task descriptions, selects between prehensile and non-prehensile action primitives (pushing,
+          poking, sliding), and incorporates a digital-twin intermediate layer that predicts resulting
+          object poses for mental rehearsal prior to execution. This architecture enables online replanning
+          when execution deviates from the plan, a capability absent from the open-loop learned policies
+          [1, 2]. Mandikal and Grauman [39] approached a different aspect of the same problem, learning
+          dexterous manipulation from exemplar object trajectories and pre-grasps that provide dense
+          demonstrations of how a hand should move around and across an object before the grasp forms. The
+          two works illustrate the complementary roles VLMs and demonstration data play. The VLM supplies
+          semantic decisions about which primitive to use. Pre-grasp demonstrations supply the continuous
+          motion for realizing that decision. The open issue is reliability. VLM-based action selection
+          lacks the formal guarantees of constraint-based planners [4, 27], and the digital-twin
+          predictions that AdaptPNP relies on are only as faithful as the underlying simulator. The
+          tension between VLM generality and physics-based reliability remains unresolved and constitutes
+          a central open problem for pre-grasp planning.
+        </p>
+
+
+
+        <h2>4. Regrasping, Handover, and In-Hand Re-Orientation</h2>
+
+        <p>
+          Where pre-grasp non-prehensile manipulation brings an object into a graspable configuration,
+          regrasping, handover, and in-hand re-orientation change the relationship between the object and
+          the grasping agents after contact is established. These actions are enabling when a current
+          grasp is incompatible with a downstream goal, when a second grasp is geometrically reachable but
+          the first is not, or when two agents must share the object along the way. Classical treatments
+          of humanoid regrasp planning [52] framed the problem as a motion-planning search over discrete
+          grasp assignments and continuous arm trajectories. The past decade has reshaped this view in
+          two ways. Graph-based contact representations unify in-hand pushing, regrasping, and hand-to-hand
+          transfer into a single planning problem [9]. And stable-placement prediction has emerged as the
+          principal computational bottleneck for multi-step regrasping [12, 13].
+        </p>
+
+        <h3>4.1 Graph-Based Representations for Grasp Reconfiguration</h3>
+
+        <p>
+          A unifying representational advance in in-hand manipulation planning has been the formulation of
+          grasp reconfiguration as graph search over contact-space trajectories. Cruciani et al. [9]
+          introduced the Dexterous Manipulation Graph (DMG), a disconnected undirected graph representing
+          possible finger-contact trajectories on an object's surface, which unifies in-hand pushing and
+          regrasping into a single planning problem. Critically, in a dual-arm setting, Cruciani et al. [9]
+          demonstrated that assigning both arms interchangeable roles (neither fixed as holder nor
+          manipulator) expands the reachable set of grasp reconfigurations, effectively treating hand-to-hand
+          transfer as a tool <em>within</em> the in-hand manipulation planner rather than as a standalone
+          handover. Sundaralingam and Hermans [10] addressed the same geometric regrasping problem through
+          an optimization framework that alternates between finger gaiting (discrete contact relocation)
+          and in-grasp manipulation (continuous object motion within a fixed grasp), providing a
+          complementary analytical perspective to the graph-search formulation. Chavan-Dafle and Rodriguez
+          [11] contributed a distinct physical mechanism, regrasping by pushing an object against external
+          environmental contacts ("fixtureless fixturing"), which exploits extrinsic dexterity for grasp
+          reconfiguration without requiring a second hand or dexterous fingers, broadening the applicability
+          of regrasping to minimally actuated grippers. Shi et al. [61] explored the dynamic counterpart,
+          using inertial loading from controlled arm motion to achieve desired in-grasp sliding, showing
+          that regrasping need not be quasi-static. The earlier study of prehensile pushing with alternating
+          sticking contacts [74] established the mechanical analysis underpinning the in-hand pushing
+          trajectories that later graph-based planners search over.
+        </p>
+
+        <h3>4.2 Stable Placement Prediction as the Regrasping Bottleneck</h3>
+
+        <p>
+          For sequential pick-and-place regrasping, where an object must be placed down and re-grasped in
+          a new configuration to reach an otherwise unreachable goal pose, the principal computational
+          bottleneck is predicting diverse, geometrically valid stable placements on support surfaces. Xu
+          et al. [12] made this explicit, developing point-cloud-based neural networks with orientation
+          generation, refinement, and discrimination stages to learn stable placement prediction, and
+          showed that this learned component is the critical enabler for multi-step regrasping pipelines
+          toward arbitrary goal poses. Levit et al. [13] built upon this insight by interleaving the
+          construction of a configuration-space <em>regrasp map</em>, an abstract model of feasible regrasp
+          areas and grasp sequences, with an optimization-based TAMP solver, creating a feedback loop where
+          failed motion-level refinements update the abstract regrasp model. This adaptive interleaving
+          directly addresses a limitation of Xu et al. [12], whose pipeline assumed that placement
+          predictions are correct at generation time without post-hoc correction. The progression from
+          static prediction [12] to adaptive refinement [13] mirrors a broader trend in manipulation
+          planning toward closed-loop, failure-driven replanning.
+        </p>
+
+        <h3>4.3 Task-Driven Regrasp Timing</h3>
+
+        <p>
+          A conceptually distinct question is not <em>how</em> to regrasp but <em>when</em>. At what point
+          in a manipulation task does the current grasp become insufficient. Patankar et al. [14]
+          formalized this by decomposing complex manipulation tasks into sequences of constant screw motions
+          and computing graspable regions on the object's point-cloud surface for each screw segment. A
+          regrasp is needed wherever graspable regions of contiguous segments do not overlap, transforming
+          regrasp planning from a heuristic decision into a path-constraint-satisfaction problem where the
+          task's kinematic structure (not a goal grasp pose) dictates regrasp timing and frequency. This
+          task-driven formulation contrasts with the goal-pose-driven regrasping of Xu et al. [12] and
+          Levit et al. [13], and with the contact-trajectory-driven replanning of Cruciani et al. [9] and
+          Sundaralingam and Hermans [10], by grounding the regrasp decision in the downstream manipulation
+          requirements rather than the current or desired grasp configuration. The two perspectives are
+          complementary. Patankar et al. [14] determine that a regrasp is needed at a specific task phase,
+          while graph- and placement-based methods [9, 12, 13] determine how to execute it.
+        </p>
+
+        <h3>4.4 Handover Planning from Static to Reactive</h3>
+
+        <p>
+          Robot-to-human and human-to-robot handovers have evolved from static, pre-planned motions to
+          reactive, partner-adaptive behaviors. Göksu et al. [15] proposed a framework using Hidden
+          Semi-Markov Models (HSMMs) to generate kinematically constrained bimanual robot motions for
+          human-like robot-to-human handovers, learned from human demonstration data. Kim et al. [16]
+          extended this paradigm by making the handover dynamic, where the robot adjusts its trajectory
+          in real time to the observed receiver's motion, and provided empirical evidence from user studies
+          that dynamic, receiver-adaptive handover significantly reduces handover time and improves user
+          comfort compared to static strategies. Both works share the design principle of combining
+          probabilistic motion priors (for naturalness and timing) with explicit task-space kinematic
+          constraints (for geometric accuracy), separating perceptual naturalness from physical correctness
+          [15, 16]. Christen et al. [17] addressed the complementary direction, human-to-robot handover,
+          by learning control policies from point clouds in simulation, enabling vision-based handover
+          without relying on hand-crafted heuristics for grasp timing or approach direction. A notable gap
+          persists. While bimanual robot-to-human handover has received attention [15], bimanual
+          human-to-robot handover and multi-agent robot-to-robot handover remain largely unexplored,
+          despite their relevance to collaborative assembly and logistics.
+        </p>
+
+        <h3>4.5 Humanoid and Multi-Arm Regrasp Planning</h3>
+
+        <p>
+          Humanoid regrasp planning confronts the combined difficulty of high-DOF kinematics and dual-arm
+          coordination. Vahrenkamp et al. [52] proposed efficient solutions for motion planning of dual-arm
+          manipulation and re-grasping tasks on humanoids, showing that decomposing the planning problem
+          into arm-level subproblems with explicit coupling constraints yields tractable plans even at
+          high DOF. The classical approach is effective for quasi-static regrasps but does not easily
+          handle contact-rich or dynamic motions. More recent work has added learned models at the arm
+          level [13, 34] while retaining the dual-arm decomposition as the organizing principle. Bimanual
+          grasp planning in the pre-2016 period [60] established the templates and force-balance criteria
+          that newer learning-based bimanual systems [35, 37] still use as structural priors, though
+          current practice rarely acknowledges this heritage explicitly.
+        </p>
+
+
+
+        <h2>5. Bimanual Role Assignment and Coordination</h2>
+
+        <p>
+          Bimanual manipulation is not merely two single-arm problems solved in parallel. It is a
+          qualitatively different planning problem because the two arms share kinematic, dynamic, and
+          force-closure constraints, and the most effective bimanual strategies assign the arms asymmetric
+          roles that neither could play alone [51, 62]. The past decade has seen bimanual role assignment
+          evolve from engineered skill primitives with hand-coded role labels [18, 19] to emergent role
+          differentiation in end-to-end learning [20, 23], with analytic planning methods in between that
+          exploit the specific structural simplifications the bimanual constraint provides [22].
+        </p>
+
+        <h3>5.1 The Spectrum of Role Assignment Mechanisms</h3>
+
+        <p>
+          Bimanual role assignment, deciding which arm holds, stabilizes, or supports while the other acts,
+          inserts, or manipulates, has been approached through at least three fundamentally different
+          mechanisms, reflecting divergent assumptions about what information is available at planning
+          time. At one end of the spectrum, <strong>skill-based role encoding</strong> embeds the
+          holder/actor distinction within reusable manipulation skill primitives. A symbolic planner
+          sequences pre-defined skills that already encode which arm performs which asymmetric function
+          [18, 19, 20]. This approach is pragmatically effective for known task repertoires but is
+          inherently limited to the role decompositions anticipated by the skill designer. At the other
+          end, <strong>emergent role differentiation</strong> arises from end-to-end learning without
+          explicit role assignment. Arm et al. [23] demonstrated that in a quadruped repurposing one leg
+          for manipulation, asymmetric roles (actor limb versus collective stabilizer limbs) emerge from a
+          unified reinforcement-learning controller that adaptively modifies locomotion gait to extend the
+          actor limb's reachable workspace. Between these extremes, Sundaram et al. [19] proposed
+          <strong>actuation-matrix-driven role differentiation</strong>, where an explicit matrix encoding
+          contact-force generation differences between heterogeneous hands (fully actuated versus
+          underactuated) determines role assignment based on physical force-feasibility and manipulability
+          constraints, grounding role allocation in mechanics rather than task semantics or learned
+          behavior. Guiard's classic human-bimanual framework [62] anticipated the core distinction by
+          showing that skilled human bimanual action exhibits asymmetric division of labor where the
+          non-dominant hand stabilizes a frame of reference while the dominant hand acts within it, a
+          template that many of the computational frameworks [18, 20, 35] recapitulate implicitly.
+        </p>
+
+        <h3>5.2 Coupled Planning and Bidirectional Constraint Propagation</h3>
+
+        <p>
+          A recurring finding across the bimanual coordination literature is that effective role assignment
+          cannot be resolved independently for each arm. Instead, it emerges from <em>interactively coupled
+          planning constraints</em> that propagate bidirectionally between the two limbs. Huhn et al. [21]
+          provided psychophysical evidence from human bimanual manipulation showing that planning
+          constraints couple the two hands. The holder arm's planning demands constrain the actor arm's and
+          vice versa, with task symmetry structure shaping this coupling. Cohn et al. [22] formalized this
+          computational insight by developing an analytic IK-based constraint manifold reduction for
+          rigid co-manipulation. The fixed inter-end-effector transformation is resolved by an analytic
+          inverse kinematics solution that re-parametrizes joint configuration space into a lower-dimensional
+          representation where feasible configurations have positive measure rather than forming a
+          measure-zero set. This re-parametrization enables sampling-based planners, trajectory optimizers,
+          and convex inner-approximation methods to operate on the constrained bimanual problem without
+          modification. Arm et al. [23] achieved analogous coupling through learning rather than analysis.
+          The RL-trained controller implicitly learns gait-adaptive coordination where the supporting limbs
+          restructure their behavior to expand the manipulation limb's workspace, recovering bidirectional
+          constraint propagation as an emergent property of reward optimization rather than an engineered
+          computational structure. Earlier humanoid-manipulation planners by Vahrenkamp et al. [52]
+          established the tractability of explicit coupling with high-DOF humanoids, but did so using
+          hand-engineered constraints, so the theoretical progress across these works is best understood
+          as a move from explicit to implicit encoding of the bimanual coupling while preserving its
+          bidirectional character.
+        </p>
+
+        <h3>5.3 Reactive Role Alternation</h3>
+
+        <p>
+          Classical bimanual coordination assumes a fixed temporal ordering, where one arm stabilizes,
+          then the other acts. Realistic manipulation tasks often require <em>reactive alternation</em>
+          between roles. Grannen et al. [20] introduced a learned binary classifier that continuously
+          monitors whether the environment has drifted from a stable configuration during task execution,
+          triggering the holder arm to re-establish its grasp before the actor arm resumes. This enables
+          closed-loop, bidirectional alternation between stabilization and action, with the restabilization
+          condition itself learned from demonstrations rather than analytically specified. The shift from
+          sequential hand-off [18] to reactive alternation [20] represents an important maturation of
+          bimanual coordination, though it introduces new challenges. The stability classifier must
+          generalize across object geometries and task contexts, and false positives (unnecessary
+          restabilization) degrade task efficiency while false negatives (missed instability) risk
+          catastrophic failure. Sensor-conditioned skill transitions using multi-modal sensing (vision,
+          force/torque, tactile) have been proposed to gate transitions between bimanual skills [18, 20],
+          but robust, generalizable transition monitoring remains an open problem.
+        </p>
+
+        <h3>5.4 Bimanual Handling of Ungraspable Objects</h3>
+
+        <p>
+          A distinctive class of bimanual enabling actions exists for objects that no single hand can
+          grasp. Sun et al. [44] demonstrated that large flat boxes lying on a table, which provide no
+          graspable edge for a single hand, can be manipulated by a pipeline where one arm lifts the box
+          edge while the other slides underneath. The two-arm lift-and-grasp separates into distinct roles
+          with an explicit handover of the supporting function from one arm to the other. Cai et al. [35]
+          extended this approach to objects under changing external forces, showing that sampling stable
+          intersections in grasp manifolds enables efficient regrasp-free transitions between uni-manual
+          and bi-manual grasps. The grasp manifold formalism recasts the bimanual-versus-unimanual choice
+          as a smooth trajectory through configuration space rather than a discrete decision. The
+          classical bimanual grasp-planning literature [60] provides the geometric foundations that these
+          learning-based systems rely on, because bimanual grasps must simultaneously achieve force closure
+          for the object and collision-free kinematics for both arms, and the feasibility conditions have
+          been characterized analytically for parallel-jaw and multi-finger hands. The dual-arm survey by
+          Smith et al. [51] catalogs the coordination paradigms (position-controlled master-slave, hybrid
+          force/position, impedance-based leader-follower) that current learning-based bimanual systems
+          rediscover with neural networks.
+        </p>
+
+
+
+        <h2>6. Integrated Task and Motion Planning for Enabling Actions</h2>
+
+        <p>
+          Task and motion planning is the natural substrate for enabling-action reasoning because the need
+          for such actions arises precisely when direct motion planning fails and a symbolic detour
+          (place down, regrasp, push aside, hand over) is required. The classical TAMP foundations
+          established in the previous decade [56, 57, 58, 59] treated the problem as search over
+          alternating discrete and continuous decisions under kinematic and geometric constraints, and
+          the canonical algorithmic contributions of that era (hierarchical planning in the now [56],
+          factored task-and-motion planning [49, 50], logic-geometric programming [50]) remain the
+          backbone of contemporary systems. The developments of the past decade extend TAMP along four
+          axes. Force and deformation become first-class constraints [24, 25, 46, 47, 48, 65]. Enabling
+          actions are discovered by graph repair rather than pre-specified [26]. Formal correctness
+          certificates complement probabilistic guarantees [27, 28]. And foundation models serve as
+          perception and task-decomposition front-ends [29, 30, 31].
+        </p>
+
+        <h3>6.1 Extending TAMP Beyond Kinematics</h3>
+
+        <p>
+          The classical TAMP formulation reasons over kinematic and geometric constraints, including
+          collision avoidance, reachability, and stable placement. Many enabling actions involve forces
+          (prying, twisting, pressing) or deformable objects whose geometry changes under manipulation.
+          Holladay et al. [24] extended TAMP to <em>forceful manipulation</em> by augmenting the
+          framework with wrench controllers and torque/friction limit constraints, making force feasibility
+          a first-class constraint driving both discrete strategy selection and continuous parameter
+          optimization. Critically, Holladay et al. [24] also proposed robustness-to-parameter-variation as
+          a criterion for strategy selection. Strategies are preferred when their required continuous
+          parameters are insensitive to perturbations, coupling robustness analysis to symbolic action
+          sequencing, a departure from the purely feasibility-driven selection of earlier TAMP solvers.
+          Toussaint et al. [47] had earlier provided the theoretical grounding by formulating
+          force-based sequential manipulation as an optimization over physics-based feasibility
+          constraints, demonstrating that force considerations can be embedded in logic-geometric
+          programming rather than delegated to a post-hoc controller. Ma et al. [25] addressed a
+          complementary extension by developing geometric-state-aware action planning for elastic
+          objects (packing long linear elastic objects into boxes), where the discrete action sequence
+          must account for the object's evolving shape after each manipulation step using a hybrid
+          geometric model. Chen and Berenson [46] and Chen and Berenson [48] extended the notion of
+          environmental contact from an obstacle to be avoided to a resource to be exploited. Manipulation
+          planning that uses environmental contacts to keep objects stable under external forces [46] and
+          the shared-grasping framework that trades hand contacts for environment contacts [48] expand
+          the enabling-action repertoire by giving the planner explicit means to recruit walls, edges,
+          and fixed surfaces as temporary stabilizers. Cheng et al. [65] brought force-and-motion
+          constrained planning to tool use, showing that enabling-action planning for tool applications
+          must handle continuous force application over whole trajectories, not just at contact
+          transitions.
+        </p>
+
+        <h3>6.2 Enabling Action Discovery as Graph Repair</h3>
+
+        <p>
+          A powerful framing for enabling-action planning casts the problem as <em>graph repair</em>.
+          When adjacent action primitives in a task graph have incompatible state interfaces, the planner
+          automatically retrieves and splices in an intermediate enabling action. Takata et al. [26]
+          instantiated this idea in a bimanual cooking domain, decomposing recipes into task graphs and
+          inserting intermediate motions from a database when adjacent primitives require bridging. This
+          graph-connectivity-driven approach also yields bimanual parallel task execution as a structural
+          consequence. Simultaneous dual-arm scheduling emerges by identifying independent sub-chains in
+          the graph and assigning each to one arm, making parallelism a property of graph topology rather
+          than a separately solved coordination problem [26]. Garrett et al. [49] provided the more
+          general algorithmic mechanism with PDDLStream, which combines symbolic planning with blackbox
+          samplers so that continuous parameters (where to push, which grasp to use, which placement to
+          select) are sampled adaptively against symbolic preconditions and effects. PDDLStream has
+          become a workhorse for enabling-action planning because it makes continuous auxiliary actions
+          first-class in a PDDL-style formulation without requiring bespoke integration code.
+          Logic-geometric programming [50] remains the optimization-based counterpart for scenarios where
+          the cost function over final geometric states is the primary objective, and the two paradigms
+          increasingly coexist in modern systems.
+        </p>
+
+        <h3>6.3 Formal Guarantees in Reactive TAMP</h3>
+
+        <p>
+          The graph-repair and sampling-based approaches provide probabilistic or heuristic guarantees. A
+          complementary thread in the TAMP literature develops architectures with provable correctness.
+          Vasilopoulos et al. [27] encoded complex manipulation tasks as linear temporal logic (LTL)
+          formulas enriched with mobile manipulation primitives, compiling them to automata that
+          reactively ground discrete plan states to continuous controllers online. The key contribution is
+          the provision of provable discrete completeness and continuous termination guarantees,
+          introducing formal correctness certificates as a first-class property of TAMP, in contrast to
+          the heuristic or probabilistic guarantees of graph-repair methods [26, 49]. Vasilopoulos et al.
+          [28] extended this architecture with a hierarchical deliberative-reactive decomposition that
+          combines domain-independent sampling-based deliberative planning with a global reactive planner,
+          providing further robustness in partially known environments. The trade-off these systems make
+          explicit is the cost of formal guarantees in modeling effort. LTL and automaton-based systems
+          require careful specification, and their applicability to contact-rich manipulation where the
+          specifications themselves are hard to write remains a barrier that learning-based TAMP
+          architectures [37] sidestep at the cost of the guarantees.
+        </p>
+
+        <h3>6.4 Foundation Models as TAMP Front-Ends</h3>
+
+        <p>
+          The integration of vision-language models and large language models as front-end grounding
+          modules for TAMP has emerged as a prominent trend since 2024, enabling zero-shot generalization
+          to open-world environments without task-specific training or pre-specified symbolic domain
+          models. Tang et al. [29] proposed a VLM-based scenario grounding stage for humanoid bimanual
+          dexterous manipulation, where the VLM resolves unstructured natural-language instructions
+          against the current visual scene before downstream planning. Schakkal et al. [30] developed a
+          hierarchical vision-language planning framework for multi-step humanoid manipulation that uses
+          VLMs for both scene understanding and plan generation. Lee et al. [31] investigated LLM-based
+          planning for non-prehensile tool-object manipulation in confined environments, combining the
+          language model's task decomposition with a manoeuvrability-driven stepping controller that uses
+          visual-feedback tool affordance models to define geometric reachability for tool-object
+          interactions. The convergence across these works is striking. Foundation models serve as
+          <em>translators</em> between unstructured task specifications and structured TAMP inputs,
+          rather than as end-to-end controllers. This division of labor introduces a brittle interface.
+          The foundation model may ground tasks in physically infeasible ways that the downstream TAMP
+          solver cannot recover from, and none of these works provide formal guarantees comparable to
+          Vasilopoulos et al. [27]. The reliability gap between foundation-model-driven and formally
+          grounded TAMP remains a central unresolved tension.
+        </p>
+
+        <h3>6.5 Rearrangement Planning as a TAMP Stress Test</h3>
+
+        <p>
+          Rearrangement planning, where several movable objects must be relocated so a target can be
+          reached, is a stress test for TAMP because it combines combinatorial discrete choice (which
+          objects to move) with continuous motion (how to move them) under physical feasibility
+          constraints. King et al. [67] and Dogar and Srinivasa [55] established the tractability of
+          rearrangement planning with non-monotone plans, where an object may be moved, then moved again,
+          before the goal state is reached. Krug et al. [53] demonstrated kinodynamic randomized
+          rearrangement with dynamic transitions between statically stable states, lifting the
+          quasi-static assumption. Stilman et al. [68] provided probabilistic completeness results for
+          manipulation among movable obstacles that continue to inform contemporary planners, and Hertle
+          and Nebel [54] demonstrated that mixing object-centric and robot-centric action parameterizations
+          yields stronger performance than either alone. The current generation of learning-augmented
+          rearrangement planners [13, 37] inherits this discrete-continuous structure and adds learned
+          samplers for continuous parameters and learned heuristics for discrete choice.
+        </p>
+
+
+
+        <h2>7. Learning-Based Sequential Manipulation Under Constraints</h2>
+
+        <p>
+          Learning-based methods now account for a growing share of enabling-action research, particularly
+          where the contact dynamics, the perceptual bottlenecks, or the combinatorial scale defeat
+          analytic planners. This section organizes the learning literature into four closely related
+          threads. Reinforcement learning that exploits extrinsic dexterity to overcome kinematic
+          constraints [32, 33, 41]. Multimodal policy representations for contact-rich manipulation
+          [32, 35, 36]. Hybrid learning-planning architectures for long-horizon bimanual tasks [37]. And
+          data-efficient demonstration pipelines that sidestep sim-to-real transfer for enabling-action
+          skills [34].
+        </p>
+
+        <h3>7.1 Exploiting Extrinsic Dexterity Through Reinforcement Learning</h3>
+
+        <p>
+          A key insight driving recent RL-based approaches to pre-grasp manipulation is that environmental
+          contacts (table edges, walls, other objects) can be deliberately exploited as <em>extrinsic
+          dexterity</em> to overcome the kinematic limitations of the robot's own hand. Wu et al. [32]
+          demonstrated this by learning dexterous functional pre-grasp manipulation via RL, where a
+          dexterous hand repositions and re-orients objects by leveraging surface contacts, with a
+          mixture-of-experts strategy followed by diffusion policy distillation to capture the multimodal
+          action distributions arising from diverse valid solutions under contact constraints. Pavlichenko
+          and Behnke [33] tackled a closely related problem, learning pre-grasp manipulation for human-like
+          functional grasps, but introduced abstract, constraint-based grasp representations (specifying
+          relational and geometric constraints rather than explicit target poses) as learning targets,
+          enabling functional grasp achievement without full pose supervision. Zhou and Held [41] provided
+          an early and influential instance of the extrinsic-dexterity principle by showing that a simple
+          gripper can emergently learn to push objects against walls or edges to regrasp, without any
+          hand-coded contact assumptions, when trained end-to-end in a simulation that includes such
+          contacts. The shift from explicit pose targets [1] to abstract grasp constraints [33] parallels
+          the shift from goal-pose-driven to task-driven regrasping in the regrasping literature [14],
+          suggesting a broader methodological trend toward constraint-centric rather than
+          configuration-centric manipulation planning.
+        </p>
+
+        <h3>7.2 Multimodal Policy Representations for Contact-Rich Manipulation</h3>
+
+        <p>
+          Contact-rich manipulation under constraints generates inherently multimodal action
+          distributions. Multiple distinct strategies (different push directions, alternative finger
+          placements) may be equally valid for achieving the same pre-manipulation goal. Wu et al. [32]
+          showed that diffusion policy distillation from a mixture of experts outperforms unimodal policy
+          representations for dexterous pre-grasp manipulation, directly addressing the mode-collapse
+          problem that afflicts standard policy-gradient methods in contact-rich settings. Cai et al.
+          [35] extended multimodal reasoning to the bimanual setting, demonstrating that sampling stable
+          intersections in grasp manifolds enables efficient, regrasp-free transitions between uni-manual
+          and bi-manual grasps under varying external forces, paired with a hierarchical imitation
+          learning global planner and QP-based local planner that balances long-horizon path feasibility
+          with real-time constraint satisfaction. Zhang et al. [36] addressed the coordination dimension
+          of multimodality. Attention-based intrinsic regularization (DAIR) in bimanual RL enforces
+          sub-task specialization between cooperating arms, preventing both domination (one arm
+          monopolizing the task) and workspace conflict (inter-arm collision), yielding safer and more
+          efficient cooperative policies under sparse rewards without explicit collision penalty terms.
+          These three works collectively demonstrate that multimodal representations are not merely a
+          technical refinement but a fundamental requirement for learning manipulation policies in
+          constrained, multi-contact, multi-agent settings.
+        </p>
+
+        <h3>7.3 Bridging Learning and Planning for Long-Horizon Bimanual Tasks</h3>
+
+        <p>
+          Pure learning and pure planning approaches each exhibit characteristic failure modes for
+          long-horizon bimanual manipulation. Learned policies suffer from error accumulation and poor
+          out-of-distribution generalization. Classical planners struggle with perceptually complex
+          sub-tasks and require extensive domain engineering. Recent work has sought hybrid architectures
+          that allocate reasoning between learned and planned components according to their strengths.
+          Chen et al. [37] proposed SViP, integrating visuomotor imitation learning into TAMP via a
+          semantic scene graph monitor that detects task-phase transitions and generates parameterized
+          scripted primitives as fallback bridges. The TAMP constraint formalism handles
+          out-of-distribution recovery and unseen task generalization, while learned visuomotor policies
+          handle perceptually complex in-distribution sub-tasks, achieving strong generalization from as
+          few as 20 real-world demonstrations without object pose estimators. The complementary role
+          played by Levit et al. [13] in the regrasp setting (using learned models to feed a
+          constraint-based TAMP solver while allowing the planner to override failed learned predictions)
+          illustrates the same architectural pattern from a planner-centric rather than
+          learning-centric perspective. Taken together, these systems suggest a maturing consensus.
+          Enabling-action planning benefits from a learned perception and control layer, a classical
+          planning layer for sequencing and constraint satisfaction, and a monitoring layer that mediates
+          handoffs between them.
+        </p>
+
+        <h3>7.4 Data-Efficient Demonstration Pipelines</h3>
+
+        <p>
+          A complementary bottleneck for learning-based enabling-action methods is data acquisition.
+          Contact-rich, bimanual, long-horizon demonstrations are expensive to collect, and teleoperation
+          is awkward for whole-body humanoid manipulation. Nai et al. [34] addressed this by proposing
+          robot-free whole-body demonstration collection via portable wearable motion capture, paired with
+          a hierarchical imitation learning pipeline that explicitly bridges human-robot embodiment
+          differences, producing diverse humanoid manipulation skills that generalize to unseen
+          environments without teleoperation hardware or complex RL reward engineering. The
+          complementarity with Chen et al. [37] is notable. Chen et al. solves the execution architecture
+          problem (how to combine learned and planned components). Nai et al. solves the data acquisition
+          problem (how to collect diverse demonstrations efficiently). Neither alone is sufficient for
+          deployable long-horizon bimanual manipulation, but their combination points toward a viable
+          pipeline. Mandikal and Grauman [39] occupy an earlier position on the same axis, using exemplar
+          object trajectories and pre-grasps extracted from human video as a lighter-weight source of
+          supervision for dexterous manipulation. The central question that remains open across these
+          works is the quality of the embodiment transfer. Human motion-capture data and exemplar human
+          videos contain biomechanical constraints that differ from the robot's, and the hierarchical
+          bridges these pipelines use are the current best attempt to absorb the mismatch without
+          resorting to explicit retargeting networks.
+        </p>
+
+
+
+        <h2>8. Cross-Cutting Analysis</h2>
+
+        <p>
+          Looking across the five themes, five methodological axes recur and illuminate both the
+          convergences and the unresolved tensions in the field.
+        </p>
+
+        <h3>8.1 The Learning-Planning Continuum</h3>
+
+        <p>
+          The most salient methodological axis across all five themes is the continuum between purely
+          learned and purely planned approaches to enabling actions. At the planning end, constraint-based
+          methods provide interpretability, formal guarantees, and zero-shot transfer [4, 22, 27, 28, 49,
+          50]. At the learning end, RL and imitation learning methods handle perceptual complexity,
+          contact-rich dynamics, and multimodal action distributions [2, 3, 32, 36]. The most productive
+          recent systems occupy the middle of this continuum. Learned components handle perception and
+          low-level control, while planning components handle sequencing and constraint satisfaction
+          [8, 13, 37]. This hybrid architecture is not simply a pragmatic compromise. It reflects a
+          fundamental decomposition of the enabling-action problem into sub-problems with different
+          computational structures (continuous optimization versus discrete search, data-driven versus
+          model-based).
+        </p>
+
+        <h3>8.2 The Foundation Model Inflection Point</h3>
+
+        <p>
+          The period 2024 to 2026 has seen a rapid inflection in the use of VLMs and LLMs as planning
+          front-ends [8, 29, 30, 31]. These models provide unprecedented natural-language grounding and
+          zero-shot generalization, but uniformly lack the physical reasoning capabilities and formal
+          guarantees of classical TAMP [24, 27]. The emerging design pattern (foundation model as scene
+          interpreter and task decomposer, TAMP or learned controller as executor) recapitulates the
+          classical AI architecture of perception-planning-execution with learned rather than engineered
+          perception. Whether foundation models can be endowed with sufficient physical common sense to
+          serve as reliable enabling-action planners, or whether they will remain limited to high-level
+          task decomposition, is arguably the most consequential open question for the next decade.
+        </p>
+
+        <h3>8.3 Bimanual and Multi-Agent Coordination as an Amplifier</h3>
+
+        <p>
+          Bimanual and multi-agent settings do not merely add complexity. They qualitatively expand the
+          space of possible enabling actions by enabling handovers [15, 16, 17], inter-arm stabilization
+          [20], and role-based task decomposition [18, 19, 23]. The coordination overhead is substantial,
+          but the literature consistently demonstrates that bimanual systems can accomplish tasks
+          impossible for single arms. Manipulating ungraspable objects via dual-arm regrasping [9, 44].
+          Co-manipulating constrained objects via coupled planning [22, 52]. Achieving parallel task
+          execution through graph-structural analysis [26, 29]. A notable convergence is the shift from
+          pre-specified role assignment [18] to emergent or adaptive roles [20, 23], mirroring the
+          broader learning-over-engineering trend. An unresolved question is whether the coordination
+          principles discovered in bimanual settings will extend cleanly to three-arm, quadrupedal-leg,
+          or multi-robot settings, where the combinatorics of role assignment become qualitatively
+          harder.
+        </p>
+
+        <h3>8.4 Sim-to-Real Transfer and Evaluation Gaps</h3>
+
+        <p>
+          A methodological concern that cuts across all themes is the predominance of simulation-only
+          evaluation. Many of the learning-based systems reviewed [2, 3, 36, 41] report results primarily
+          in simulation, with limited or no real-robot validation. Sim-to-real transfer is particularly
+          challenging for enabling actions because they involve contact-rich interactions where
+          simulation fidelity is lowest (friction, deformation, multi-contact dynamics). The works that
+          do demonstrate real-robot transfer, notably Chen et al. [37] with 20 demonstrations, Nai et
+          al. [34] with wearable motion capture, and Kim et al. [16] with user studies, provide
+          significantly stronger evidence, but their evaluation is typically limited to a small number
+          of tasks and objects. Systematic benchmarking of enabling-action methods across diverse
+          objects, constraints, and platforms remains a significant gap. The neighboring non-prehensile
+          survey [70] and the data-driven grasp synthesis survey [72] provide template benchmarks
+          (planar pushing, grasp quality on standard object sets) that enabling-action research has
+          not yet adopted in standardized form.
+        </p>
+
+        <h3>8.5 From Configuration-Centric to Constraint-Centric Planning</h3>
+
+        <p>
+          A subtle but important methodological shift visible across multiple themes is the move from
+          configuration-centric to constraint-centric representations of enabling actions. Early
+          regrasping work specified target grasp poses as 6-DOF transforms and searched for motion plans
+          to reach them [52, 60]. Recent regrasping work specifies relational and geometric constraints
+          and treats the explicit pose as an inferred quantity [14, 33]. Early pre-grasp pushing
+          specified target object poses [1, 43]. Recent pre-grasp pushing specifies graspability
+          constraints [38, 40] or abstract relations between objects and fingers [33]. Early TAMP
+          specified goal configurations for all movable objects [56, 57]. Contemporary TAMP specifies
+          temporal-logic properties [27] or natural-language goals grounded by VLMs [29, 30]. The
+          constraint-centric formulation has two advantages. It better matches the structure of human
+          task descriptions, which are typically relational rather than metric. And it leaves more
+          freedom for planners and policies to discover solutions, because any configuration satisfying
+          the constraints is acceptable. The trade-off is that constraint satisfaction can be hard to
+          verify, and a constraint that is too loose yields incoherent behavior.
+        </p>
+
+        <h3>8.6 Taxonomy of Enabling Actions</h3>
+
+        <div class="taxonomy-tree">
+          <div class="taxonomy-root">Enabling actions for grasp planning</div>
+          <div class="taxonomy-branch">
+            <span class="branch-id">A.</span>
+            <span class="branch-label">Pre-grasp non-prehensile repositioning</span>
+            <div class="taxonomy-leaves">
+              <div><span class="leaf-id">A1</span> Planar pushing and sliding [1, 6, 40, 43, 45]</div>
+              <div><span class="leaf-id">A2</span> Toppling and rolling [2]</div>
+              <div><span class="leaf-id">A3</span> Tilting and tray-based transport [5]</div>
+              <div><span class="leaf-id">A4</span> Push-grasps and extrinsic contact [41, 55]</div>
+              <div><span class="leaf-id">A5</span> Clutter rearrangement for target retrieval [38, 53, 54, 67, 68]</div>
+            </div>
+          </div>
+          <div class="taxonomy-branch">
+            <span class="branch-id">B.</span>
+            <span class="branch-label">Regrasping and in-hand reconfiguration</span>
+            <div class="taxonomy-leaves">
+              <div><span class="leaf-id">B1</span> Finger-gaiting and in-hand pushing [9, 10]</div>
+              <div><span class="leaf-id">B2</span> Fixtureless fixturing with environmental contacts [11]</div>
+              <div><span class="leaf-id">B3</span> Pick-and-place regrasping via stable placements [12, 13]</div>
+              <div><span class="leaf-id">B4</span> Task-driven regrasp timing [14]</div>
+              <div><span class="leaf-id">B5</span> Dynamic in-hand sliding [61]</div>
+            </div>
+          </div>
+          <div class="taxonomy-branch">
+            <span class="branch-id">C.</span>
+            <span class="branch-label">Handover and agent-to-agent transfer</span>
+            <div class="taxonomy-leaves">
+              <div><span class="leaf-id">C1</span> Bimanual robot-to-human handover [15]</div>
+              <div><span class="leaf-id">C2</span> Reactive dynamic handover [16]</div>
+              <div><span class="leaf-id">C3</span> Human-to-robot handover [17]</div>
+              <div><span class="leaf-id">C4</span> Dual-arm hand-to-hand transfer [9]</div>
+            </div>
+          </div>
+          <div class="taxonomy-branch">
+            <span class="branch-id">D.</span>
+            <span class="branch-label">Bimanual role assignment</span>
+            <div class="taxonomy-leaves">
+              <div><span class="leaf-id">D1</span> Skill-primitive role encoding [18, 19]</div>
+              <div><span class="leaf-id">D2</span> Actuation-matrix role differentiation [19]</div>
+              <div><span class="leaf-id">D3</span> Analytic coupled planning [22, 52]</div>
+              <div><span class="leaf-id">D4</span> Emergent role differentiation by RL [23]</div>
+              <div><span class="leaf-id">D5</span> Reactive role alternation [20]</div>
+            </div>
+          </div>
+          <div class="taxonomy-branch">
+            <span class="branch-id">E.</span>
+            <span class="branch-label">Sequential and integrated planning</span>
+            <div class="taxonomy-leaves">
+              <div><span class="leaf-id">E1</span> Logic-geometric and sampling-based TAMP [49, 50, 56, 57]</div>
+              <div><span class="leaf-id">E2</span> Multi-modal manifold planning [58, 59]</div>
+              <div><span class="leaf-id">E3</span> Forceful and deformable TAMP [24, 25, 46, 47, 48, 65]</div>
+              <div><span class="leaf-id">E4</span> Graph-repair and recipe-based planning [26]</div>
+              <div><span class="leaf-id">E5</span> Formal reactive TAMP [27, 28]</div>
+              <div><span class="leaf-id">E6</span> Foundation-model-front-end TAMP [8, 29, 30, 31]</div>
+            </div>
+          </div>
+          <div class="taxonomy-branch">
+            <span class="branch-id">F.</span>
+            <span class="branch-label">Learning-based sequential skill composition</span>
+            <div class="taxonomy-leaves">
+              <div><span class="leaf-id">F1</span> Extrinsic-dexterity RL [32, 33, 41]</div>
+              <div><span class="leaf-id">F2</span> Multimodal diffusion and mixture-of-experts [32, 35]</div>
+              <div><span class="leaf-id">F3</span> Attention-based bimanual coordination [36]</div>
+              <div><span class="leaf-id">F4</span> Hybrid imitation-plus-TAMP [13, 37]</div>
+              <div><span class="leaf-id">F5</span> Data-efficient demonstration pipelines [34, 39]</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="blog-table-wrapper">
+          <table class="blog-table">
+            <thead>
+              <tr>
+                <th>Dimension</th>
+                <th>Planning-first</th>
+                <th>Learning-first</th>
+                <th>Hybrid</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Representative works</td>
+                <td>[4, 22, 27, 49, 50, 56, 57, 58]</td>
+                <td>[2, 3, 32, 36, 41]</td>
+                <td>[8, 13, 29, 30, 37]</td>
+              </tr>
+              <tr>
+                <td>Object geometry coverage</td>
+                <td>Limited, training-free for a fixed primitive set</td>
+                <td>Broad where data exists, narrow otherwise</td>
+                <td>Broad through learned perception, principled in execution</td>
+              </tr>
+              <tr>
+                <td>Contact-rich dynamics</td>
+                <td>Analytic models with strong assumptions</td>
+                <td>Learned from interaction</td>
+                <td>Simulator-in-the-loop with learned correction</td>
+              </tr>
+              <tr>
+                <td>Formal guarantees</td>
+                <td>Discrete completeness, continuous termination</td>
+                <td>None, typically</td>
+                <td>Partial, via planning component only</td>
+              </tr>
+              <tr>
+                <td>Open-world generalization</td>
+                <td>Weak, requires hand-specified domain</td>
+                <td>Strong where training covers the distribution</td>
+                <td>Strongest, via VLM grounding</td>
+              </tr>
+              <tr>
+                <td>Sim-to-real transfer</td>
+                <td>Direct, analytic models transfer</td>
+                <td>Hard for contact-rich actions</td>
+                <td>Strong when planning layer absorbs gaps</td>
+              </tr>
+              <tr>
+                <td>Real-robot demonstrations</td>
+                <td>Common but small-scale</td>
+                <td>Rare at scale</td>
+                <td>Emerging, e.g., [34, 37]</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+
+
+        <h2>9. Open Problems and Future Directions</h2>
+
+        <p>
+          Six specific open problems emerge from the cross-cutting analysis and deserve targeted
+          attention from the next generation of enabling-action research.
+        </p>
+
+        <p>
+          <strong>Unified enabling-action taxonomies and benchmarks.</strong> The field lacks a shared
+          taxonomy of enabling actions and standardized benchmarks for evaluating them. Section 8.6
+          presents one candidate taxonomy, but no equivalent exists in the literature as a consensus
+          structure. Future work should develop a principled taxonomy grounded in the type of constraint
+          the enabling action resolves (kinematic, contact, environmental, force) and create benchmark
+          suites with diverse objects, constraints, and success metrics that span the themes identified
+          in this survey. Without such benchmarks, cross-method comparison remains unreliable. The
+          template set by the data-driven grasp synthesis survey [72] and the nonprehensile dynamic
+          manipulation survey [70] offers a model for the kind of shared evaluation protocol the
+          enabling-action community could adopt.
+        </p>
+
+        <p>
+          <strong>Closing the VLM-physics gap.</strong> Foundation-model-based planners [8, 29, 31]
+          generalize impressively but lack physical grounding. A promising direction is <em>neurosymbolic
+          TAMP</em> that uses VLMs for task decomposition and scene grounding while enforcing physics-based
+          feasibility constraints through classical mechanics models, potentially combining the formal
+          guarantees of Vasilopoulos et al. [27] with the open-world generalization of foundation models.
+          The digital-twin component of AdaptPNP [8] is an early step in this direction but does not
+          provide the guarantees that LTL-based reactive TAMP offers. Formal synthesis of LLM-produced
+          action sequences against constraint specifications is an underexplored avenue.
+        </p>
+
+        <p>
+          <strong>Multi-step enabling-action chains.</strong> Most current methods plan at most one or
+          two enabling actions before the primary manipulation. Real-world tasks may require chains of
+          enabling actions (push, regrasp, hand over, re-orient) whose planning requires joint reasoning
+          across the theme boundaries identified in this survey. Levit et al. [13] and Chen et al. [37]
+          represent initial steps. The classical multi-modal planners [58, 59] and their rearrangement
+          successors [53, 67, 68] handle chains in principle, but their computational cost grows
+          quickly with chain length, and no current system handles a realistic kitchen or assembly
+          workflow end to end. Search-guidance from foundation models may be the most viable path to
+          scale.
+        </p>
+
+        <p>
+          <strong>Contact-rich sim-to-real for bimanual systems.</strong> The sim-to-real gap for
+          contact-rich bimanual enabling actions (dual-arm regrasping, coordinated pushing, handover
+          under deformation) requires targeted investigation. Domain randomization and teacher-student
+          distillation [3, 32] have shown promise for single-arm contact, but bimanual contact
+          multiplies the fidelity requirements. Real-robot demonstration pipelines like Nai et al. [34]
+          may offer a complementary path by sidestepping simulation entirely for data collection, and
+          the quality of the embodiment-transfer bridge remains the main open variable there.
+        </p>
+
+        <p>
+          <strong>Formal verification of learned enabling-action policies.</strong> As learned policies
+          replace planned enabling actions, the formal guarantees provided by systems like Vasilopoulos
+          et al. [27] are lost. Developing methods for verifying or certifying the safety and
+          completeness of learned enabling-action controllers, particularly in bimanual settings where
+          inter-arm collision is a critical safety constraint [36], is essential for deployment in
+          human-proximate environments. The existing formal hybrid-systems machinery is applicable in
+          principle, and there is scope for extending reachability analysis to learned neural
+          controllers constrained within a TAMP envelope.
+        </p>
+
+        <p>
+          <strong>Adaptive role assignment under uncertainty.</strong> Current bimanual role-assignment
+          mechanisms are either pre-specified [18, 19], learned offline [23], or reactively triggered by
+          simple classifiers [20]. Developing role-assignment policies that adapt online to uncertain
+          object properties (mass, friction, deformability), dynamic task requirements, and partial
+          observability would significantly expand the applicability of bimanual enabling-action
+          systems. Extending Guiard's asymmetric-division framework [62] to computational
+          role-assignment policies remains an open research thread, particularly for many-arm systems
+          where the taxonomy of roles itself must be learned or inferred rather than pre-specified.
+        </p>
+
+        <p>
+          <strong>Deformable and articulated targets as first-class citizens.</strong> The current
+          enabling-action taxonomy is implicitly rigid-body-centric. Ma et al. [25] provides one of the
+          few treatments of deformable-object enabling actions, and Chen and Berenson [46] considers
+          external forces on otherwise rigid objects. Articulated objects, cables, fabrics, and soft
+          food items require new primitives whose state space is richer than pose and whose contact
+          dynamics defy standard simulation. The neighboring non-prehensile manipulation literature
+          [70] provides partial scaffolding, but the specific pre-grasp, regrasp, and handover
+          challenges for deformables remain open.
+        </p>
+
+
+
+        <h2>10. Conclusion</h2>
+
+        <p>
+          Over the past decade, computational methods for planning and executing auxiliary
+          pre-manipulation actions have evolved from narrow, single-primitive systems to increasingly
+          integrated architectures that combine non-prehensile repositioning, regrasping, handover, role
+          assignment, and sequential planning under kinematic, contact, and environmental constraints.
+          The central methodological tension between learning-based approaches that handle perceptual
+          complexity and contact dynamics, and planning-based approaches that provide guarantees and
+          interpretability, has proven productive, with the most capable recent systems occupying a
+          hybrid middle ground. Foundation models have opened the door to open-world generalization but
+          have not yet earned the trust that formal or physics-based methods command.
+        </p>
+
+        <p>
+          Three observations deserve emphasis. First, the problem has not become simpler with better
+          hardware. More arms and richer end-effectors expand the enabling-action repertoire and the
+          combinatorial planning burden in tandem, and the bimanual and multi-agent settings remain the
+          more faithful image of the problems future robots will face. Second, the representational
+          ground has shifted. Configuration targets have given way to relational and constraint-based
+          targets, and classical pose-centric planners are being complemented by semantic graph monitors,
+          regrasp maps, and foundation-model grounders that operate on richer descriptions of the task.
+          Third, the reliability questions that early TAMP systems answered with formal guarantees are
+          being reopened by learning-based and foundation-model-based systems that cannot offer the
+          same assurances, and closing this gap is the single most consequential research problem for
+          the coming years.
+        </p>
+
+        <p>
+          The single most important takeaway from this survey is that enabling actions are not
+          peripheral to manipulation but central. The ability to plan and execute the preparatory
+          actions that make grasping possible is, in many real-world settings, the harder and more
+          consequential computational problem than the grasp itself. Grasp planning, in its mature
+          form, is a sequential decision problem about the pushes, slides, regrasps, handovers, and
+          role assignments that must occur before a primary grasp becomes feasible.
+        </p>
+
+
+
+        </section>
+
+        <div class="citation-section">
+          <h2 class="citation-header">Citation</h2>
+          <p class="citation-text">
+            If you find this survey useful, please cite it as
+          </p>
+          <pre class="citation-pre">
+@misc{grasp_planning_survey_2026,
+  author    = {Hu Tianrun},
+  title     = {Grasp Planning for Robotic Manipulation},
+  year      = {2026},
+  publisher = {GitHub},
+  url       = {https://h-tr.github.io/blog/surveys/grasp-planning.html}
+}
+          </pre>
+        </div>
+
+        <div class="references-section">
+          <h2 class="references-header">References</h2>
+          <ol class="references-list">
+            <li id="ref-1">Haustein, J. A., Arnekvist, I., Stork, J., Hang, K., &amp; Kragic, D. (2019). &ldquo;Learning Manipulation States and Actions for Efficient Non-prehensile Rearrangement Planning.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-2">Cho, Y., Han, J., Cho, Y., &amp; Kim, B. (2025). &ldquo;Hierarchical and Modular Network on Non-prehensile Manipulation in General Environments.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-3">Del Aguila Ferrandis, J., Moura, J., &amp; Vijayakumar, S. (2024). &ldquo;Learning Visuotactile Estimation and Control for Non-prehensile Manipulation under Occlusions.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-4">He, T., Yu, Q., Yan, R., Pang, T., Lin, Z., &amp; Liu, Y.-H. (2026). &ldquo;LDHP. Library-Driven Hierarchical Planning for Non-prehensile Dexterous Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-5">Chen, L., Yu, H., Naceri, A., Swikir, A., &amp; Haddadin, S. (2024). &ldquo;Time-Optimized Trajectory Planning for Non-Prehensile Object Transportation in 3D.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-6">Papallas, R., &amp; Dogar, M. R. (2020). &ldquo;Human-Guided Planner for Non-Prehensile Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-7">Ghalamzan Esfahani, A. M., Abi-Farraj, F., Giordano, P. R., &amp; Stolkin, R. (2017). &ldquo;Human-in-the-Loop Optimisation. Mixed Initiative Grasping for Optimally Facilitating Post-Grasp Manipulative Actions.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-8">Zhu, J., He, T., Liu, Y., &amp; colleagues. (2025). &ldquo;AdaptPNP. Integrating Prehensile and Non-Prehensile Skills for Adaptive Robotic Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-9">Cruciani, S., Smith, C., Kragic, D., &amp; Hang, K. (2019). &ldquo;Dual-Arm In-Hand Manipulation and Regrasping Using Dexterous Manipulation Graphs.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-10">Sundaralingam, B., &amp; Hermans, T. (2018). &ldquo;Geometric In-Hand Regrasp Planning. Alternating Optimization of Finger Gaits and In-Grasp Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-11">Chavan-Dafle, N., &amp; Rodriguez, A. (2018). &ldquo;Regrasping by Fixtureless Fixturing.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-12">Xu, P., Cheng, H., &amp; colleagues. (2022). &ldquo;Extrinsic Manipulation on a Support Plane by Learning Regrasping.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-13">Levit, S., Toussaint, M., &amp; colleagues. (2025). &ldquo;Regrasp Maps for Sequential Manipulation Planning.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-14">Patankar, A., Chakraborty, N., &amp; colleagues. (2025). &ldquo;Synthesizing Grasps and Regrasps for Complex Manipulation Tasks.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-15">G&ouml;ksu, Y., Prasad, V., Kshirsagar, A., Koert, D., Peters, J., &amp; Chalvatzaki, G. (2024). &ldquo;Kinematically Constrained Human-Like Bimanual Robot-to-Human Handovers.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-16">Kim, H., Park, J., &amp; colleagues. (2025). &ldquo;Learning-Based Dynamic Robot-to-Human Handover.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-17">Christen, S., Feng, W., Yang, W., Chao, Y.-W., Hilliges, O., &amp; Song, J. (2023). &ldquo;Learning Human-to-Robot Handovers from Point Clouds.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-18">Szynkiewicz, W., &amp; Zieli&#324;ski, C. (2012). &ldquo;Skill-Based Bimanual Manipulation Planning.&rdquo; <em>Journal of Telecommunications and Information Technology</em>.</li>
+            <li id="ref-19">Sundaram, A. M., Henze, B., Kressin, A., Ma, X., &amp; Roa, M. A. (2016). &ldquo;Planning Realistic Interactions for Bimanual Grasping and Manipulation.&rdquo; <em>Humanoids</em>.</li>
+            <li id="ref-20">Grannen, J., Wu, Y., Belkhale, S., &amp; Sadigh, D. (2023). &ldquo;Stabilize to Act. Learning to Coordinate for Bimanual Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-21">Huhn, J. M., Schack, T., &amp; St&ouml;ckel, T. (2014). &ldquo;Symmetries in Action. On the Interactive Nature of Planning Constraints for Bimanual Object Manipulation.&rdquo; <em>Experimental Brain Research</em>.</li>
+            <li id="ref-22">Cohn, T., Shaoul, Y., &amp; Tedrake, R. (2023). &ldquo;Constrained Bimanual Planning with Analytic Inverse Kinematics.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-23">Arm, P., Mittal, M., Kolvenbach, H., &amp; Hutter, M. (2024). &ldquo;Pedipulate. Enabling Manipulation Skills Using a Quadruped Robot's Leg.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-24">Holladay, R., Lozano-P&eacute;rez, T., &amp; Rodriguez, A. (2021). &ldquo;Planning for Multi-Stage Forceful Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-25">Ma, W., Zhou, P., Navarro-Alarc&oacute;n, D., &amp; colleagues. (2022). &ldquo;Action Planning for Packing Long Linear Elastic Objects into Compact Boxes with Bimanual Robotic Manipulation.&rdquo; <em>IEEE/ASME Transactions on Mechatronics</em>.</li>
+            <li id="ref-26">Takata, K., Kiyokawa, T., Ramirez-Alpizar, I. G., Yamanobe, N., Wan, W., &amp; Harada, K. (2022). &ldquo;Graph-Based Framework on Bimanual Manipulation Planning from Cooking Recipe.&rdquo; <em>Robotics</em>.</li>
+            <li id="ref-27">Vasilopoulos, V., Pavlakos, G., Bowman, S. L., Caporale, J. D., Daniilidis, K., Pappas, G. J., &amp; Koditschek, D. E. (2020). &ldquo;Reactive Planning for Mobile Manipulation Tasks in Unexplored Semantic Environments.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-28">Vasilopoulos, V., Topping, T. T., Vega-Brown, W., Roy, N., &amp; Koditschek, D. E. (2022). &ldquo;A Hierarchical Deliberative-Reactive System Architecture for Task and Motion Planning in Partially Known Environments.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-29">Tang, Z., Wang, H., Liu, Z., &amp; colleagues. (2025). &ldquo;Open-World Task Planning for Humanoid Bimanual Dexterous Manipulation via Vision-Language Models.&rdquo; <em>Conference proceedings</em>.</li>
+            <li id="ref-30">Schakkal, A., Gallouedec, Q., &amp; colleagues. (2025). &ldquo;Hierarchical Vision-Language Planning for Multi-Step Humanoid Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-31">Lee, H.-Y., Zhou, P., Duan, A., Ma, W., Yang, C., &amp; Navarro-Alarc&oacute;n, D. (2024). &ldquo;Non-Prehensile Tool-Object Manipulation by Integrating LLM-Based Planning and Manoeuvrability-Driven Controls.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-32">Wu, T., Gan, Y., Wu, M., Cheng, J., Yang, Y., Zhu, Y., &amp; Dong, H. (2024). &ldquo;Dexterous Functional Pre-Grasp Manipulation with Diffusion Policy.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-33">Pavlichenko, D., &amp; Behnke, S. (2023). &ldquo;Dexterous Pre-Grasp Manipulation for Human-Like Functional Categorical Grasping. Deep Reinforcement Learning and Grasp Representations.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-34">Nai, R., Lin, Y., Wu, Y., &amp; colleagues. (2026). &ldquo;Humanoid Manipulation Interface. Humanoid Whole-Body Manipulation from Robot-Free Demonstrations.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-35">Cai, K., Zhang, J., Chen, Y., &amp; colleagues. (2025). &ldquo;Imitation-Guided Bimanual Planning for Stable Manipulation under Changing External Forces.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-36">Zhang, M., Jian, P., Wu, Y., Xu, H., &amp; Wang, X. (2021). &ldquo;DAIR. Disentangled Attention Intrinsic Regularization for Safe and Efficient Bimanual Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-37">Chen, Y., Wang, W., Liu, Y., Liu, H., &amp; colleagues. (2025). &ldquo;SViP. Sequencing Bimanual Visuomotor Policies with Object-Centric Motion Primitives.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-38">Sun, Z., Yuan, K., Hu, W., Yang, C., &amp; Li, Z. (2024). &ldquo;Learning a Pre-Grasp Manipulation Policy to Effectively Retrieve a Target in Dense Clutter.&rdquo; <em>IEEE Robotics and Automation Letters</em>.</li>
+            <li id="ref-39">Mandikal, P., &amp; Grauman, K. (2023). &ldquo;Learning Dexterous Manipulation from Exemplar Object Trajectories and Pre-Grasps.&rdquo; <em>International Conference on Robotics and Automation</em>.</li>
+            <li id="ref-40">Liu, Y., Ma, Z., Liu, J., &amp; colleagues. (2023). &ldquo;Learning Pre-Grasp Manipulation of Flat Objects in Cluttered Environments Using Sliding Primitives.&rdquo; <em>Conference proceedings</em>.</li>
+            <li id="ref-41">Zhou, W., &amp; Held, D. (2022). &ldquo;Learning to Grasp the Ungraspable with Emergent Extrinsic Dexterity.&rdquo; <em>Conference on Robot Learning</em>.</li>
+            <li id="ref-42">Kim, C. H., &amp; Park, J. (2021). &ldquo;Pre-Grasp Manipulation Planning to Secure Space for Power Grasping.&rdquo; <em>IEEE Access</em>.</li>
+            <li id="ref-43">Liu, Y., Ma, Z., &amp; colleagues. (2021). &ldquo;Learning Pre-Grasp Pushing Manipulation of Wide and Flat Objects Using Binary Masks.&rdquo; <em>Lecture Notes in Computer Science</em>.</li>
+            <li id="ref-44">Sun, Z., Yuan, K., Hu, W., Yang, C., &amp; Li, Z. (2020). &ldquo;Learning Pregrasp Manipulation of Objects from Ungraspable Poses.&rdquo; <em>IEEE International Conference on Robotics and Automation</em>.</li>
+            <li id="ref-45">Hou, Y., Jia, Z., &amp; Mason, M. T. (2019). &ldquo;Pre-Grasp Sliding Manipulation of Thin Objects Using Soft, Compliant, or Underactuated Hands.&rdquo; <em>IEEE Robotics and Automation Letters</em>.</li>
+            <li id="ref-46">Chen, Y., &amp; Berenson, D. (2019). &ldquo;Manipulation Planning Using Environmental Contacts to Keep Objects Stable under External Forces.&rdquo; <em>IEEE-RAS International Conference on Humanoid Robots</em>.</li>
+            <li id="ref-47">Toussaint, M., Ha, J.-S., &amp; Driess, D. (2020). &ldquo;Describing Physics For Physical Reasoning. Force-Based Sequential Manipulation Planning.&rdquo; <em>IEEE Robotics and Automation Letters</em>.</li>
+            <li id="ref-48">Chen, Y., &amp; Berenson, D. (2020). &ldquo;Manipulation with Shared Grasping.&rdquo; <em>Robotics. Science and Systems</em>.</li>
+            <li id="ref-49">Garrett, C. R., Lozano-P&eacute;rez, T., &amp; Kaelbling, L. P. (2020). &ldquo;PDDLStream. Integrating Symbolic Planners and Blackbox Samplers via Optimistic Adaptive Planning.&rdquo; <em>Proceedings of the International Conference on Automated Planning and Scheduling</em>.</li>
+            <li id="ref-50">Toussaint, M. (2015). &ldquo;Logic-Geometric Programming. An Optimization-Based Approach to Combined Task and Motion Planning.&rdquo; <em>International Joint Conference on Artificial Intelligence</em>.</li>
+            <li id="ref-51">Smith, C., Karayiannidis, Y., Nalpantidis, L., Gratal, X., Qi, P., Dimarogonas, D. V., &amp; Kragic, D. (2012). &ldquo;Dual Arm Manipulation. A Survey.&rdquo; <em>Robotics and Autonomous Systems</em>.</li>
+            <li id="ref-52">Vahrenkamp, N., Scheurer, C., Asfour, T., Kuffner, J., &amp; Dillmann, R. (2009). &ldquo;Humanoid Motion Planning for Dual-Arm Manipulation and Re-Grasping Tasks.&rdquo; <em>IEEE/RSJ International Conference on Intelligent Robots and Systems</em>.</li>
+            <li id="ref-53">Krug, R., Stoyanov, T., Bonilla, M., Tincani, V., Vaskevicius, N., Fantoni, G., Birk, A., Lilienthal, A., &amp; Bicchi, A. (2015). &ldquo;Kinodynamic Randomized Rearrangement Planning via Dynamic Transitions Between Statically Stable States.&rdquo; <em>IEEE International Conference on Robotics and Automation</em>.</li>
+            <li id="ref-54">Hertle, A., &amp; Nebel, B. (2016). &ldquo;Rearrangement Planning Using Object-Centric and Robot-Centric Action Spaces.&rdquo; <em>IEEE International Conference on Robotics and Automation</em>.</li>
+            <li id="ref-55">Dogar, M. R., &amp; Srinivasa, S. S. (2010). &ldquo;Push-Grasping with Dexterous Hands. Mechanics and a Method.&rdquo; <em>IEEE/RSJ International Conference on Intelligent Robots and Systems</em>.</li>
+            <li id="ref-56">Kaelbling, L. P., &amp; Lozano-P&eacute;rez, T. (2011). &ldquo;Hierarchical Task and Motion Planning in the Now.&rdquo; <em>IEEE International Conference on Robotics and Automation</em>.</li>
+            <li id="ref-57">Kaelbling, L. P., &amp; Lozano-P&eacute;rez, T. (2010). &ldquo;Combined Task and Motion Planning for Mobile Manipulation.&rdquo; <em>Proceedings of the International Conference on Automated Planning and Scheduling</em>.</li>
+            <li id="ref-58">Hauser, K., &amp; Latombe, J.-C. (2010). &ldquo;Multi-Modal Motion Planning in Non-Expansive Spaces.&rdquo; <em>The International Journal of Robotics Research</em>.</li>
+            <li id="ref-59">Hauser, K., &amp; Ng-Thow-Hing, V. (2011). &ldquo;Randomized Multi-Modal Motion Planning for a Humanoid Robot Manipulation Task.&rdquo; <em>The International Journal of Robotics Research</em>.</li>
+            <li id="ref-60">Vahrenkamp, N., Przybylski, M., Asfour, T., &amp; Dillmann, R. (2011). &ldquo;Bimanual Grasp Planning.&rdquo; <em>IEEE-RAS International Conference on Humanoid Robots</em>.</li>
+            <li id="ref-61">Shi, J., Woodruff, J. Z., Umbanhowar, P. B., &amp; Lynch, K. M. (2017). &ldquo;Dynamic In-Hand Sliding Manipulation.&rdquo; <em>IEEE Transactions on Robotics</em>.</li>
+            <li id="ref-62">Guiard, Y. (1987). &ldquo;Asymmetric Division of Labor in Human Skilled Bimanual Action. The Kinematic Chain as a Model.&rdquo; <em>Journal of Motor Behavior</em>.</li>
+            <li id="ref-63">Kazemi, M., Valois, J.-S., Bagnell, J. A., &amp; Pollard, N. (2011). &ldquo;Templates for Pre-Grasp Sliding Interactions.&rdquo; <em>Robotics and Autonomous Systems</em>.</li>
+            <li id="ref-64">Kang, S. B., &amp; Ikeuchi, K. (2010). &ldquo;Representation of Pre-Grasp Strategies for Object Manipulation.&rdquo; <em>IEEE/RSJ International Conference on Intelligent Robots and Systems</em>.</li>
+            <li id="ref-65">Cheng, X., Huber, E., Lee, W. C. E., &amp; Manocha, D. (2019). &ldquo;Force-and-Motion Constrained Planning for Tool Use.&rdquo; <em>IEEE/RSJ International Conference on Intelligent Robots and Systems</em>.</li>
+            <li id="ref-66">Barry, J. L. (2013). &ldquo;Planning Pre-Grasp Manipulation for Transport Tasks.&rdquo; <em>IEEE International Conference on Robotics and Automation</em>.</li>
+            <li id="ref-67">King, J. E., Cognetti, M., &amp; Srinivasa, S. S. (2015). &ldquo;Dealing with Difficult Instances of Object Rearrangement.&rdquo; <em>Robotics. Science and Systems</em>.</li>
+            <li id="ref-68">Stilman, M., Schamburek, J.-U., Kuffner, J., &amp; Asfour, T. (2009). &ldquo;Path Planning Among Movable Obstacles. A Probabilistically Complete Approach.&rdquo; <em>Springer Tracts in Advanced Robotics</em>.</li>
+            <li id="ref-69">Mason, M. T. (1986). &ldquo;Mechanics and Planning of Manipulator Pushing Operations.&rdquo; <em>International Journal of Robotics Research</em>.</li>
+            <li id="ref-70">Ruggiero, F., Lippiello, V., &amp; Siciliano, B. (2018). &ldquo;Nonprehensile Dynamic Manipulation. A Survey.&rdquo; <em>IEEE Robotics and Automation Letters</em>.</li>
+            <li id="ref-71">Billard, A., &amp; Kragic, D. (2019). &ldquo;Trends and Challenges in Robot Manipulation.&rdquo; <em>Science</em>.</li>
+            <li id="ref-72">Bohg, J., Morales, A., Asfour, T., &amp; Kragic, D. (2014). &ldquo;Data-Driven Grasp Synthesis. A Survey.&rdquo; <em>IEEE Transactions on Robotics</em>.</li>
+            <li id="ref-73">Kitaev, N., Mordatch, I., Patil, S., &amp; Abbeel, P. (2015). &ldquo;Physics-Based Trajectory Optimization for Grasping in Cluttered Environments.&rdquo; <em>IEEE International Conference on Robotics and Automation</em>.</li>
+            <li id="ref-74">Chavan-Dafle, N., &amp; Rodriguez, A. (2015). &ldquo;Prehensile Pushing. In-Hand Manipulation with Alternating Sticking Contacts.&rdquo; <em>IEEE International Conference on Robotics and Automation</em>.</li>
+          </ol>
+        </div>
+      </article>
+    </div>
+
+    <script defer src="/js/blog.js"></script>
+    <script defer src="/js/katex-init.js"></script>
+    <script defer src="/js/references.js"></script>
+  </body>
+</html>

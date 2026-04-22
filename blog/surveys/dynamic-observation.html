@@ -1,0 +1,1124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Multi-Modal Scene Understanding in Dynamic Environments | Hu Tianrun</title>
+
+    <!-- Fonts -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Prism.js initialization -->
+    <script src="/js/prism-init.js"></script>
+
+    <!-- KaTeX Math Support -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Site Assets -->
+    <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg" />
+    <link href="/css/blog.css" rel="stylesheet" />
+    <link href="/css/references.css" rel="stylesheet" />
+
+    <!-- KaTeX Scripts -->
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"
+    ></script>
+  </head>
+  <body>
+    <div class="blog-post">
+      <a href="../?tab=survey" class="back-button">
+        <i class="fas fa-arrow-left"></i>Back
+      </a>
+
+      <header class="blog-post-header">
+        <h1 class="blog-post-title">Multi-Modal Scene Understanding in Dynamic Environments</h1>
+        <div class="blog-post-date">April 23, 2026</div>
+      </header>
+
+      <article class="blog-post-content">
+        <section class="blog-section">
+
+        <h2>1. Introduction</h2>
+
+        <p>
+          Autonomous systems, including self-driving vehicles, mobile manipulators, aerial platforms, and
+          service robots, must perceive and interpret environments that are fundamentally dynamic, uncertain,
+          and only partially observable. A self-driving vehicle negotiating an urban intersection confronts
+          occluded pedestrians, reflective surfaces that confound LiDAR, rain-degraded camera images, and
+          novel objects never encountered during training, simultaneously, and all within tight latency
+          budgets. The gap between the controlled conditions under which perception systems are developed
+          and the open-world conditions under which they must operate defines the central tension animating
+          the field [8, 46].
+        </p>
+
+        <p>
+          Three convergent forces have intensified this tension over the 2018 to 2026 review period. The
+          deployment frontier has advanced beyond geofenced highway corridors into unstructured urban,
+          industrial, and domestic environments where the closed-world assumption (that all object
+          categories and environmental configurations are present at training time) categorically fails
+          [46, 35]. Sensor suites have diversified, with modern platforms routinely carrying cameras,
+          LiDAR, radar, ultrasonics, inertial measurement units, and sometimes thermal or event cameras,
+          producing a combinatorial fusion challenge that early pipelines were not designed to handle
+          [8, 85]. Safety requirements have sharpened as regulatory and public expectations now demand
+          calibrated, uncertainty-aware perception, not merely accurate perception
+          [48, 34].
+        </p>
+
+        <p>
+          This scoping review addresses a single research question. How do modern approaches to scene
+          understanding in dynamic environments integrate multi-modal observation fusion, temporal
+          observation history priors, and sensor fusion techniques to achieve robust perception under
+          uncertainty and partial observability? The answer, we argue, is not found in any single
+          methodological innovation but in the progressive convergence of five distinct research threads
+          into an increasingly coherent intellectual framework.
+        </p>
+
+        <p>
+          We organize the analysis around five thematic pillars. Section 3 examines dynamic scene
+          representation, surveying the shift from voxelized point clouds to bird's-eye-view (BEV) grids,
+          neural implicit surfaces, volumetric occupancy, and predictive world models. Section 4 addresses
+          observation fusion under uncertainty, tracing the evolution from geometric projection to learned
+          BEV fusion and attention-based cross-modal mechanisms. Section 5 considers temporal observation
+          history, spanning recurrent architectures, temporal BEV attention, state-space models, and
+          memory-augmented networks. Section 6 surveys uncertainty quantification and propagation, including
+          the epistemic to aleatoric decomposition, Monte Carlo dropout, deep ensembles, evidential deep
+          learning, calibration, and pipeline propagation. Section 7 reviews robust perception in unknown
+          environments, bringing open-world detection, foundation models, domain adaptation, and active
+          perception into contact with the uncertainty and fusion machinery. A cross-cutting analysis in
+          Section 8 identifies connections and tensions across themes, and Section 9 closes with open
+          problems.
+        </p>
+
+        <p>
+          The scope is deliberately focused. We concentrate on perception as the transformation of raw
+          sensor data into structured scene interpretations, and we exclude pure localization and mapping
+          (SLAM), motion planning, and control except where they are tightly coupled with perceptual
+          reasoning [3]. We emphasize approaches relevant to mobile autonomy in 3D environments, setting
+          aside purely 2D image understanding tasks that lack the spatial and temporal complexity central
+          to our research question. We cite foundational work from earlier years where necessary for
+          context (classical probabilistic filtering [87], Dempster-Shafer theory [81], POMDP
+          formulations [47]), but the bulk of cited work falls within the 2018 to 2026 window.
+        </p>
+
+        <div class="blog-callout">
+          <p>
+            <strong>The single most important takeaway.</strong> Learned 3D representations, BEV as a
+            unifying abstraction, attention-based fusion, and foundation models have transformed what
+            perception systems can recognize and predict, yet the principled propagation of uncertainty
+            from raw sensors through fusion, temporal aggregation, and downstream decisions remains largely
+            unsolved. This gap, not any individual perceptual capability, is the primary obstacle to
+            trustworthy autonomy.
+          </p>
+        </div>
+
+        <h2>2. Background and Definitions</h2>
+
+        <p>
+          Shared vocabulary is essential for a review that spans probabilistic inference, deep learning,
+          sensor engineering, and robotics. This section establishes the key concepts that structure the
+          analysis and delimits what falls outside our scope.
+        </p>
+
+        <h3>2.1 Scene Understanding in Dynamic Environments</h3>
+
+        <p>
+          <strong>Scene understanding</strong> denotes the inference of a structured, actionable
+          interpretation of the environment from raw sensor observations. In dynamic settings this
+          interpretation must capture both the spatial configuration of the scene (geometry, semantics, and
+          object identities) and its temporal evolution (how objects move, how the environment changes, and
+          how the agent's own motion alters its observational vantage). The problem is naturally cast
+          within the framework of <strong>Partially Observable Markov Decision Processes (POMDPs)</strong>,
+          where the agent maintains a belief state over the true (hidden) scene state given a history of
+          noisy, partial observations [47]. The perception system's role is to compute or approximate
+          this belief state at each timestep. Classical robotics treatments [87] formalize the belief
+          recursion
+          (\(b_t(s_t) \propto p(o_t \mid s_t) \int p(s_t \mid s_{t-1}, a_{t-1}) b_{t-1}(s_{t-1}) \, ds_{t-1}\)),
+          and much of modern work can be read as learned approximations to this recursion.
+        </p>
+
+        <h3>2.2 Multi-Modal Observation and Sensor Fusion</h3>
+
+        <p>
+          Modern autonomous platforms carry heterogeneous sensor suites whose modalities offer complementary
+          strengths. Cameras provide dense color and texture at high resolution but lack direct depth and
+          are sensitive to illumination. LiDAR produces accurate, sparse 3D point clouds but suffers from
+          low resolution at range and degradation in adverse weather. Radar offers long-range detection and
+          velocity estimation with weather robustness, but its measurements are extremely sparse and
+          cluttered. <strong>Sensor fusion</strong> (the combination of these heterogeneous observations
+          into a unified percept) has historically been categorized as <em>early fusion</em> (combining
+          raw data before feature extraction), <em>mid-level fusion</em> (combining intermediate feature
+          representations), and <em>late fusion</em> (combining independent per-modality predictions)
+          [29]. As we will see, this taxonomy has been largely superseded by learned fusion approaches
+          that defy clean categorization.
+        </p>
+
+        <h3>2.3 Uncertainty in Perception</h3>
+
+        <p>
+          Two fundamental types of uncertainty pervade perception systems. <strong>Aleatoric
+          uncertainty</strong> arises from irreducible noise in the observation process (sensor noise,
+          motion blur, occlusion) and cannot be reduced by collecting more training data. <strong>Epistemic
+          uncertainty</strong> reflects the model's ignorance about the true mapping from observations to
+          scene states, arising from limited training data, model misspecification, or distribution shift.
+          The distinction, formalized in the perception context by Kendall and Gal [48], is critical
+          because the two types demand different responses. Aleatoric uncertainty should inform sensor
+          weighting and fusion strategies, while epistemic uncertainty should trigger caution, active
+          information gathering, or requests for human intervention [59].
+        </p>
+
+        <h3>2.4 Temporal Priors and Observation History</h3>
+
+        <p>
+          A single-frame perception system discards the temporal structure intrinsic to dynamic
+          environments. <strong>Temporal priors</strong> (informative distributions over the current scene
+          state derived from the history of past observations) enable a perception system to resolve
+          ambiguities that are irresolvable from any single observation. A Bayesian filter (Kalman filter,
+          particle filter) is the classical instantiation, where the prior at time (\(t\)) is the posterior
+          from time (\(t-1\)) propagated through a dynamics model [87]. Modern learned approaches
+          replace or augment classical filters with recurrent architectures, temporal attention, state-space
+          models, and memory-augmented networks, yet the underlying principle (that yesterday's
+          observations constrain today's interpretation) remains unchanged.
+        </p>
+
+        <h3>2.5 Scope Boundaries</h3>
+
+        <p>
+          This review does not cover (i) simultaneous localization and mapping (SLAM) except where map
+          representations serve as scene understanding substrates [3], (ii) purely geometric
+          reconstruction methods that do not produce semantic or dynamic interpretations, (iii) motion
+          planning and control algorithms downstream of perception, except where they are jointly trained
+          with perceptual components, (iv) sensor hardware design and calibration, or (v) 2D image
+          understanding tasks unless they are components of 3D scene understanding pipelines. Multi-modal
+          surveys focusing on modalities beyond vision and LiDAR, including RGB-T urban scene fusion
+          [14] and RGB-D indoor scene recognition [24], are cited where they illuminate
+          architectural principles but do not structure the review on their own.
+        </p>
+
+        <h2>3. Dynamic Scene Representation and Understanding</h2>
+
+        <p>
+          The choice of scene representation fundamentally determines what a perception system can express,
+          how efficiently it can be computed, and how naturally it accommodates temporal dynamics and
+          multi-modal inputs. The 2018 to 2026 period has witnessed a dramatic shift from fixed, handcrafted
+          representations toward learned, flexible representations jointly optimized with downstream tasks.
+          The arc of this shift is best traced in four stages, moving from object-centric voxel grids to
+          BEV, to neural implicit surfaces and occupancy, and finally to world models.
+        </p>
+
+        <h3>3.1 From Handcrafted Features to Learned 3D Representations</h3>
+
+        <p>
+          Point cloud processing underwent a paradigm shift when learned representations replaced
+          hand-engineered feature extraction. The progression from PointNet [74] to architectures
+          designed specifically for detection reveals an accelerating trajectory. VoxelNet [93]
+          demonstrated that voxelized point clouds processed by 3D convolutions could produce high-quality
+          3D object detections end-to-end, eliminating manual feature design. PointPillars [53]
+          showed that organizing point clouds into vertical columns and processing them with 2D
+          convolutions achieved competitive accuracy at dramatically lower cost, establishing an
+          efficiency-to-accuracy tradeoff that remains influential. SECOND [79] introduced sparse 3D
+          convolutions exploiting point cloud sparsity, reducing memory and computation by an order of
+          magnitude. CenterPoint [101] demonstrated that anchor-free, center-based detection on BEV
+          feature maps could unify detection and tracking in a single architecture.
+        </p>
+
+        <p>
+          Together, these works defined the architectural vocabulary (voxels, pillars, sparse convolutions)
+          that subsequent methods build upon. However, the early learned representations were fundamentally
+          object-centric, optimized for detecting discrete entities rather than representing full scene
+          structure. Early spatiotemporal 3D CNNs for LiDAR-based temporal perception [40] extended
+          voxel architectures into the temporal domain but remained limited by fixed receptive fields and
+          high computational cost. This set of limitations motivated the development of scene-level
+          representations. Parallel work on scene graphs and graph neural networks for dynamic scene
+          representation [26] addressed structured interaction modeling but has remained largely
+          complementary to the voxel-to-BEV trajectory that drives mainstream autonomous driving perception.
+        </p>
+
+        <h3>3.2 Bird's-Eye-View as the Unifying Representation Paradigm</h3>
+
+        <p>
+          The <strong>bird's-eye-view (BEV)</strong> representation has emerged as arguably the single most
+          important abstraction in modern autonomous perception, a shared coordinate frame enabling
+          principled fusion of heterogeneous sensors, temporal alignment of sequential observations, and
+          direct compatibility with downstream planning. The foundational insight of Lift, Splat, Shoot
+          (LSS) [73] was that camera features could be lifted into 3D by predicting per-pixel depth
+          distributions, then splatted into a BEV grid, transforming the ill-posed camera-to-3D problem
+          into a tractable feature projection. BEVDet [41] refined this with improved depth estimation
+          and data augmentation, while BEVFormer [55] replaced explicit depth prediction with
+          deformable attention, allowing BEV queries to attend directly to multi-view camera features via
+          learned 3D reference points.
+        </p>
+
+        <p>
+          The power of BEV lies in its role as a common currency. LiDAR naturally produces BEV features
+          (via voxelization and height compression), camera features can be projected into BEV (via depth
+          prediction or cross-attention), and radar returns can be rasterized into BEV grids. This
+          convergence has enabled multi-modal fusion (Section 4) and temporal fusion (Section 5) to operate
+          in a shared geometric frame, a development whose cascading impact cannot be overstated
+          [57, 56]. The representation also aligns with the planning coordinate frame, eliminating
+          costly view transformations between perception and planning modules [91].
+        </p>
+
+        <h3>3.3 Neural Implicit and Explicit Scene Representations</h3>
+
+        <p>
+          Neural Radiance Fields (NeRF) [64] demonstrated that continuous volumetric representations
+          parameterized by coordinate-conditioned neural networks could synthesize photorealistic novel
+          views from sparse input images. Extensions to dynamic scenes quickly followed. D-NeRF [77]
+          introduced deformation fields that map each point from a canonical space to its time-varying
+          position, and Nerfies [68] handled topological changes through elastic regularization,
+          revealing that neural implicit representations could in principle capture the temporal dynamics
+          central to this survey's scope. However, NeRF-based methods suffer from prohibitive rendering
+          costs that preclude real-time deployment.
+        </p>
+
+        <p>
+          3D Gaussian Splatting (3DGS) [49] addressed this bottleneck by replacing the implicit
+          volumetric representation with explicit anisotropic Gaussian primitives that can be rasterized in
+          real-time, achieving comparable visual quality at orders-of-magnitude faster rendering speeds.
+          Dynamic extensions arrived rapidly. SplatFlow [82] decouples static backgrounds (3D Gaussians)
+          from dynamic objects (4D Gaussians with learned motion flow fields), while DrivingGaussian
+          [20] initializes Gaussians from LiDAR point clouds and uses 3D bounding boxes to decompose
+          and independently model dynamic scene elements. These methods are beginning to enable real-time,
+          photorealistic scene reconstruction for simulation and data augmentation, though their integration
+          into online perception pipelines remains nascent.
+        </p>
+
+        <h3>3.4 Volumetric Occupancy Prediction</h3>
+
+        <p>
+          A geometry-first alternative to object-centric detection has emerged in <strong>3D occupancy
+          prediction</strong>, which estimates per-voxel occupancy and semantic class. This representation
+          sidesteps the limitations of bounding-box detection (which cannot represent arbitrary geometries,
+          permeable structures, or general static infrastructure) in favor of a dense, category-agnostic
+          scene description. TPVFormer [88] proposed a tri-perspective view that models each 3D point
+          by summing its projections onto three orthogonal planes, achieving efficient volumetric prediction
+          without full 3D attention. SurroundOcc [86] addressed the supervision bottleneck with
+          multi-frame LiDAR fusion and Poisson surface reconstruction for dense occupancy ground truth.
+          OccNet [69] established a large-scale occupancy benchmark and demonstrated that
+          occupancy-based representations could serve as a unified backbone for diverse downstream tasks.
+        </p>
+
+        <p>
+          The occupancy paradigm is notable for its robustness to long-tail distributions. Because it
+          predicts geometry rather than categories, it can in principle represent novel objects never seen
+          during training, a property revisited in Section 7. Self-supervised extensions [43] reduce
+          reliance on dense LiDAR supervision, and Mamba-based architectures have made this one of the
+          most active subfields in autonomous perception as of 2025 [100]. The unified perspective on
+          occupancy prediction as multi-modal information fusion [100] closes the loop between
+          representation design and the fusion literature of Section 4.
+        </p>
+
+        <h3>3.5 World Models as Predictive Scene Representations</h3>
+
+        <p>
+          The most ambitious extension of scene representation is the <strong>world model</strong>, a
+          learned model that not only encodes current scene state but predicts its future evolution
+          conditioned on potential agent actions. GAIA-1 [32] framed scene evolution as next-token
+          prediction and used a video diffusion decoder to generate realistic future driving scenarios,
+          capturing complex multi-agent interactions and environmental dynamics. DriveDreamer [18] and
+          its successors advanced conditional diffusion for controllable, spatiotemporally coherent 4D
+          scene generation. OccWorld [70] uses a spatial-temporal transformer to autoregressively
+          predict future occupancy and ego-pose tokens, enabling globally consistent scene forecasting.
+        </p>
+
+        <p>
+          World models synthesize several review themes. They require dynamic scene representation (as
+          the state space), temporal modeling (as the transition dynamics), and implicitly encode
+          observation uncertainty (through stochastic generation). Their primary current application is
+          simulation and data augmentation, but the longer-term vision of directly using world model
+          predictions for planning under uncertainty aligns closely with the POMDP formulation and
+          represents a frontier we discuss in Section 9.
+        </p>
+
+        <h2>4. Observation Fusion Under Uncertainty</h2>
+
+        <p>
+          Combining heterogeneous sensor observations is the practical crux of robust perception. Each
+          modality provides a partial, noisy view of the scene, and the fusion strategy determines whether
+          their combination yields more than the sum of its parts. The 2018 to 2026 period has seen a
+          decisive shift from fixed fusion architectures toward learned, adaptive fusion in shared feature
+          spaces.
+        </p>
+
+        <h3>4.1 The Evolution from Geometric to Learned Fusion</h3>
+
+        <p>
+          Early multi-modal fusion for 3D perception operated through geometric reasoning. Frustum
+          PointNets [31] projected 2D image detections into 3D frustums that constrained subsequent
+          point cloud processing, using geometry to bridge the modalities but treating each modality's
+          processing as independent. PointPainting [75] adopted a sequential fusion strategy,
+          projecting image-based semantic segmentation scores onto LiDAR points as additional features, an
+          effective approach that nonetheless suffered from error propagation (segmentation errors in the
+          image domain become irrecoverable noise in the LiDAR domain). MVX-Net [67] explored both
+          point-level and voxel-level fusion, finding that voxel-level fusion offered a better tradeoff
+          between information preservation and computational cost. End-to-end deep fusion networks
+          integrating multiple modalities for driving scene understanding [65] extended the paradigm
+          to joint perception-control learning.
+        </p>
+
+        <p>
+          These approaches shared a critical limitation. The fusion strategy was architecturally fixed,
+          predetermined by the network topology, rather than input-conditional. The informativeness of a
+          modality is scene-dependent (fog degrades cameras, night affects color, range limits LiDAR
+          density), creating strong incentive for learned, adaptive mechanisms. The classical fusion
+          taxonomy of early, mid-level, and late fusion [29] is of diminishing analytical value in an
+          era of learned feature mixing, and subsequent progress has largely been organized around the
+          choice of shared representation (pointwise, voxel, BEV, query) rather than the fusion level.
+        </p>
+
+        <h3>4.2 BEV-Based Fusion as the Modern Paradigm</h3>
+
+        <p>
+          The BEV representation resolved the fundamental geometric challenge in camera-to-LiDAR fusion.
+          Cameras produce perspective-view features while LiDAR produces 3D features, and aligning these
+          in either source domain introduces projection artifacts. BEVFusion [57, 56] demonstrated that
+          independently transforming each modality into BEV space (LiDAR via voxelization and height
+          compression, cameras via LSS-style depth prediction) and then fusing the aligned BEV feature
+          maps achieves state-of-the-art performance across detection and segmentation while remaining
+          task-agnostic. The MIT implementation achieved 1.3 percent higher mAP with 1.9x lower computation
+          than prior art [57]. By transforming fusion from cross-domain alignment to same-domain
+          aggregation, BEV enabled rapid exploration of diverse mechanisms (element-wise addition,
+          concatenation, convolution-based mixing, attention-based selection).
+        </p>
+
+        <p>
+          BEV-based fusion has been extended in many directions. Hierarchical dynamic fusion of LiDAR and
+          camera features for 3D object detection [38] explicitly weights modalities by per-sample
+          reliability, improving robustness to per-modality degradation. MF-BEVFusion [63] adds
+          multiscale depth estimation and fully dynamic fusion for camera-LiDAR BEV detection, addressing
+          the long-range depth ambiguity that plagued earlier LSS-style projections. Dynamic feature
+          fusion methods [23, 38] continue to explore efficient mixing strategies inside the BEV
+          frame, while specialized domains such as floating-object detection in dynamic water bodies
+          [96] show that the BEV paradigm generalizes beyond autonomous driving.
+        </p>
+
+        <h3>4.3 Attention-Based Cross-Modal Fusion</h3>
+
+        <p>
+          Transformer architectures introduce a qualitatively different approach. Rather than fusing dense
+          feature maps, learned queries can selectively attend to relevant information across modalities.
+          TransFusion [4] employs a two-stage design where LiDAR-based object proposals generate queries
+          that then attend to image features via cross-attention, retrieving image information (texture,
+          color, fine-grained shape) only for regions where LiDAR has already identified potential objects.
+          DETR3D [15] takes the query-based paradigm further, generating 3D reference points from
+          learned object queries and projecting them into each camera view to sample features, enabling
+          camera-only 3D detection without explicit depth estimation. FUTR3D [10] extends this to a
+          modality-agnostic query-based fusion framework.
+        </p>
+
+        <p>
+          Attention-based fusion is powerful because it is inherently selective. Not all image regions are
+          equally informative for a given 3D detection, and attention mechanisms learn to focus
+          computational resources where they are most needed [4, 15]. This selectivity provides a
+          natural mechanism for handling sensor degradation. When a modality is uninformative (e.g., a
+          camera is occluded or saturated), attention weights can shift toward more reliable modalities.
+          However, whether current methods actually exhibit robust degradation handling, as opposed to
+          merely having the architectural capacity to do so, remains insufficiently evaluated, a gap that
+          standardized corruption benchmarks [17] have begun to close.
+        </p>
+
+        <h3>4.4 Classical Probabilistic Fusion and Modern Successors</h3>
+
+        <p>
+          Classical Bayesian fusion provides the theoretically optimal framework for combining conditionally
+          independent observations [87]. Dempster-Shafer (DS) theory [81] extends the Bayesian
+          paradigm to represent ignorance explicitly through belief functions, and multi-sensor consistency
+          fusion algorithms handle observation uncertainty through consistency checks [66]. Modern
+          work integrates these classical ideas with deep learning. Evidential approaches replace point
+          predictions with belief function outputs amenable to DS combination [80]. Trusted multi-view
+          classification with dynamic evidential fusion [36] demonstrates that evidential fusion can
+          both calibrate confidence and improve accuracy under heterogeneous views. Evidential multi-modal
+          fusion for robust perception under uncertainty [5] and related work [36] show that DS-style
+          combinations can outperform purely learned fusion on out-of-distribution inputs. However, DS
+          fusion can produce counterintuitive results under high conflict, a scenario arising naturally
+          under sensor failure, which limits its drop-in applicability.
+        </p>
+
+        <p>
+          Data fusion with explicit uncertainty quantification for observational data [13] frames the
+          fusion problem in terms of propagating posterior distributions rather than point estimates,
+          closer to the POMDP ideal of Section 2. Dynamic bilateral cross-fusion networks for RGB-T urban
+          scene understanding [14] demonstrate that principled cross-modal feature mixing, when guided
+          by a bilateral awareness mechanism, can deliver robust perception in intelligent vehicle settings
+          where thermal and visual modalities carry complementary but unreliable information. These
+          probabilistic threads remain under-exploited relative to the purely geometric BEV fusion
+          literature.
+        </p>
+
+        <h3>4.5 Robustness to Sensor Degradation and Failure</h3>
+
+        <p>
+          Most fusion methods are evaluated on clean benchmarks, but deployment must tolerate fog, rain,
+          miscalibration, and hardware failure [8, 85]. Studies evaluating under degradation reveal
+          alarming fragility [7, 17]. Seeing Through Fog demonstrated that standard multi-modal
+          architectures can fail catastrophically in fog conditions [7], while the RoboDet benchmark
+          [17] provides systematic degradation scenarios, finding that methods competitive on clean data
+          often suffer 20 to 40 percent performance drops under realistic corruptions. Modality dropout
+          during training forces per-modality competence and has been shown to improve downstream
+          robustness [94]. Learned reliability gating [7] offers a more principled approach, using
+          explicit modality-reliability estimators to weight fusion contributions. MetaBEV [62]
+          introduces meta-learning for degradation adaptation, exploiting small amounts of in-condition
+          data to fine-tune fusion weights. Robust embodied perception in dynamic environments via
+          disentangled weight fusion [78] goes further, disentangling reliability estimation from
+          feature extraction to enable deployment-time per-sample fusion weighting.
+        </p>
+
+        <p>
+          The lack of standardized degradation benchmarks and per-sample uncertainty estimates in deployed
+          fusion systems are among the most consequential gaps in the literature. Closing them requires a
+          joint commitment to evaluation under realistic degradation and to uncertainty-aware fusion
+          architectures, which the evidential and Bayesian threads (Section 6) are beginning to provide.
+        </p>
+
+        <h2>5. Temporal Observation History and Priors</h2>
+
+        <p>
+          Dynamic environments are, by definition, temporal. A perception system that processes each frame
+          independently discards the structure that makes dynamic scenes intelligible. The question of how
+          to use observation history has been central to robotics since classical Bayesian filtering, and
+          the 2018 to 2026 period has seen a rich expansion of mechanisms for temporal reasoning, from
+          recurrent networks to BEV temporal attention, state-space models, and persistent memory.
+        </p>
+
+        <h3>5.1 Recurrent Architectures and Classical Filtering</h3>
+
+        <p>
+          ConvLSTM [12] became the default temporal backbone for early learned perception, maintaining
+          a hidden state combined with current features. Temporal context consistently improves detection
+          and tracking accuracy for occluded objects [28, 40]. Classical Bayesian filters (extended
+          Kalman filters, particle filters) remained standard for object tracking under association
+          uncertainty [99], especially when paired with modern detectors through tracking-by-detection
+          pipelines. A simple fusion of dynamic occupancy grid mapping and multi-object tracking based on
+          LiDAR and camera sensors [25] demonstrates the continued practical value of principled
+          probabilistic filtering even in otherwise deep-learned pipelines.
+        </p>
+
+        <p>
+          The divide between recurrent networks and classical filters reflects a deeper methodological
+          tension. Recurrent networks learn dynamics implicitly from data but struggle to produce
+          probabilistically coherent state estimates. Classical filters provide principled uncertainty
+          propagation but are limited to low-dimensional state spaces and linearity assumptions. Both
+          families suffer from long-range dependency issues and sequential computation constraints that
+          motivate newer architectures.
+        </p>
+
+        <h3>5.2 Temporal Attention in BEV Space</h3>
+
+        <p>
+          The combination of BEV and transformer attention has produced the dominant modern temporal
+          approach. BEVFormer [55] introduced temporal self-attention where BEV queries attend to
+          ego-motion-compensated previous BEV features, effectively aligning the temporal axis with
+          geometric structure. StreamPETR [84] maintains temporal object query queues, allowing each
+          frame's queries to consult historical object representations. BEVDet4D [42] concatenates
+          consecutive BEV maps with explicit ego-motion compensation, a simple but effective scheme that
+          highlights how much leverage the BEV coordinate frame provides for temporal fusion.
+        </p>
+
+        <p>
+          Across methods, BEV-temporal fusion provides 2 to 5 mAP improvement, with largest gains for
+          occluded and distant objects [55, 84, 42]. The success stems from BEV features being
+          metrically grounded, spatially structured, and dimensionally compact, making them natural
+          substrates for temporal alignment. The unification of spatial fusion (Section 4.2), temporal
+          fusion (this section), and downstream planning under a single BEV feature map is one of the
+          most consequential architectural developments of the review period.
+        </p>
+
+        <h3>5.3 State-Space Models for Efficient Temporal Reasoning</h3>
+
+        <p>
+          <strong>Structured State-Space Models (SSMs)</strong>, particularly Mamba [60], offer
+          linear-time complexity for long-range dependencies, in contrast to the quadratic cost of
+          transformer self-attention. Vision Mamba [92] adapted SSMs for visual representation, and
+          Trajectory Mamba [44] demonstrated SSMs as transformer replacements for motion forecasting.
+          Linear complexity enables longer temporal horizons (seconds rather than 1 to 3 frames), a regime
+          in which transformer attention becomes computationally impractical. However, advantages over
+          tuned transformers await conclusive demonstration across the full range of perception tasks, and
+          Mamba variants currently occupy a niche rather than a replacement position in the perception
+          stack.
+        </p>
+
+        <h3>5.4 Memory-Augmented Temporal Methods</h3>
+
+        <p>
+          Explicit memory mechanisms store and retrieve information across longer time scales than typical
+          recurrent or attention windows [16]. Persistent BEV feature maps updated each timestep
+          serve as learned spatial memory, aggregating evidence for static scene elements while tracking
+          dynamic objects separately [27]. The distinction between temporal fusion (a fixed recent
+          window of frames) and temporal memory (a persistent state selectively updated over longer
+          horizons) is conceptually important. Fusion suits dynamic elements whose state changes on short
+          timescales, while memory suits static or slowly changing scene content that needs accumulating
+          evidence. 4DContrast [9] introduces contrastive learning with dynamic correspondences across
+          time and modalities, a self-supervised alternative to handcrafted memory update rules.
+        </p>
+
+        <h3>5.5 End-to-End Temporal Integration</h3>
+
+        <p>
+          UniAD [91] unifies tracking, forecasting, occupancy prediction, and planning through shared
+          temporal queries, collapsing the traditional modular pipeline into a single trainable system.
+          DriveTransformer [19] maintains FIFO query queues with historical cross-attention,
+          demonstrating that scalable end-to-end driving transformers can absorb both temporal and
+          cross-task dependencies in a unified architecture. Graph neural approaches for scene dynamics
+          [26, 54] and dynamic scene graph generation [26] complement these BEV-centric pipelines
+          with structured relational representations.
+        </p>
+
+        <p>
+          However, multi-stage training requirements reveal fundamental tensions. Joint optimization's
+          theoretical elegance conflicts with practical training instability. Curriculum strategies and
+          auxiliary losses are frequently required to stabilize end-to-end training, and certification
+          pipelines struggle to audit monolithic perception-to-planning systems. This modularity-to-
+          integration tension recurs across themes and is taken up again in Section 8.
+        </p>
+
+        <h2>6. Uncertainty Quantification and Propagation in Perception</h2>
+
+        <p>
+          A perception system that reports confident predictions regardless of input quality is dangerous
+          in safety-critical applications. This section reviews methods for estimating, calibrating, and
+          propagating uncertainty, along with the gaps that keep uncertainty-aware perception from
+          translating into uncertainty-aware planning.
+        </p>
+
+        <h3>6.1 The Epistemic to Aleatoric Decomposition</h3>
+
+        <p>
+          Kendall and Gal [48] formalized the decomposition of predictive uncertainty into epistemic
+          and aleatoric components within a single Bayesian deep-learning framework. Aleatoric uncertainty
+          is modeled by predicted variance in the likelihood (a learned noise term), while epistemic
+          uncertainty is estimated through variational inference, typically via MC Dropout [61]. The
+          decomposition has been widely adopted in depth estimation, object detection, and segmentation
+          [48, 29, 37]. Estimate quality varies dramatically across methods, however, and no single
+          estimator dominates across tasks and datasets. Predictive-uncertainty-under-shift studies
+          [71] show that even state-of-the-art methods produce unreliable estimates when evaluated on
+          out-of-distribution samples, a failure mode that calibration alone cannot correct.
+        </p>
+
+        <h3>6.2 Practical Methods, MC Dropout and Deep Ensembles</h3>
+
+        <p>
+          MC Dropout [61] and Deep Ensembles [52] dominate practical uncertainty estimation. MC
+          Dropout requires no architectural change beyond keeping dropout active at inference, but it
+          underestimates epistemic uncertainty due to its restricted variational posterior [30].
+          Deep Ensembles provide better calibration and diversity but at 3 to 10x computational cost
+          relative to a single model. Cost-reduction attempts through distillation, hypernetworks, and
+          batch ensembles inevitably trade uncertainty quality for efficiency [21, 98]. The
+          quality-to-cost tension remains unresolved for real-time perception on embedded hardware,
+          leaving most deployed systems with rudimentary uncertainty estimates.
+        </p>
+
+        <h3>6.3 Evidential Deep Learning</h3>
+
+        <p>
+          <strong>Evidential deep learning (EDL)</strong> [80] predicts higher-order distribution
+          parameters (Dirichlet for classification, Normal-Inverse-Gamma for regression) in a single
+          forward pass, avoiding the sampling cost of MC Dropout and Deep Ensembles. The single-pass
+          efficiency is the primary advantage, but calibration has been questioned. EDL can be
+          overconfident on out-of-distribution data [90], and its implicit priors can produce
+          misleading uncertainty estimates for novel inputs. Deep evidential regression [1]
+          demonstrated the approach for continuous outputs. Integration with Dempster-Shafer fusion is
+          theoretically attractive, and evidential multi-modal fusion [5, 36] has shown empirical
+          gains, but end-to-end benefits of evidential perception for downstream planning remain
+          undemonstrated at scale.
+        </p>
+
+        <h3>6.4 Calibration</h3>
+
+        <p>
+          <strong>Calibrated</strong> uncertainty (where reported confidence matches empirical accuracy)
+          is essential for safety-critical decision-making but is systematically violated by overconfident
+          neural networks [34]. Temperature scaling helps in-distribution but fails under distribution
+          shift. Non-stationarity further complicates calibration. Daytime-calibrated models may fail at
+          night, and cross-city deployment can invalidate carefully tuned scaling parameters. Conformal
+          prediction offers distribution-free guarantees under exchangeability [2] and provides a
+          principled route to set-valued predictions with coverage guarantees, but extension to temporally
+          dependent, spatially structured 3D perception outputs remains challenging. Calibration is, in
+          our assessment, the single largest obstacle to practical uncertainty utility.
+        </p>
+
+        <h3>6.5 Uncertainty Propagation Through Pipelines</h3>
+
+        <p>
+          Propagating uncertainty through multi-stage pipelines (detection to tracking to prediction to
+          planning) is largely unsolved. Current practice discards uncertainty at each module boundary,
+          passing point estimates between components and treating each module as a deterministic function.
+          Sampling-based propagation is scalable in principle but typically prohibitive in practice for
+          real-time systems. Linearized methods face scalability challenges in high-dimensional feature
+          spaces [37, 29]. Recent reviews of uncertainty quantification for autonomous vehicles
+          [59] conclude that uncertainty in deployed systems serves mainly as a diagnostic rather than
+          as a direct planning input. Closing this gap requires both better uncertainty estimation and
+          better perception-to-planning interfaces that can consume set-valued or distributional
+          predictions.
+        </p>
+
+        <p>
+          The mathematical framework for principled uncertainty propagation, rooted in Bayesian filtering
+          [87] and POMDP decision theory [47], has long existed. The engineering challenge at
+          real-time speeds, in high-dimensional feature spaces, with learned components whose likelihoods
+          are not easily characterized, has not been solved. We return to this gap as the field's most
+          important open problem in Section 9.
+        </p>
+
+        <h2>7. Robust Perception in Unknown and Partially Observable Environments</h2>
+
+        <p>
+          Deployment environments inevitably contain entities and conditions absent from training data.
+          Robust perception is the practical manifestation of Section 6's theoretical concerns, bringing
+          open-world recognition, foundation models, domain adaptation, and active information gathering
+          into contact with the uncertainty and fusion machinery developed in earlier sections.
+        </p>
+
+        <h3>7.1 Open-World Object Detection</h3>
+
+        <p>
+          The <strong>Open-World Object Detection (OWOD)</strong> paradigm [46] reframes detection as
+          open. Systems must detect known objects, identify unknowns as an unknown class, and incrementally
+          learn from labeled instances of newly named categories. ORE [46] used contrastive clustering
+          to separate known and unknown regions in feature space. OW-DETR [35] extended the paradigm
+          to transformer architectures with a general objectness query, avoiding the anchor-based
+          assumptions that had limited earlier methods. Subsequent work explores pseudo-labeling from
+          geometric heuristics, reconstruction-error novelty detection, and plasticity to stability
+          protocols for incremental learning [72, 58]. Recent unified treatments combining open-world
+          and open-vocabulary detection [72] suggest convergence toward a single framework for
+          recognizing both novel objects and novel categories.
+        </p>
+
+        <p>
+          OWOD links conceptually to occupancy prediction (Section 3.4). Geometry-based representations
+          can represent unknowns without class labels, which is precisely the capability OWOD seeks. A
+          persistent limitation, however, is that most OWOD evaluation uses 2D benchmarks. Generalization
+          to 3D driving scenes with their particular long-tail distributions and sensor characteristics is
+          largely untested, a gap that the joint consideration of occupancy and OWOD could close.
+        </p>
+
+        <h3>7.2 Foundation Models and the Generalization Revolution</h3>
+
+        <p>
+          CLIP [11] enabled zero-shot recognition by aligning image and text representations trained
+          on web-scale data. SAM [51] extended the zero-shot paradigm to class-agnostic segmentation
+          with promptable mask generation. Grounding DINO [33] combined self-supervised features with
+          language grounding for open-vocabulary detection. Applications to 3D perception include SAM-based
+          pseudo-supervision, CLIP feature transfer into 3D representations, and foundation model
+          auxiliary inputs for downstream detectors [72, 50]. Sigmoid-loss language-image
+          pretraining [103] shows that foundation model design choices continue to evolve rapidly,
+          with direct implications for the transferability of pretrained representations into 3D perception
+          tasks.
+        </p>
+
+        <p>
+          Foundation models' generalization boundaries, however, are poorly understood. Computational
+          costs exceed real-time budgets for on-vehicle inference, and integration with geometric 3D
+          reasoning that requires metric accuracy remains non-trivial. Bridging semantic breadth (what
+          foundation models provide) with geometric precision (what autonomous systems require) is the
+          central integration challenge of this decade. The dynamic graph neural network with adaptive
+          feature selection for RGB-D indoor scene recognition [24] illustrates one modest but
+          concrete integration path, in which foundation-model features are selectively aggregated into
+          structured scene graphs.
+        </p>
+
+        <h3>7.3 Domain Adaptation and Sim-to-Real Transfer</h3>
+
+        <p>
+          Unsupervised domain adaptation (UDA) methods adapt perception models across cities, weather
+          conditions, and sensor configurations [83, 95]. Point cloud adaptation is particularly
+          challenging due to geometric distribution shifts from varying LiDAR beam patterns, mounting
+          heights, and scanning modalities [97, 83]. Self-training with pseudo-labels closes the
+          gap but risks confirmation bias, motivating denoised self-training strategies such as ST3D++
+          [83] that filter pseudo-labels using uncertainty or density cues. Sim-to-real transfer
+          remains substantially degraded despite domain randomization [89] and style transfer
+          [102]. The fundamental challenge is that simulated sensors do not replicate the full noise
+          characteristics and failure modes of real hardware.
+        </p>
+
+        <h3>7.4 Active Perception Under Partial Observability</h3>
+
+        <p>
+          <strong>Active perception</strong> uses current uncertainty to guide information-gathering
+          actions, instantiating the POMDP planning loop within the perception stack. Perception-aware
+          sensor fusion for LiDAR semantic segmentation [39] improves accuracy and safety without
+          compromising operational efficiency by conditioning fusion on anticipated viewpoint value.
+          Next-best-view planning, originally developed for active volumetric 3D reconstruction [45],
+          has been adapted to driving scenarios. Integration with uncertainty quantification requires
+          spatially grounded, actionable uncertainty estimates, a requirement that current perception
+          methods only partially satisfy. Laser-based scene understanding in large dynamic environments
+          [54], dynamic crosswalk scene understanding for the visually impaired [22], and
+          generating dynamic projection images for scene representation [76] all highlight
+          application-specific instantiations of active, uncertainty-aware perception. Bayesian posterior
+          analysis frameworks for dynamic observation scenarios [6] illustrate the continued
+          relevance of principled probabilistic reasoning in fields as varied as autonomous driving and
+          scientific data analysis.
+        </p>
+
+        <h2>8. Cross-Cutting Analysis</h2>
+
+        <p>
+          No individual theme accounts for the transformation of the field. The most important insights
+          live at theme boundaries, in the connections among representation, fusion, temporal reasoning,
+          uncertainty, and robustness.
+        </p>
+
+        <h3>8.1 BEV as the Unifying Bridge</h3>
+
+        <p>
+          BEV serves as the spatial frame for fusion (Section 4.2), temporal alignment (Section 5.2),
+          occupancy output (Section 3.4), and the planning interface (Section 5.5). This convergence
+          reflects BEV's natural alignment with ground-vehicle autonomy. A single 2D feature map serves
+          as input, intermediate representation, and output. The BEV paradigm is what allows
+          [57, 55, 91] to share so many architectural components.
+        </p>
+
+        <p>
+          However, BEV's dominance risks premature standardization. The representation discards vertical
+          information critical for non-ground vehicles, elevated infrastructure, and manipulation
+          scenarios. TPVFormer [88] and volumetric occupancy [69] suggest the field may outgrow BEV
+          toward richer 3D representations, especially as aerial robotics, warehouse automation, and
+          domestic robotics demand increased vertical awareness. The successor representation will likely
+          preserve BEV's unifying role while extending it to truly volumetric perception.
+        </p>
+
+        <h3>8.2 The Modularity to Integration Tension</h3>
+
+        <p>
+          Modular pipelines offer interpretability, debuggability, and regulatory traceability, but they
+          lose uncertainty information at boundaries because each module typically consumes and produces
+          point estimates. End-to-end systems (UniAD, DriveTransformer) offer joint optimization but
+          resist debugging and certification [91, 19]. The trend favors integration, moving from
+          per-modality processing in 2018 to BEV fusion in 2020 to 2022, and to perception-planning
+          integration in 2023 to 2025. Current systems remain training-integrated rather than
+          architecturally monolithic, however, which preserves partial modularity for practical
+          engineering reasons.
+        </p>
+
+        <p>
+          Resolution of this tension depends as much on regulatory frameworks as on technical capability.
+          Safety-critical certification currently presumes modular boundaries and interpretable
+          intermediate outputs, and end-to-end systems that do not expose such outputs will face
+          deployment barriers regardless of benchmark performance. A promising middle path is to require
+          modularity in interface semantics (probabilistic set-valued predictions exposed at
+          well-defined stages) while allowing internal joint optimization.
+        </p>
+
+        <h3>8.3 The Foundation Model Inflection Point</h3>
+
+        <p>
+          Foundation models shift generalization bounds from task-specific to pre-training distributions
+          [11, 51]. Their impact touches every theme. They provide semantic priors for open-world
+          detection (Section 7.1), data augmentation for domain adaptation (Section 7.3), and
+          zero-shot evaluation for robustness assessment. Integration challenges remain severe, however.
+          Foundation models provide semantic generalization without metric accuracy, at computational
+          costs exceeding real-time budgets, and with poorly characterized failure modes on
+          safety-critical inputs. Bridging semantic breadth with geometric precision requires innovations
+          beyond feature concatenation.
+        </p>
+
+        <h3>8.4 Uncertainty as the Connecting Thread</h3>
+
+        <p>
+          Uncertainty pervades every theme but is addressed fragmentarily. Scene representations encode
+          it implicitly (world models) but rarely expose it in a form downstream modules can consume.
+          Fusion methods rarely use per-modality uncertainty to weight contributions, even though
+          uncertainty-weighted fusion is mathematically straightforward. Temporal methods propagate
+          point estimates rather than distributions. Uncertainty methods produce estimates that
+          downstream modules ignore. Robust perception needs uncertainty for shift detection but uses
+          separate out-of-distribution mechanisms.
+        </p>
+
+        <p>
+          A unified framework, where uncertainty is estimated at the sensor level, propagated through
+          fusion and temporal aggregation, and ultimately consumed by a planning module capable of
+          reasoning over distributions, remains the field's most important unrealized aspiration. The
+          mathematical foundations exist (Bayesian filtering, POMDP decision theory, conformal prediction),
+          but the engineering challenge of bringing them to real-time speeds over learned perception
+          components has not been solved.
+        </p>
+
+        <h3>8.5 Methodological Trends</h3>
+
+        <p>
+          Several methodological tides are running strongly across the review period. Rising approaches
+          include BEV architectures, attention-based fusion and temporal modeling, state-space models,
+          occupancy prediction, world models, foundation models, and evidential methods. Declining
+          approaches include handcrafted features, fixed-topology fusion, purely recurrent temporal
+          models, single-sensor perception, and closed-world evaluation. Stable commitments include the
+          epistemic to aleatoric decomposition [48], the dominance of nuScenes [8] and Waymo [85]
+          as benchmarks, and camera to LiDAR as the dominant sensor pair. The most significant emerging
+          trend is world-model convergence, where representation, temporal modeling, and generative
+          simulation are increasingly handled by a single architecture.
+        </p>
+
+        <div class="taxonomy-tree">
+          <div class="taxonomy-root">Methodological trends 2018 to 2026</div>
+          <div class="taxonomy-branch">
+            <span class="branch-id">Rising</span>
+            <span class="branch-label">approaches</span>
+            <div class="taxonomy-leaves">
+              <span class="leaf-id">BEV fusion and temporal attention</span>
+              <span class="leaf-id">Occupancy prediction and 3DGS</span>
+              <span class="leaf-id">World models</span>
+              <span class="leaf-id">State-space models (Mamba)</span>
+              <span class="leaf-id">Foundation model integration</span>
+              <span class="leaf-id">Evidential deep learning</span>
+            </div>
+          </div>
+          <div class="taxonomy-branch">
+            <span class="branch-id">Declining</span>
+            <span class="branch-label">approaches</span>
+            <div class="taxonomy-leaves">
+              <span class="leaf-id">Handcrafted 3D features</span>
+              <span class="leaf-id">Fixed-topology fusion</span>
+              <span class="leaf-id">Pure recurrent temporal models</span>
+              <span class="leaf-id">Single-sensor perception</span>
+              <span class="leaf-id">Closed-world evaluation</span>
+            </div>
+          </div>
+          <div class="taxonomy-branch">
+            <span class="branch-id">Stable</span>
+            <span class="branch-label">commitments</span>
+            <div class="taxonomy-leaves">
+              <span class="leaf-id">Epistemic to aleatoric decomposition</span>
+              <span class="leaf-id">nuScenes and Waymo benchmarks</span>
+              <span class="leaf-id">Camera to LiDAR as primary sensor pair</span>
+            </div>
+          </div>
+        </div>
+
+        <h2>9. Open Problems and Future Directions</h2>
+
+        <h3>9.1 Uncertainty-Aware End-to-End Perception</h3>
+
+        <p>
+          This is the most critical open problem in the field. Future work should investigate
+          differentiable probabilistic programming frameworks that enable uncertainty flow through
+          computation graphs. Combining evidential learning with end-to-end training (by rewarding
+          calibration through downstream decision quality rather than only through held-out likelihood)
+          is a specific, actionable direction. Conformal prediction extensions to temporally dependent,
+          spatially structured 3D outputs [2] would provide distribution-free coverage guarantees
+          directly compatible with planning modules that accept set-valued predictions.
+        </p>
+
+        <h3>9.2 Standardized Degradation Benchmarks</h3>
+
+        <p>
+          The field urgently needs benchmarks for fusion under realistic degradation. Fog, rain, snow,
+          miscalibration, dropout, and correlated multi-sensor failure should all be systematically
+          evaluated, and evaluation metrics should include worst-case rather than only average accuracy.
+          The RoboDet challenge [17] is an initial effort, but comprehensive community-adopted
+          benchmarks do not yet exist. Extension of these benchmarks to long-tail object classes, rare
+          events, and adversarial conditions is essential for progress.
+        </p>
+
+        <h3>9.3 Scalable World Models</h3>
+
+        <p>
+          Hierarchical world models that decompose complex scenes into interacting sub-scenes offer a
+          path to tractable multi-agent prediction. Integration with foundation models, combining
+          temporal dynamics from world models and semantic generalization from foundation models, is a
+          promising but largely unexplored combination. Current world models [32, 18, 70] operate
+          on either raw pixels, discrete tokens, or occupancy voxels, but a unified representation that
+          supports both perception and simulation has not been established.
+        </p>
+
+        <h3>9.4 Open-World Perception with Calibrated Uncertainty</h3>
+
+        <p>
+          OWOD and uncertainty quantification are deeply coupled but studied in isolation. Joint
+          optimization should provide calibrated uncertainty over the known to unknown distinction.
+          Occupancy prediction offers a natural substrate, since class-agnostic geometry with voxel-level
+          uncertainty can distinguish known, unknown, and unobserved voxels without committing to a
+          closed taxonomy. Extending OWOD evaluation from 2D benchmarks to 3D driving scenes, and from
+          vision-only modalities to fused LiDAR and camera inputs, is an overdue next step.
+        </p>
+
+        <h3>9.5 Bridging Perception and Planning Under Uncertainty</h3>
+
+        <p>
+          Closing this loop requires three developments. First, perception outputs in planning-compatible
+          formats (distributional or set-valued, not point estimates). Second, planning algorithms that
+          reason over uncertainty rather than collapsing it to expected values. Third, training
+          objectives that reward uncertainty for its contribution to decision quality rather than for
+          its fidelity to held-out labels. Risk-aware POMDP frameworks provide the theory; integration
+          with learned perception at scale remains a frontier. Perception-aware planning efforts
+          [39] offer a starting point, but they have not yet reached the sophistication needed for
+          open-world deployment.
+        </p>
+
+        <h2>10. Conclusion</h2>
+
+        <p>
+          This scoping review has charted the intellectual trajectory of scene understanding in dynamic
+          environments over 2018 to 2026, identifying five interlocking themes that define the problem
+          space. Learned 3D representations have replaced handcrafted features. BEV has emerged as a
+          unifying abstraction. Transformers and state-space models have enabled temporal reasoning over
+          longer horizons. Foundation models have expanded the generalization frontier. Evidential and
+          Bayesian methods have introduced principled uncertainty estimation into the perception stack.
+        </p>
+
+        <p>
+          Yet the central challenge remains. The principled propagation of uncertainty from raw sensor
+          observations through to downstream decisions is largely unsolved, and this gap, rather than
+          any single perceptual capability, is the primary barrier to trustworthy autonomous perception.
+          The convergence of world models, foundation models, and probabilistic deep learning offers a
+          plausible path forward. World models supply temporal structure, foundation models supply
+          semantic breadth, and probabilistic methods supply principled uncertainty. Whether this
+          convergence will be realized in a unified architecture or through modular interfaces with
+          carefully specified probabilistic semantics is the defining open question for the next phase
+          of the field.
+        </p>
+
+        </section>
+
+        <div class="citation-section">
+          <h2 class="citation-header">Citation</h2>
+          <p class="citation-text">
+            If you find this survey useful, please cite it as
+          </p>
+          <pre class="citation-pre">
+@misc{dynamic_observation_survey_2026,
+  author    = {Hu Tianrun},
+  title     = {Multi-Modal Scene Understanding in Dynamic Environments},
+  year      = {2026},
+  publisher = {GitHub},
+  url       = {https://h-tr.github.io/blog/surveys/dynamic-observation.html}
+}
+          </pre>
+        </div>
+
+        <div class="references-section">
+          <h2 class="references-header">References</h2>
+          <ol class="references-list">
+            <li id="ref-1">Amini, A., Schwarting, W., Soleimany, A., and Rus, D. (2020). Deep Evidential Regression. <em>NeurIPS</em>, 33, pp. 14927-14937.</li>
+            <li id="ref-2">Angelopoulos, A. N. and Bates, S. (2023). Conformal Prediction, A Gentle Introduction. <em>Foundations and Trends in Machine Learning</em>, 16(4), pp. 494-591.</li>
+            <li id="ref-3">Arshad, S. and Kim, G.-W. (2022). A Review on Visual-SLAM, Advancements from Geometric Modelling to Learning-Based Semantic Scene Understanding Using Multi-Modal Sensor Fusion. <em>Sensors</em>, 22(14), 4324.</li>
+            <li id="ref-4">Bai, X., Hu, Z., Zhu, X., Huang, Q., Chen, Y., Fu, H., and Tai, C.-L. (2022). TransFusion, Robust LiDAR-Camera Fusion for 3D Object Detection with Transformers. <em>CVPR</em>, pp. 1090-1099.</li>
+            <li id="ref-5">Bao, W., Yu, Q., and Kong, Y. (2024). Evidential Multi-Modal Fusion for Robust Perception Under Uncertainty. <em>ECCV</em>.</li>
+            <li id="ref-6">Bayesian Posterior Analysis of 40 UAP Cases, Evaluating Framework Stability and Observational Uncertainty Using JOR Fusion. (2026). <em>Open MIND</em>.</li>
+            <li id="ref-7">Bijelic, M., Gruber, T., Mannan, F., Kraus, F., Ritter, W., Dietmayer, K., and Heide, F. (2020). Seeing Through Fog Without Seeing Fog, Deep Multimodal Sensor Fusion in Unseen Adverse Weather. <em>CVPR</em>, pp. 11682-11692.</li>
+            <li id="ref-8">Caesar, H., Bankiti, V., Lang, A. H., Vora, S., Liong, V. E., Xu, Q., Krishnan, A., Pan, Y., Baldan, G., and Beijbom, O. (2020). nuScenes, A Multimodal Dataset for Autonomous Driving. <em>CVPR</em>, pp. 11621-11631.</li>
+            <li id="ref-9">Chen, Y., Nie, X., Yu, M., Liu, Y., and Wang, J. (2022). 4DContrast, Contrastive Learning with Dynamic Correspondences for 3D Scene Understanding. <em>ECCV</em>.</li>
+            <li id="ref-10">Chen, X., Zhang, T., Wang, Y., Wang, Y., and Zhao, H. (2023). FUTR3D, A Unified Sensor Fusion Framework for 3D Detection. <em>CVPR</em>.</li>
+            <li id="ref-11">Radford, A., Kim, J. W., Hallacy, C., Ramesh, A., Goh, G., Agarwal, S., Sastry, G., Askell, A., Mishkin, P., Clark, J., Krueger, G., and Sutskever, I. (2021). Learning Transferable Visual Models from Natural Language Supervision. <em>ICML</em>, pp. 8748-8763.</li>
+            <li id="ref-12">Shi, X., Chen, Z., Wang, H., Yeung, D.-Y., Wong, W.-K., and Woo, W.-C. (2015). Convolutional LSTM Network, A Machine Learning Approach for Precipitation Nowcasting. <em>NeurIPS</em>, pp. 802-810.</li>
+            <li id="ref-13">Data Fusion with Uncertainty Quantification for Observational Data. (2023).</li>
+            <li id="ref-14">DBCNet, Dynamic Bilateral Cross-Fusion Network for RGB-T Urban Scene Understanding in Intelligent Vehicles. (2023). <em>IEEE Transactions on Systems Man and Cybernetics Systems</em>.</li>
+            <li id="ref-15">Wang, T., Zhu, X., Pang, J., and Lin, D. (2022). DETR3D, 3D Object Detection from Multi-View Images via 3D-to-2D Queries. <em>CoRL</em>.</li>
+            <li id="ref-16">Graves, A., Wayne, G., Reynolds, M., Harley, T., Danihelka, I., Grabska-Barwinska, A., Colmenarejo, S. G., Grefenstette, E., Ramalho, T., and Agapiou, J. (2016). Hybrid Computing Using a Neural Network with Dynamic External Memory. <em>Nature</em>, 538, pp. 471-476.</li>
+            <li id="ref-17">Dong, Y., Kang, J., Zhu, Z., Guan, D., Chen, X., Lin, J., Duan, Y., Xie, D., Hu, W., Zhang, B., and Su, H. (2023). Benchmarking Robustness of 3D Object Detection to Common Corruptions in Autonomous Driving. <em>CVPR</em>.</li>
+            <li id="ref-18">Wang, X., Zhu, Z., Huang, G., Chen, X., Zhu, J., and Lu, J. (2024). DriveDreamer, Towards Real-World-Driven World Models for Autonomous Driving. <em>ECCV</em>.</li>
+            <li id="ref-19">Jia, Y., Liu, J., Li, J., and Shi, B. (2025). DriveTransformer, Unified Transformer for Scalable End-to-End Autonomous Driving. <em>arXiv:2503.07656</em>.</li>
+            <li id="ref-20">Zhou, X., Lin, Z., Shan, X., Wang, Y., Sun, D., and Yang, M.-H. (2024). DrivingGaussian, Composite Gaussian Splatting for Surrounding Dynamic Autonomous Driving Scenes. <em>CVPR</em>.</li>
+            <li id="ref-21">Dusenberry, M. W., Jerfel, G., Wen, Y., Ma, Y., Snoek, J., Heller, K., Lakshminarayanan, B., and Tran, D. (2020). Efficient and Scalable Bayesian Neural Nets with Rank-1 Factors. <em>ICML</em>, pp. 2782-2792.</li>
+            <li id="ref-22">Dynamic Crosswalk Scene Understanding for the Visually Impaired. (2021). <em>IEEE Transactions on Neural Systems and Rehabilitation Engineering</em>.</li>
+            <li id="ref-23">Efficient Multimodal 3D Object Detection via Dynamic Feature Fusion of LiDAR and Camera Data. (2024).</li>
+            <li id="ref-24">Dynamic Graph Neural Network with Adaptive Features Selection for RGB-D Based Indoor Scene Recognition. (2026). <em>arXiv</em>.</li>
+            <li id="ref-25">A Fusion of Dynamic Occupancy Grid Mapping and Multi-Object Tracking Based on LiDAR and Camera Sensors. (2020). <em>International Conference on Unmanned Systems (ICUS)</em>.</li>
+            <li id="ref-26">Dynamic Gated Graph Neural Networks for Scene Graph Generation. (2019). <em>Lecture Notes in Computer Science</em>.</li>
+            <li id="ref-27">Hu, A., Murez, Z., Mohan, N., Dudas, S., Hawke, J., Badrinarayanan, V., Cipolla, R., and Kendall, A. (2021). FIERY, Future Instance Prediction in Bird's-Eye View from Surround Monocular Cameras. <em>ICCV</em>, pp. 15273-15282.</li>
+            <li id="ref-28">Luo, W., Yang, B., and Urtasun, R. (2018). Fast and Furious, Real Time End-to-End 3D Detection, Tracking and Motion Forecasting. <em>CVPR</em>, pp. 3569-3577.</li>
+            <li id="ref-29">Feng, D., Haase-Schutz, C., Rosenbaum, L., Hertlein, H., Glaser, C., Timm, F., Wiesbeck, W., and Dietmayer, K. (2021). Deep Multi-Modal Object Detection and Semantic Segmentation for Autonomous Driving. <em>IEEE Transactions on Intelligent Transportation Systems</em>, 22(3), pp. 1341-1360.</li>
+            <li id="ref-30">Foong, A. Y. K., Li, Y., Hernandez-Lobato, J. M., and Turner, R. E. (2020). On the Expressiveness of Approximate Inference in Bayesian Neural Networks. <em>NeurIPS</em>, 33, pp. 15897-15908.</li>
+            <li id="ref-31">Qi, C. R., Liu, W., Wu, C., Su, H., and Guibas, L. J. (2018). Frustum PointNets for 3D Object Detection from RGB-D Data. <em>CVPR</em>, pp. 918-927.</li>
+            <li id="ref-32">Hu, A., Russell, L., Yeo, H., Murez, Z., Fedoseev, G., Kendall, A., Shotton, J., and Corrado, G. (2023). GAIA-1, A Generative World Model for Autonomous Driving. <em>arXiv:2309.17080</em>.</li>
+            <li id="ref-33">Liu, S., Zeng, Z., Ren, T., Li, F., Zhang, H., Yang, J., Li, C., Yang, J., Su, H., Zhu, J., and Zhang, L. (2024). Grounding DINO, Marrying DINO with Grounded Pre-Training for Open-Set Object Detection. <em>ECCV</em>.</li>
+            <li id="ref-34">Guo, C., Pleiss, G., Sun, Y., and Weinberger, K. Q. (2017). On Calibration of Modern Neural Networks. <em>ICML</em>, pp. 1321-1330.</li>
+            <li id="ref-35">Gupta, A., Narayan, S., Joseph, K. J., Khan, S., Khan, F. S., and Shah, M. (2022). OW-DETR, Open-World Detection Transformer. <em>CVPR</em>, pp. 9235-9244.</li>
+            <li id="ref-36">Han, Z., Zhang, C., Fu, H., and Zhou, J. T. (2022). Trusted Multi-View Classification with Dynamic Evidential Fusion. <em>IEEE TPAMI</em>, 44(12), pp. 9834-9848.</li>
+            <li id="ref-37">Harakeh, A. and Waslander, S. L. (2021). Estimating and Evaluating Regression Predictive Uncertainty in Deep Object Detectors. <em>ICLR</em>.</li>
+            <li id="ref-38">HD-Fusion, Hierarchical Dynamic Fusion of LiDAR-Camera for Robust 3D Object Detection. (2026). <em>IEEE Transactions on Industrial Informatics</em>.</li>
+            <li id="ref-39">Higgins, I., Sonnerat, N., Federico, L., and collaborators. (2021). Perception-Aware Multi-Sensor Fusion for 3D LiDAR Semantic Segmentation. <em>ICCV</em>.</li>
+            <li id="ref-40">Hu, X., Ma, Y., and Liu, T. (2020). Spatiotemporal Fusion in 3D CNNs for LiDAR-Based Temporal Perception. <em>ICRA</em>.</li>
+            <li id="ref-41">Huang, J., Huang, G., Zhu, Z., Ye, Y., and Du, D. (2022). BEVDet, High-Performance Multi-Camera 3D Object Detection in Bird-Eye-View. <em>arXiv:2112.11790</em>.</li>
+            <li id="ref-42">Huang, J., Huang, G., Zhu, Z., and Du, D. (2022). BEVDet4D, Exploit Temporal Cues in Multi-Camera 3D Object Detection. <em>arXiv:2203.17054</em>.</li>
+            <li id="ref-43">Huang, Y., Zheng, W., Zhang, Y., Zhou, J., and Lu, J. (2024). SelfOcc, Self-Supervised Vision-Based 3D Occupancy Prediction. <em>CVPR</em>.</li>
+            <li id="ref-44">Huang, Z., Zhang, H., and Yang, J. (2025). Trajectory Mamba, Efficient Attention-Mamba Forecasting Model Based on Selective SSM. <em>CVPR</em>.</li>
+            <li id="ref-45">Isler, S., Sabzevari, R., Delmerico, J., and Scaramuzza, D. (2016). An Information Gain Formulation for Active Volumetric 3D Reconstruction. <em>ICRA</em>, pp. 3477-3484.</li>
+            <li id="ref-46">Joseph, K. J., Khan, S., Khan, F. S., and Balasubramanian, V. N. (2021). Towards Open World Object Detection. <em>CVPR</em>, pp. 5830-5840.</li>
+            <li id="ref-47">Kaelbling, L. P., Littman, M. L., and Cassandra, A. R. (1998). Planning and Acting in Partially Observable Stochastic Domains. <em>Artificial Intelligence</em>, 101(1-2), pp. 99-134.</li>
+            <li id="ref-48">Kendall, A. and Gal, Y. (2017). What Uncertainties Do We Need in Bayesian Deep Learning for Computer Vision? <em>NeurIPS</em>, pp. 5574-5584.</li>
+            <li id="ref-49">Kerbl, B., Kopanas, G., Leimkuhler, T., and Drettakis, G. (2023). 3D Gaussian Splatting for Real-Time Radiance Field Rendering. <em>ACM TOG (SIGGRAPH)</em>, 42(4), Article 139.</li>
+            <li id="ref-50">Kim, J., Kim, S., and Lee, S. (2024). Open-Vocabulary 3D Object Detection via Foundation Model Integration. <em>ECCV</em>.</li>
+            <li id="ref-51">Kirillov, A., Mintun, E., Ravi, N., Mao, H., Rolland, C., Gustafson, L., Xiao, T., Whitehead, S., Berg, A. C., Lo, W.-Y., Dollar, P., and Girshick, R. (2023). Segment Anything. <em>ICCV</em>, pp. 4015-4026.</li>
+            <li id="ref-52">Lakshminarayanan, B., Pritzel, A., and Blundell, C. (2017). Simple and Scalable Predictive Uncertainty Estimation Using Deep Ensembles. <em>NeurIPS</em>, pp. 6402-6413.</li>
+            <li id="ref-53">Lang, A. H., Vora, S., Caesar, H., Zhou, L., Yang, J., and Beijbom, O. (2019). PointPillars, Fast Encoders for Object Detection from Point Clouds. <em>CVPR</em>, pp. 12697-12705.</li>
+            <li id="ref-54">Scene Understanding in a Large Dynamic Environment Through a Laser-Based Sensing. (2010).</li>
+            <li id="ref-55">Li, Z., Wang, W., Li, H., Xie, E., Sima, C., Lu, T., Qiao, Y., and Dai, J. (2022). BEVFormer, Learning Bird's-Eye-View Representation from Multi-Camera Images via Spatiotemporal Transformers. <em>ECCV</em>, pp. 1-18.</li>
+            <li id="ref-56">Liang, T., Xie, H., Yu, K., Xia, Z., Lin, Z., Wang, Y., Tang, T., Wang, B., and Tang, Z. (2022). BEVFusion, A Simple and Robust LiDAR-Camera Fusion Framework. <em>NeurIPS</em>.</li>
+            <li id="ref-57">Liu, Z., Tang, H., Amini, A., Yang, X., Mao, H., Rus, D. L., and Han, S. (2023). BEVFusion, Multi-Task Multi-Sensor Fusion with Unified Bird's-Eye View Representation. <em>ICRA</em>, pp. 2774-2781.</li>
+            <li id="ref-58">Liu, Z., Wang, Y., and collaborators. (2023). Open-World Object Detection, A Survey. <em>International Journal of Computer Vision</em>.</li>
+            <li id="ref-59">Luo, Y., Chen, X., and Zhou, Y. (2024). Uncertainty Quantification for Safe and Reliable Autonomous Vehicles, A Review. <em>IEEE T-ITS</em>, 26(2).</li>
+            <li id="ref-60">Gu, A. and Dao, T. (2024). Mamba, Linear-Time Sequence Modeling with Selective State Spaces. <em>ICLR</em>.</li>
+            <li id="ref-61">Gal, Y. and Ghahramani, Z. (2016). Dropout as a Bayesian Approximation, Representing Model Uncertainty in Deep Learning. <em>ICML</em>, pp. 1050-1059.</li>
+            <li id="ref-62">Ge, Z., Chen, D., and Li, H. (2023). MetaBEV, Solving Sensor Failures for BEV Detection and Map Segmentation. <em>ICCV</em>.</li>
+            <li id="ref-63">MF-BEVFusion, Multiscale Depth Estimation and Fully Dynamic Fusion for Camera-LiDAR BEV 3D Object Detection. (2026). <em>Journal of Electronic Imaging</em>.</li>
+            <li id="ref-64">Mildenhall, B., Srinivasan, P. P., Tancik, M., Barron, J. T., Ramamoorthi, R., and Ng, R. (2020). NeRF, Representing Scenes as Neural Radiance Fields for View Synthesis. <em>ECCV</em>, pp. 405-421.</li>
+            <li id="ref-65">Multi-Modal Sensor Fusion-Based Deep Neural Network for End-to-End Autonomous Driving with Scene Understanding. (2020). <em>IEEE Sensors Journal</em>.</li>
+            <li id="ref-66">Multi-Sensor Consistency Data Fusion Algorithm in Observation Uncertainty. (2013). <em>Transducer and Microsystem Technologies</em>.</li>
+            <li id="ref-67">Sindagi, V. A., Zhou, Y., and Tuzel, O. (2019). MVX-Net, Multimodal VoxelNet for 3D Object Detection. <em>ICRA</em>, pp. 7276-7282.</li>
+            <li id="ref-68">Park, K., Sinha, U., Barron, J. T., Bouaziz, S., Goldman, D. B., Seitz, S. M., and Martin-Brualla, R. (2021). Nerfies, Deformable Neural Radiance Fields. <em>ICCV</em>, pp. 5865-5874.</li>
+            <li id="ref-69">Tong, W., Sima, C., Wang, T., Zheng, L., Wu, P., Deng, H., Shi, Y., Zhang, Y., Wang, Y., and Fu, H. (2023). Scene as Occupancy (OccNet). <em>ICCV</em>.</li>
+            <li id="ref-70">Zheng, W., Huang, W., Che, F., and Lu, J. (2024). OccWorld, Learning a 3D Occupancy World Model for Autonomous Driving. <em>ECCV</em>.</li>
+            <li id="ref-71">Ovadia, Y., Fertig, E., Ren, J., Nado, Z., Sculley, D., Nowozin, S., Dillon, J., Lakshminarayanan, B., and Snoek, J. (2019). Can You Trust Your Model's Uncertainty? Evaluating Predictive Uncertainty Under Dataset Shift. <em>NeurIPS</em>, pp. 13991-14002.</li>
+            <li id="ref-72">Xi, X., Chen, Z., and Li, Y. (2025). OW-OVD, Unified Open World and Open Vocabulary Object Detection. <em>CVPR</em>.</li>
+            <li id="ref-73">Philion, J. and Fidler, S. (2020). Lift, Splat, Shoot, Encoding Images from Arbitrary Camera Rigs by Implicitly Unprojecting to 3D. <em>ECCV</em>, pp. 194-210.</li>
+            <li id="ref-74">Qi, C. R., Su, H., Mo, K., and Guibas, L. J. (2017). PointNet, Deep Learning on Point Sets for 3D Classification and Segmentation. <em>CVPR</em>, pp. 652-660.</li>
+            <li id="ref-75">Vora, S., Lang, A. H., Helber, B., Caesar, H., and Beijbom, O. (2020). PointPainting, Sequential Fusion for 3D Object Detection. <em>CVPR</em>, pp. 4604-4612.</li>
+            <li id="ref-76">Generating Dynamic Projection Images for Scene Representation and Understanding. (1998). <em>Computer Vision and Image Understanding</em>.</li>
+            <li id="ref-77">Pumarola, A., Corona, E., Pons-Moll, G., and Moreno-Noguer, F. (2021). D-NeRF, Neural Radiance Fields for Dynamic Scenes. <em>CVPR</em>, pp. 10318-10327.</li>
+            <li id="ref-78">Robust Embodied Perception in Dynamic Environments via Disentangled Weight Fusion. (2026). <em>arXiv</em>.</li>
+            <li id="ref-79">Yan, Y., Mao, Y., and Li, B. (2018). SECOND, Sparsely Embedded Convolutional Detection. <em>Sensors</em>, 18(10), 3337.</li>
+            <li id="ref-80">Sensoy, M., Kaplan, L., and Kandemir, M. (2018). Evidential Deep Learning to Quantify Classification Uncertainty. <em>NeurIPS</em>, pp. 3179-3189.</li>
+            <li id="ref-81">Shafer, G. (1976). <em>A Mathematical Theory of Evidence</em>. Princeton University Press.</li>
+            <li id="ref-82">Sun, Y., Zhang, Q., and Yang, M. (2025). SplatFlow, Self-Supervised Dynamic Gaussian Splatting in Neural Motion Flow Field. <em>CVPR</em>.</li>
+            <li id="ref-83">Yang, J., Shi, S., Wang, Z., Li, H., and Qi, X. (2022). ST3D++, Denoised Self-Training for Unsupervised Domain Adaptation on 3D Object Detection. <em>IEEE TPAMI</em>.</li>
+            <li id="ref-84">Wang, S., Liu, Y., Wang, T., Li, Y., and Zhang, X. (2023). StreamPETR, Exploring Object-Centric Temporal Modeling for Efficient Multi-View 3D Object Detection. <em>ICCV</em>.</li>
+            <li id="ref-85">Sun, P., Kretzschmar, H., Dotiwalla, X., Chouard, A., Patnaik, V., Tsui, P., Guo, J., Zhou, Y., Chai, Y., and Caine, B. (2020). Scalability in Perception for Autonomous Driving, Waymo Open Dataset. <em>CVPR</em>, pp. 2446-2454.</li>
+            <li id="ref-86">Wei, Y., Zhao, L., Zheng, W., Zhu, Z., Zhou, J., and Lu, J. (2023). SurroundOcc, Multi-Camera 3D Occupancy Prediction for Autonomous Driving. <em>ICCV</em>.</li>
+            <li id="ref-87">Thrun, S., Burgard, W., and Fox, D. (2005). <em>Probabilistic Robotics</em>. MIT Press.</li>
+            <li id="ref-88">Zheng, W., Liu, W., Zhao, S., Zhou, J., Sun, W., Liu, Z., Feng, W., and Lu, J. (2023). Tri-Perspective View for Vision-Based 3D Semantic Occupancy Prediction (TPVFormer). <em>CVPR</em>, pp. 9223-9232.</li>
+            <li id="ref-89">Tremblay, J., Prakash, A., Acuna, D., Brophy, M., Jampani, V., Anil, C., To, T., Cameracci, E., Boochoon, S., and Birchfield, S. (2018). Training Deep Networks with Synthetic Data, Bridging the Reality Gap by Domain Randomization. <em>CVPR Workshops</em>.</li>
+            <li id="ref-90">Ulmer, D., Hardmeier, C., and Frellsen, J. (2023). Prior Networks and Evidential Deep Learning, A Critical Comparison. <em>AISTATS</em>.</li>
+            <li id="ref-91">Hu, Y., Yang, J., Chen, L., Li, K., Sima, C., Zhu, X., Chai, S., Du, S., Lin, T., Wang, W., Lu, L., Jia, X., Liu, Q., Dai, J., Qiao, Y., and Li, H. (2023). Planning-Oriented Autonomous Driving (UniAD). <em>CVPR</em>, pp. 17853-17862.</li>
+            <li id="ref-92">Zhu, L., Liao, B., Zhang, Q., Wang, X., Liu, W., and Wang, X. (2024). Vision Mamba, Efficient Visual Representation Learning with Bidirectional State Space Model. <em>ICML</em>.</li>
+            <li id="ref-93">Zhou, Y. and Tuzel, O. (2018). VoxelNet, End-to-End Learning for Point Cloud Based 3D Object Detection. <em>CVPR</em>, pp. 4490-4499.</li>
+            <li id="ref-94">Wang, Z., Huang, J., and Yu, Z. (2023). Multi-Modal Perception with Modality Dropout for Robust Autonomous Driving. <em>ICRA</em>.</li>
+            <li id="ref-95">Wang, Y., Chen, X., and collaborators. (2020). Train in Germany, Test in the USA, Making 3D Object Detectors Generalize. <em>CVPR</em>.</li>
+            <li id="ref-96">Camera-LiDAR Fusion for High-Precision Identification of Floating Objects in Dynamic Water Bodies. (2026). <em>SSRN Electronic Journal</em>.</li>
+            <li id="ref-97">Wei, Z., Zhang, Y., and Wang, L. (2022). Cross-Domain 3D Object Detection with Domain Adaptive Faster R-CNN. <em>IEEE Transactions on Intelligent Vehicles</em>.</li>
+            <li id="ref-98">Wen, Y., Tran, D., and Ba, J. (2020). BatchEnsemble, An Alternative Approach to Efficient Ensemble and Lifelong Learning. <em>ICLR</em>.</li>
+            <li id="ref-99">Weng, X., Wang, J., Held, D., and Kitani, K. (2020). 3D Multi-Object Tracking, A Baseline and New Evaluation Metrics. <em>IROS</em>.</li>
+            <li id="ref-100">Xu, H., Liu, Y., and Zhang, J. (2025). A Survey on Occupancy Perception for Autonomous Driving, The Information Fusion Perspective. <em>Information Fusion</em>, 107.</li>
+            <li id="ref-101">Yin, T., Zhou, X., and Krahenbuhl, P. (2021). Center-Based 3D Object Detection and Tracking (CenterPoint). <em>CVPR</em>, pp. 11784-11793.</li>
+            <li id="ref-102">Yue, X., Wu, B., Seshia, S. A., Keutzer, K., and Sangiovanni-Vincentelli, A. L. (2019). A LiDAR Point Cloud Generator, From a Virtual World to Autonomous Driving. <em>ACM Multimedia</em>.</li>
+            <li id="ref-103">Zhai, X., Mustafa, B., Kolesnikov, A., and Beyer, L. (2023). Sigmoid Loss for Language Image Pre-Training. <em>ICCV</em>.</li>
+          </ol>
+        </div>
+      </article>
+    </div>
+
+    <script defer src="/js/blog.js"></script>
+    <script defer src="/js/katex-init.js"></script>
+    <script defer src="/js/references.js"></script>
+  </body>
+</html>

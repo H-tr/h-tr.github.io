@@ -885,30 +885,6 @@
           <li><strong>Sim-to-real with formal guarantees.</strong> The reality gap means formal guarantees derived in simulation may not transfer. dReal&rsquo;s &delta;-complete reasoning provides a principled framework: if a property is &delta;-robust in simulation, and the sim-to-real gap is bounded by &delta;, the property transfers. Making this bound tight and practical is the challenge.</li>
         </ol>
 
-        <h2>8. Recommended Reading Order</h2>
-
-        <p>
-          For someone entering this field, I recommend the following five papers in this order:
-        </p>
-
-        <ol>
-          <li><strong>McDermott et al. [45], &ldquo;PDDL &mdash; The Planning Domain Definition Language.&rdquo;</strong> Start here to understand the dominant planning formalism. Read alongside the <a href="http://planning.wiki">Planning.wiki</a> tutorial for practical grounding. Install Fast Downward and solve a simple planning problem.</li>
-          <li><strong>Maler and Nickovic [41], &ldquo;Monitoring Temporal Properties of Continuous Signals.&rdquo;</strong> This is short, clean, and foundational. Understand how STL extends temporal logic to continuous signals. Install RTAMT and monitor a simple signal.</li>
-          <li><strong>Leung et al. [39], &ldquo;Backpropagation through Signal Temporal Logic Specifications.&rdquo;</strong> The bridge between formal methods and deep learning. Clone the STLCG repo, run the trajectory planning demo, and study how STL robustness becomes a differentiable loss.</li>
-          <li><strong>Garrett et al. [22], &ldquo;PDDLStream: Integrating Symbolic Planners and Blackbox Samplers.&rdquo;</strong> The practical state of the art for PDDL-based TAMP. Install pddlstream and run the manipulation examples to see how symbolic planning and geometric reasoning compose.</li>
-          <li><strong>Manganaris et al. [42], &ldquo;Formal Methods in Robot Policy Learning and Verification.&rdquo;</strong> The most current survey of the learning &times; formal methods intersection. Read this to understand where the field is heading &mdash; particularly the automata-theoretic RL and differentiable STL sections &mdash; and to identify your own entry points.</li>
-        </ol>
-
-        <p><strong>First tools to install:</strong></p>
-
-        <ol>
-          <li>Fast Downward (classical PDDL planning)</li>
-          <li>RTAMT (STL monitoring, ROS 2 compatible)</li>
-          <li>STLCG (differentiable STL in PyTorch)</li>
-          <li>Clingo (ASP solving)</li>
-          <li>Pyro (probabilistic programming)</li>
-        </ol>
-
         </section>
 
         <div class="citation-section">
