@@ -294,7 +294,7 @@ nav a:active {
   left: 1.5rem;
   top: 50%;
   transform: translateY(-50%);
-  width: 180px;
+  width: clamp(180px, calc((100vw - 1000px) / 2 - 2.5rem), 320px);
   max-height: 70vh;
   overflow-y: auto;
   z-index: 50;
@@ -329,7 +329,7 @@ nav a:active {
 }
 
 .toc-sublist.expanded {
-  max-height: 200px;
+  max-height: 500px;
   opacity: 1;
   margin: 0.4rem 0 0.5rem 0;
 }

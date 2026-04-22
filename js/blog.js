@@ -13,8 +13,11 @@ function initTextTOC() {
   const content = document.querySelector('.blog-post-content');
   if (!content) return;
 
-  const headings = content.querySelectorAll('h2, h3');
+  const headings = Array.from(content.querySelectorAll('h2, h3'))
+    .filter(h => !h.classList.contains('citation-header') && !h.classList.contains('references-header'));
   if (headings.length < 3) return;
+
+  const topOf = el => el.getBoundingClientRect().top + window.scrollY;
 
   // Create TOC
   const toc = document.createElement('nav');
@@ -35,8 +38,7 @@ function initTextTOC() {
   headings.forEach(function(heading, i) {
     if (!heading.id) heading.id = 'sec-' + i;
 
-    let text = heading.textContent.trim();
-    if (text.length > 28) text = text.substring(0, 26) + '…';
+    const text = heading.textContent.trim();
 
     const link = document.createElement('a');
     link.href = '#' + heading.id;
@@ -68,7 +70,7 @@ function initTextTOC() {
 
     link.addEventListener('click', function(e) {
       e.preventDefault();
-      window.scrollTo({ top: heading.offsetTop - 100, behavior: 'smooth' });
+      window.scrollTo({ top: topOf(heading) - 100, behavior: 'smooth' });
     });
   });
 
@@ -82,13 +84,13 @@ function initTextTOC() {
     // Find current section
     let current = sections[0];
     for (const s of sections) {
-      if (s.el.offsetTop <= pos) current = s;
+      if (topOf(s.el) <= pos) current = s;
     }
 
     // Find which H2 section we're in
     let activeH2 = null;
     for (const h2 of h2Sections) {
-      if (h2.el.offsetTop <= pos) activeH2 = h2;
+      if (topOf(h2.el) <= pos) activeH2 = h2;
     }
 
     // Update active states
