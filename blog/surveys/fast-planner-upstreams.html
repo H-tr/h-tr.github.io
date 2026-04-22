@@ -1,0 +1,1147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fast Whole-Body Planners and Upstream Architecture | Hu Tianrun</title>
+
+    <!-- Fonts -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Prism.js initialization -->
+    <script src="/js/prism-init.js"></script>
+
+    <!-- KaTeX Math Support -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Site Assets -->
+    <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg" />
+    <link href="/css/blog.css" rel="stylesheet" />
+    <link href="/css/references.css" rel="stylesheet" />
+
+    <!-- KaTeX Scripts -->
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"
+    ></script>
+  </head>
+  <body>
+    <div class="blog-post">
+      <a href="../?tab=survey" class="back-button">
+        <i class="fas fa-arrow-left"></i>Back
+      </a>
+
+      <header class="blog-post-header">
+        <h1 class="blog-post-title">Fast Whole-Body Planners and Upstream Architecture</h1>
+        <div class="blog-post-date">April 23, 2026</div>
+      </header>
+
+      <article class="blog-post-content">
+        <section class="blog-section">
+
+        <h2>1. Introduction</h2>
+
+        <p>
+          Whole-body motion planning for high-degree-of-freedom systems has long occupied a peculiar
+          position in the robotics stack. It is indispensable, yet until recently it has been prohibitively
+          slow for interactive or reactive use. A bimanual humanoid with 24 to 40 actuated joints has
+          traditionally required seconds to minutes to produce a single collision-free trajectory
+          [56, 39, 77]. That latency propagated upward through the
+          entire system, forcing task planners to commit to coarse action sequences with minimal geometric
+          feedback [27, 28], constraining base-placement selection to heuristic
+          reachability lookups [94, 86], and effectively decoupling planning from real-time
+          perception [42]. The resulting stack was engineered around the assumption that motion
+          planning is expensive. A convergence of GPU parallelism, tighter optimization formulations, vectorized
+          collision checking, and learned heuristics is now dissolving that assumption
+          [84, 12, 3].
+        </p>
+
+        <p>
+          The central thesis of this survey is that the reduction of whole-body planning latency from
+          seconds to milliseconds is not merely a quantitative speedup. It is a qualitative architectural
+          shift. When a 24 DoF whole-body query completes in 1 to 50 milliseconds on commodity hardware
+          [84, 3, 91], planning ceases to be a batch preprocessing
+          step and becomes a real-time primitive. It can be invoked as a feasibility oracle across hundreds
+          of candidate action bindings by an integrated task-and-motion planner [27, 28].
+          It can score dense grids of base poses during mobile-base placement [14, 93, 54,
+          46]. It can generate millions of demonstrations that train learned samplers and
+          diffusion policies [38, 72, 4, 10]. And it can be rolled into
+          the inner loop of model-predictive controllers that replan at 50 to 500 Hz as perception
+          updates arrive [12, 3, 81, 20, 48, 60]. Each of these
+          capabilities was architecturally infeasible under the old cost regime, and each demands a
+          reorganization of the interfaces between stack components.
+        </p>
+
+        <p>
+          This scoping review maps the conceptual landscape of 2018 to 2026 at the intersection of
+          whole-body planning, bimanual manipulation, and task-and-motion planning. Section 2 fixes
+          definitions and draws the boundary of coverage. Section 3 traces the algorithmic and
+          computational advances that have brought whole-body planning into the millisecond regime.
+          Sections 4 through 7 examine the four architectural consequences the speed shift enables, namely
+          finer-grained task decomposition (Section 4), data-driven and neural sampling (Section 5),
+          base-placement optimization and IK pre-configuration (Section 6), and tighter planning-perception-action
+          feedback loops (Section 7). Section 8 identifies cross-cutting patterns and tensions. Section 9
+          enumerates open problems. Section 10 concludes.
+        </p>
+
+        <div class="blog-callout">
+          <p>
+            <strong>The single most important takeaway.</strong> Planning speed is an architectural
+            parameter, not only a performance metric. When whole-body planning migrates from the periphery
+            (invoked once, executed open-loop) to the center of the stack (a feasibility oracle for task
+            planners, a training-data generator for learned components, a screening primitive for base
+            placement, and the inner loop of reactive controllers), the interfaces between task, geometry,
+            perception, and control must be redrawn. Most of the literature surveyed develops one
+            architectural pattern at a time. A unified bimanual pipeline that exercises all of them
+            concurrently at millisecond rates does not yet exist.
+          </p>
+        </div>
+
+        <h2>2. Background and Definitions</h2>
+
+        <p>
+          <strong>Whole-body motion planning</strong> is the computation of collision-free joint-space
+          trajectories for the full kinematic chain of a robot, as distinct from planning for an isolated
+          manipulator arm. For a bimanual humanoid this typically involves 24 to 40 DoF spanning legs,
+          a multi-link torso, two 7 DoF arms, and a head assembly [29, 17, 16].
+          The combinatorial explosion of configuration space with dimensionality makes whole-body planning
+          qualitatively harder than 7 DoF arm planning and requires fundamentally different algorithmic
+          strategies [56, 77]. For mobile manipulators the base contributes further structure,
+          in particular a non-holonomic constraint that distinguishes the base subgroup from the Euclidean
+          arm.
+        </p>
+
+        <p>
+          <strong>Bimanual manipulation</strong> denotes tasks that require coordinated motion of two
+          manipulator arms. They frequently carry constraints on the relative pose between end-effectors,
+          for example when two hands grasp the same object, or sequential constraints such as hand-to-hand
+          handoffs. The kinematic coupling through a shared torso distinguishes bimanual humanoid planning
+          from dual-arm setups on independent bases. Analytic IK along the bimanual grasp constraint
+          reparametrizes the equality manifold from a measure-zero set to a lower-dimensional
+          positive-measure space, which resolves the degeneracy that naive sampling encounters under
+          rigid relative-pose constraints [21, 73, 75].
+        </p>
+
+        <p>
+          <strong>Task and motion planning (TAMP)</strong> is the combined problem of finding a symbolic
+          action sequence (which objects to grasp, in what order, with which arm) and continuous motion
+          trajectories that realize each action [28]. The interface between task and motion
+          levels, specifically how often and how cheaply the task planner can query the motion planner
+          for feasibility, is the primary architectural joint whose redesign this survey documents
+          [27, 24, 87].
+        </p>
+
+        <p>
+          We define <strong>millisecond-scale planning</strong> as achieving median query times below 100
+          ms for problems with 14 DoF or more (bimanual) and below 200 ms for 24 DoF or more (whole body),
+          including collision checking against non-trivial environments. Real-time whole-body MPC at 50 to
+          500 Hz on legged manipulators [3, 81, 20, 60, 48] and 1 to 2 ms
+          vectorized CPU planners on bimanual humanoid platforms [91] sit inside this envelope.
+          The threshold is significant because it places planning within the update rates of typical
+          perception systems, enabling their coupling in closed loops [30].
+        </p>
+
+        <p>
+          This review includes sampling-based, optimization-based, hybrid, and learning-accelerated
+          whole-body planners, as well as base-placement optimizers, TAMP systems, and perception-driven
+          replanners that use them. It excludes reinforcement-learning policies that replace rather than
+          augment structured planning, single-arm manipulation in isolation, locomotion-only planning
+          without manipulation, and grasp synthesis that does not interface with whole-body planning.
+          Learned components (neural samplers, diffusion planners, reachability surrogates) are included
+          insofar as they interact with or are trained by structured whole-body planners. Following the
+          self-review of the source material, we acknowledge upfront that the evidence base is heaviest on
+          the planner side and thinnest on bimanual-specific integration, and the upstream-reshaping
+          argument is in part prospective.
+        </p>
+
+        <h2>3. Algorithmic Foundations of Millisecond-Scale Whole-Body Planning</h2>
+
+        <h3>3.1 Trajectory Optimization, GPU Parallelism, and Vectorized Collision Checking</h3>
+
+        <p>
+          The single most impactful driver of millisecond-scale whole-body planning has been the migration
+          of trajectory and sampling computations to massively parallel hardware, coupled with
+          differentiable or vectorized collision-checking primitives. Classical optimization-based
+          planners established the template. CHOMP [66] introduced covariant gradient optimization
+          with signed-distance collision costs. STOMP [36] introduced derivative-free stochastic
+          rollouts that decouple cost expressiveness from differentiability, allowing hard constraints
+          and torques to enter the objective directly. TrajOpt formalized sequential convex optimization
+          with convex-hull signed-distance penalties, enabling planning from arbitrary and even colliding
+          straight-line initializations across 7 to 34 DoF systems [68, 67].
+          Gaussian process motion planning [52, 51] reinterpreted the trajectory
+          as a continuous random process whose smoothness prior is encoded by a linear time-varying SDE,
+          compressing the optimization to a small number of support states while evaluating collisions
+          along the full arc.
+        </p>
+
+        <p>
+          The GPU-parallel generation converts these building blocks into batch operations. cuRobo
+          [84] formulates motion generation as parallel L-BFGS trajectory optimization with
+          collision costs computed against voxelized world representations, achieving median times of 30
+          to 50 ms for 7 DoF arms and roughly 2x overhead for 14 DoF bimanual configurations. STORM
+          [12] adapts model-predictive path integral control to manipulation by running thousands
+          of stochastic rollouts at each timestep, reaching reactive rates of 50 to 100 Hz while respecting
+          collision and joint-limit constraints. The same principle scales to whole-body legged systems.
+          Alvarez-Padilla et al. [3] use MuJoCo as the constraint-checking backbone for
+          real-time sampling-based MPC on high-DoF legged robots, so that collision avoidance and physical
+          feasibility emerge implicitly from the simulator rather than being enforced analytically.
+        </p>
+
+        <p>
+          A complementary line of work converts collision checking itself into a vectorized primitive on
+          commodity CPUs, side-stepping GPU deployment constraints. Vectorized sphere-mesh distance
+          computations run across entire trajectories in a single SIMD pass, reducing the dominant cost
+          of sampling-based planners by one to two orders of magnitude [91]. In practice this
+          places RRT-Connect [44] on 24 DoF bimanual humanoid platforms at roughly 1 ms median
+          query time. The consistency between CPU-vectorized and GPU-parallel numbers suggests the
+          millisecond regime does not require exotic hardware. It requires that collision checking be
+          rephrased as a batch operation.
+        </p>
+
+        <p>
+          Centroidal dynamics [17, 65, 88] provides a physically consistent
+          yet tractable intermediate representation for whole-body trajectory optimization. Planners
+          optimize joint trajectories subject to centroidal dynamics and a consistency constraint that
+          requires centroidal quantities derived from joint trajectories to match those from the
+          centroidal model [17, 49]. This avoids the intractability of full rigid-body
+          dynamics while retaining the expressiveness needed for collision avoidance, reachability, and
+          automatic contact-sequence discovery via complementarity conditions [64, 89,
+          35]. The biconvex algebraic structure of legged-robot dynamics (centroidal and whole-body
+          kinematics forming two coupled subproblems each convex when the other is fixed) is exploited by
+          BiConMP via alternating minimization to make nonlinear whole-body MPC real-time tractable
+          [49].
+        </p>
+
+        <p>
+          Differential dynamic programming and its hybrid variants round out the optimization toolkit.
+          HS-DDP [45] augments DDP with impact-aware reset-map steps, augmented-Lagrangian
+          switching constraints, and switching-time optimization, enabling whole-body trajectory
+          optimization that models contact transitions and optimizes contact timing without centroidal
+          approximations. Crocoddyl [50] provides the infrastructure of constrained DDP with
+          analytical derivatives from the Pinocchio rigid-body library [16], and has become a
+          shared substrate for whole-body MPC work [81, 20, 48, 60]. Warm-start
+          strategies for bipedal whole-body MPC [48] bring the full-body problem to real-time
+          rates by exploiting the structure of repeated predictions across cycles, and Molnar et al.
+          [60] demonstrate whole-body inverse-dynamics MPC that directly optimizes joint torques
+          for loco-manipulation while maintaining stability.
+        </p>
+
+        <h3>3.2 Graph-Search, Sampling, and Convex Decomposition Approaches</h3>
+
+        <p>
+          Optimization-based methods dominate the current landscape of fast whole-body planning, but
+          sampling-based and graph-search methods continue to contribute complementary strengths,
+          particularly for global exploration and narrow constraint passages. Three algorithmic families
+          (graph search, sampling-based methods, and trajectory optimization) each with distinct speed,
+          completeness, and optimality trade-offs, structure the design space [70, 16].
+          Real-time operation in dynamic environments is the primary design pressure that dictates which
+          family to pick for a given high-DoF problem.
+        </p>
+
+        <p>
+          Probabilistic roadmaps and rapidly exploring random trees remain the foundational sampling-based
+          techniques [37, 44]. RRT-Connect [44] pairs two trees rooted at start
+          and goal to accelerate convergence and retains near-linear complexity in many practical high-DoF
+          settings. Constrained sampling on task-space manifolds was refined by Stilman [82] and
+          by the articulated-object RRT of Burget et al. [15], where sampled object
+          configurations parametrize required hand poses via IK, restricting the search to end-effector
+          trajectories consistent with the object's constrained motion. Chance-constrained motion planning
+          (p-Chekov) [22] propagates LQG state distributions along the trajectory,
+          quadrature-estimates per-waypoint collision risk, and allocates risk across waypoints inside a
+          roadmap-plus-trajectory-optimization framework, providing formal probabilistic collision
+          guarantees for high-DoF problems without environmental convexification.
+        </p>
+
+        <p>
+          A mathematically distinct thread recasts motion planning as optimization over <strong>graphs of
+          convex sets</strong>. By decomposing free configuration space into convex regions and
+          formulating path-finding as a mixed-integer convex program, the GCS family achieves globally
+          optimal paths with certificates of correctness that no sampling-based or local-optimization
+          method can provide. Convex kinematic relaxations extend this to humanoid multi-contact
+          locomotion [31], and analytic IK along bimanual constraint manifolds produces convex
+          inner-approximations compatible with the same solver infrastructure [21]. Precomputed
+          reachability maps [94, 63] amortize cost in another way, and can be dynamically
+          relocated across graph-search transitions so that the same map remains valid across changing
+          object poses [62].
+        </p>
+
+        <h3>3.3 Hybrid Architectures, Contact Reasoning, and Formal Guarantees</h3>
+
+        <p>
+          Purely monolithic approaches to whole-body planning face fundamental scalability challenges.
+          The most effective millisecond-scale whole-body planners therefore exploit some form of
+          hierarchical decomposition, either along the kinematic tree of the humanoid or along the
+          temporal axis of contact events [29, 57, 9, 31].
+        </p>
+
+        <p>
+          Multi-contact whole-body planning exemplifies this hierarchical style. Reachability-based
+          decompositions first identify feasible contact transitions using precomputed reachability
+          volumes, then solve for whole-body configurations that realize each contact, then interpolate
+          smooth trajectories between configurations [9, 62]. Small-space controllability of
+          dynamic walking supports a decoupled two-phase scheme. A randomized constrained planner first
+          finds collision-free statically balanced paths, and controllability guarantees convert them to
+          dynamically balanced trajectories, avoiding the joint problem of simultaneous collision
+          avoidance and dynamic feasibility [23]. Perceptive locomotion frameworks select optimal
+          convex regions on terrain for footsteps inside a whole-body MPC that jointly handles state
+          estimation error and perception noise [20], and recent loco-manipulation work folds
+          inverse-dynamics MPC into the same formulation so that torque limits, friction cones, and
+          object-contact forces all appear in one nonlinear program [60, 48].
+        </p>
+
+        <p>
+          Contact-implicit trajectory optimization [64, 50, 89] encodes
+          contact forces as decision variables alongside joint trajectories, enabling the optimizer to
+          discover contact-exploitation strategies (pushing against a surface for stability, using a wall
+          as fixture) that a pure collision-avoidance planner cannot see. The complementarity constraints
+          that encode contact physics were historically slow, but smoothed contact models and
+          GPU-accelerated optimization have brought moderate-DoF problems into the sub-second regime, and
+          whole-body contact optimization now scales to the full body surface as a manipulation primitive
+          [47, 47]. (Lev&eacute; et al. extend contact optimization explicitly to the whole-body
+          contact surface.)
+        </p>
+
+        <p>
+          Orthogonal to optimization speed is the question of formal guarantees. Hierarchical
+          deliberative-reactive architectures combine a sampling-based deliberative planner with a
+          navigation-function or vector-field based reactive layer whose reachability guarantees are
+          certified [90, 92]. When contracts between layers are expressed as provable
+          reachability guarantees rather than specific trajectories, the deliberative planner reasons
+          over guarantee composition rather than trajectory evaluation, shortening search depth while
+          the reactive layer handles real-time perception-action coupling. The reactive layer itself can
+          be extended to unexplored semantic environments by coupling online semantic SLAM and deep
+          object detection into the vector-field world model, with formal guarantees preserved under
+          suitably non-adversarial dynamics [92]. For unique contact modalities, pivoting-based
+          manipulation, multi-limbed climbing, wheeled-quadruped manipulation, and slithering
+          loco-manipulation all fit inside the same algorithmic chassis [97, 89, 11,
+          33].
+        </p>
+
+        <p>
+          Several specialized constructs sit alongside the main families. Actuator-aware planning encodes
+          torque, velocity, power, and battery-voltage limits as configuration-dependent reaction-force
+          bounds inside kino-dynamic optimization, bridging abstract centroidal trajectories and
+          hardware-feasible high-power motions [19]. A five-point-mass inverted-pendulum
+          abstraction enables analytic closed-form whole-body pose generation without iterative
+          optimization, making whole-body motion tractable on resource-constrained position-controlled
+          platforms [26]. IK-Geo [32] decomposes IK for any 6 DoF all-revolute manipulator
+          into six canonical geometric subproblems with closed-form solutions, providing the fastest
+          published general analytic IK baseline. Lie-theoretic state planning [76] produces
+          smooth unified mobile-manipulator trajectories under the geometry of SE(3). TOCALib [83]
+          provides a high-level optimal-control library for bimanual manipulation with obstacle avoidance
+          and real-time interpolation. Gilbert-Johnson-Keerthi distance computation [34] remains
+          the workhorse primitive for convex-object collision queries throughout all of the above. The
+          common theme is that algorithmic craft, not hardware alone, is what moves high-DoF planning
+          into the millisecond regime.
+        </p>
+
+        <h2>4. Task Decomposition and Subgoal Sequencing Under Cheap Planning</h2>
+
+        <h3>4.1 Planning as a Feasibility Oracle in Integrated TAMP</h3>
+
+        <p>
+          The integration of symbolic task planning with geometric motion planning has been a central
+          challenge in robotics for more than a decade, and the computational cost of motion planning has
+          been the dominant bottleneck constraining the design of its interface [27, 28,
+          42]. When each motion-planner call represented seconds of computation, task planners
+          minimized geometric feasibility queries and committed to long action sequences before checking
+          feasibility, discovering infeasible actions only late and triggering expensive backtracking.
+          Incremental Task and Motion Planning [24] introduced a principled alternative in which
+          motion-planning failures are encoded as incremental constraints added to the task-level solver
+          and retracted on backtrack, turning discarded computation into reusable pruning information.
+        </p>
+
+        <p>
+          Logic-Geometric Programming [87] takes integration further by embedding continuous
+          trajectory optimization directly inside a logic-based task search. Differentiable dynamic
+          primitives (hitting, throwing, impulse exchange) become first-class TAMP subgoal types whose
+          physical feasibility is verified through gradient-based trajectory optimization rather than
+          geometric or learned predicates, extending combinatorial task-level search beyond
+          contact-stable configurations [88]. When motion-planning queries cost tens of
+          milliseconds, the TAMP architecture shifts from <em>plan-then-verify</em> to
+          <em>verify-while-planning</em>. Concurrent feasibility checking becomes the default. The task
+          planner generates candidate bindings, the motion planner evaluates each one immediately, and
+          infeasible branches are pruned before the task-level search expands them further. This online
+          pruning reduces task-level backtracking by orders of magnitude compared to lazy-evaluation
+          approaches that defer geometric checks.
+        </p>
+
+        <h3>4.2 Fine-Grained Decomposition and Bimanual Coordination</h3>
+
+        <p>
+          Cheap feasibility checking enables task planners to decompose manipulation objectives into
+          finer-grained subgoal sequences than was previously practical. Coarse decompositions ("pick up
+          the box, carry it, set it down") require few checks but forgo opportunities to optimize
+          intermediate configurations or exploit environmental structure. Fine-grained decompositions
+          ("regrasp at this specific pose, pivot the torso, transfer at the table edge") require many
+          more feasibility evaluations but unlock strategies that coarse decompositions miss entirely
+          [87, 30]. With planning at tens of milliseconds per query, evaluating 1,000
+          candidate skeletons sits inside a minute, turning bimanual decomposition from heuristic
+          commitment into systematic combinatorial search.
+        </p>
+
+        <p>
+          Bimanual decomposition has developed several orthogonal decision criteria that fast planning
+          now makes testable. Arm-coordination mode (bimanual versus unimanual) can be derived from
+          demonstrations by partitioning via semantic scene graph monitoring, with TAMP sequencing
+          transitions between coordination modes [18, 53]. Cross-object spatial accessibility
+          can be used as a bimanual-parallelism predicate in scene-agnostic settings, partitioning
+          subgoal pairs into bimanual or unimanual assignment based on explicit geometric reasoning over
+          affordance interaction points [53]. Learned physical stability prediction from simulation
+          can serve as a subgoal-necessity predicate, activating a bimanual support subgoal only when a
+          collapse-risk model judges it necessary during extraction [61]. Grasp-motion geometric
+          coupling in confined spaces can be treated as a constrained co-optimization problem, since
+          feasible grasp sets depend on reachable approach paths [75, 88, 61]. The
+          common thread is that none of these fine-grained predicates would be testable if motion-planning
+          queries cost seconds apiece.
+        </p>
+
+        <p>
+          Locomotion-manipulation unification is an extreme case of fine-grained decomposition. Symbolic
+          actions defined as contact-mode changes (foot and hand contacts in a single combinatorial
+          space) collapse the locomotion-manipulation boundary and enable emergent loco-manipulation
+          behaviors without pre-partitioning the plan into separate phases [13, 41]. Dynamic
+          whole-body sequencing for mobile manipulation under similar contact-centric decompositions
+          brings the same approach to wheeled platforms [54]. Analogous decompositions apply to
+          legged mobile manipulation [11, 48, 55] and to humanoid contact sequencing
+          via graph search over reachability maps [62, 63]. Together these works argue that the
+          traditional separation of locomotion and manipulation is a legacy of planning cost, and that
+          the boundary dissolves when per-query cost drops.
+        </p>
+
+        <h3>4.3 Language-Grounded Task Planning with Geometric Feasibility</h3>
+
+        <p>
+          The integration of large language models and vision-language models into robotic task planning
+          has introduced a new consumer of fast motion-planning queries. Language-grounded planners use
+          LLMs to generate candidate action sequences from natural language instructions, but the
+          sequences are grounded in linguistic rather than geometric knowledge and frequently propose
+          physically infeasible actions [1, 41, 79]. Closing the reality gap requires
+          a fast geometric feasibility checker that can evaluate LLM-proposed actions against the robot's
+          actual kinematics and environment.
+        </p>
+
+        <p>
+          SayCan [1] scored LLM-proposed actions by their geometric affordance through learned
+          affordance models, and subsequent systems have replaced or augmented those learned affordances
+          with direct planning-based feasibility scores [41, 43]. Sensing behaviors are now
+          first-class subgoal types alongside manipulation actions in LLM-grounded task decomposition,
+          and planners interleave sensing with action subgoals so failure detection becomes a planned
+          checkpoint rather than a monitoring afterthought [41, 74]. A unified VLM
+          sequencer-monitor uses a single pretrained model as both task-level skill selector and
+          continuous real-time skill-completion verifier, with subgoal advancement triggered by VLM
+          perception of completion rather than discrete planned sensing subgoals [74]. VLM-grounded
+          failure detection in RePLan [79] serves as a perception-to-planning feedback channel. When
+          a VLM detects a discrepancy between expected and actual world state mid-execution, it triggers
+          online LLM replanning, enabling recovery from unforeseen obstacles without pre-specified
+          failure modes. Socially aware TAMP extends the decomposition axes still further by
+          incorporating norms and signals as a co-evolving state dimension, with task urgency weighting
+          soft-constraint violations [30a].
+        </p>
+
+        <p>
+          The granularity at which LLM proposals can be geometrically validated depends directly on
+          planner speed. Early systems checked feasibility at the level of entire action primitives.
+          With millisecond-scale planning, validation can occur at the level of individual waypoints or
+          continuous trajectory segments. This finer-grained validation detects failure modes such as
+          an arm configuration that reaches the grasp target but collides during approach, which coarse
+          primitive-level checks would miss [25, 41, 74].
+        </p>
+
+        <h2>5. Data-Driven and Neural Sampling Strategies</h2>
+
+        <h3>5.1 Learned Configuration-Space Samplers and Guiding Spaces</h3>
+
+        <p>
+          Classical sampling-based planners rely on uniform or quasi-random sampling of configuration
+          space, a strategy that becomes catastrophically inefficient as dimensionality grows [37,
+          44]. For a 30 DoF humanoid the volume of free configuration space relative to the total
+          space is vanishingly small, and uniform sampling wastes its budget on irrelevant
+          configurations. This motivates <em>learned samplers</em> that concentrate samples in regions
+          likely to yield feasible solutions [38, 4]. The guiding-space framework
+          [4] unifies biased sampling heuristics (including neural and learned distributions)
+          under a single abstraction. Any mechanism that defines a non-uniform sampling distribution
+          over configuration space constitutes a guiding space, giving learned samplers clear
+          theoretical grounding within classical planning. An information-theoretic evaluation of
+          sampling quality (how much the biased distribution reduces uncertainty about useful samples)
+          provides a training signal cheaper than full planning rollouts and model-agnostic across
+          architectures.
+        </p>
+
+        <p>
+          Two complementary decompositions of the learning problem have proved particularly productive.
+          Localization versus generation decouples the role of the learner. A neural model identifies
+          critical bottleneck regions in configuration space (a simpler classification task) while
+          classical local sampling methods generate the actual samples within those regions, preserving
+          probabilistic completeness [40]. Constraint-manifold learning from demonstrations uses
+          VAEs or equivariant conditional manifold networks to learn implicit equality-constraint
+          manifolds without explicit analytical equations, turning constraint satisfaction from a hard
+          geometric requirement into a learned generative model that handles constraints known only
+          through examples [73]. Local feature conditioning improves generalization by binding the
+          learner to local obstacle-configuration interactions rather than global problem structure.
+        </p>
+
+        <p>
+          Stein Variational Gradient Descent [98] recasts trajectory sampling as variational
+          inference. Particles (candidate trajectories) are iteratively transported to cover low-cost
+          feasible trajectory space, entropy regularization preserves multi-modal diversity, and the
+          output is a distribution over solutions rather than a single plan. This makes the variational
+          framework a principled bridge between motion planning and learning from demonstrations, since
+          the same planner can be used as a data-generation engine for imitation and reinforcement
+          learning. A learned local control predictor for kinodynamic planning, trained once on
+          obstacle-free dynamics data with dispersion-bounded pruned samples, can be reused as a modular
+          expansion component across arbitrary environments, decoupling dynamics-specific learning from
+          environment-specific planning [40a].
+        </p>
+
+        <h3>5.2 Diffusion Models and 3D Policy Architectures</h3>
+
+        <p>
+          The application of denoising diffusion models to motion generation has emerged as one of the
+          most active research fronts since 2022. Unlike CVAE-based samplers that produce unimodal or
+          mixture-of-Gaussians trajectory distributions, diffusion models capture the full diversity of
+          valid motions, including topologically distinct homotopy classes, through iterative denoising
+          [35a]. Diffusion Policy [18] shows that diffusion models trained on expert
+          demonstrations produce manipulation trajectories with remarkable precision and multimodality,
+          reaching state-of-the-art performance on a broad range of benchmarks. The architecture is
+          readily adapted to use fast planner outputs as training signal. While demonstrations are
+          expensive to collect and limited in diversity, a GPU-accelerated planner can generate millions
+          of diverse constraint-satisfying trajectories [10].
+        </p>
+
+        <p>
+          Diffuser [35a] treats trajectory optimization as conditional sampling from a learned
+          distribution over trajectories, and subsequent work has extended this to manipulation domains
+          with richer constraint sets including collision avoidance and kinematic limits [10,
+          67]. SE(3)-DiffusionFields and related geometric-diffusion work bring geometric structure
+          into the generator by operating directly in task-space, respecting the Riemannian geometry of
+          the rotation group, and passing task-space trajectories into a fast IK stage [88].
+          Conditioning on 3D point-cloud observations rather than 2D images provides spatially invariant
+          features that enable cross-scene generalization from single-scene training data, positioning
+          3D geometric representation as a key inductive bias for sample-efficient diffusion-policy
+          learning [96, 95, 54a]. The kinematics-aware diffusion policy [54a]
+          represents actions as 3D body-point sets spatially aligned with point-cloud observations,
+          offloading the burden of learning nonlinear kinematics onto the action parameterization
+          itself, with explicit kinematic priors injected into the denoising process. SafeBimanual
+          [5] integrates diffusion-based trajectory generation with classical safety constraints
+          for bimanual manipulation, enforcing collision avoidance and joint limits on the diffusion
+          output.
+        </p>
+
+        <p>
+          A fundamental tension in diffusion-based motion generation is the inference-time cost. A
+          single trajectory typically requires 20 to 100 denoising steps, imposing a floor of 50 to
+          200 ms that is competitive with but not dramatically faster than modern optimization-based
+          planners. Consistency models and single-step distillation reduce this floor, and iterative
+          student-teacher finetuning (the policy's own rollouts generate improved training targets)
+          corrects specific failure modes without full retraining [95, 93]. Using a
+          mixture-of-experts RL policy as teacher deliberately induces multi-modal structure in the
+          demonstration data, and a diffusion policy is the appropriate student because its capacity to
+          model multi-modal distributions prevents mode collapse when distilling heterogeneous expert
+          behaviors [93].
+        </p>
+
+        <h3>5.3 Neural Scene, Dynamics, and Reachability Surrogates</h3>
+
+        <p>
+          Beyond generating full trajectories, neural networks can accelerate planning by providing fast
+          approximate evaluations of intermediate states or partial plans. Differentiating through a
+          neural implicit scene representation (NeRF augmented to approximate an ESDF) yields obstacle
+          gradients analytically, replacing sampling-based collision queries entirely [71]. The
+          same NeRF used for rendering doubles as a reactive geometry oracle, with planning speed
+          becoming a function of network inference rather than environment complexity. A differentiable
+          reachability map, a scalar field over task space trained on kinematic-model samples, replaces
+          discrete IK feasibility checks with smooth gradient-providing constraints in trajectory
+          optimization, encoding the non-convex reachability geometry of high-DoF humanoids as a
+          learnable surrogate [63]. A learned latent world model, trained on offline
+          demonstration-free data, serves as the predictive simulator inside sampling-based MPC by
+          rolling out candidate trajectories in a compressed latent space, replacing physics simulation
+          entirely [58]. This positions the world model as a neural rollout oracle for contact-rich
+          humanoid planning.
+        </p>
+
+        <p>
+          Learning to predict motion-planning feasibility represents an extreme case of neural
+          acceleration. Binary classifiers evaluable in microseconds serve as ultra-fast pre-filters
+          within TAMP systems. The task planner consults the classifier before invoking the
+          millisecond-scale motion planner, and the two-level filtering architecture is coherent only
+          when the planner itself is fast enough that the combined pipeline meets real-time requirements
+          while slow enough that the pre-filter's savings are meaningful [40, 4]. Offline
+          reinforcement learning on sub-optimal whole-body controllers generates demonstrations
+          constrained to task-relevant state-action space by randomizing a lightweight WBC, then uses
+          offline RL with Q-chunking extended to action-chunked diffusion policies to identify and
+          stitch improved behaviors, bypassing teleoperation and heavy reward engineering [39].
+          The interaction between neural components and structured planners is increasingly
+          bidirectional. Learned value functions and cost-to-go estimators guide planners, and planner
+          outputs update the learned functions, creating a bootstrapping loop whose convergence
+          properties remain poorly characterized theoretically but have shown strong empirical results.
+        </p>
+
+        <h2>6. Base-Placement Optimization and IK Pre-Configuration for Bimanual Systems</h2>
+
+        <h3>6.1 Reachability-Driven Base Placement for Mobile Bimanual Systems</h3>
+
+        <p>
+          For a mobile bimanual humanoid, the choice of base position relative to the manipulation
+          workspace is a decision of outsized consequence. It determines which objects are reachable,
+          which grasps are kinematically feasible, and how much of the robot's joint range is consumed
+          by postural compensation rather than task-directed motion. Classical approaches relied on
+          precomputed reachability maps (capability maps) that discretely represented achievable
+          end-effector poses from each base position aggregated over joint limits [94, 62].
+          These maps enabled fast lookup but suffered three limitations. They did not account for
+          obstacles, they evaluated reachability independently per arm, and they considered only static
+          reachability rather than feasibility of transitions between configurations.
+        </p>
+
+        <p>
+          Fast whole-body planning transforms base-placement optimization from a static reachability
+          analysis into a dynamic feasibility search. Rather than asking "can the end-effector reach
+          this pose from this base position" (a kinematic query), the planner asks "does a
+          collision-free joint-limit-respecting trajectory exist that brings the whole body to a
+          configuration achieving this end-effector pose" (a planning query). Burget et al. [14]
+          demonstrated that incorporating full-trajectory feasibility into base-placement scoring
+          produces qualitatively different and substantially better placement decisions than
+          reachability maps alone, particularly in cluttered environments where the path to a reachable
+          pose may be obstructed. The computational cost of this richer evaluation was initially
+          prohibitive for dense search, but GPU-accelerated and vectorized planners reduce the
+          per-evaluation cost to the point where hundreds of base candidates are screened within seconds
+          [84, 91].
+        </p>
+
+        <p>
+          For bimanual tasks, the interaction between base placement and arm coordination creates an
+          especially rich optimization landscape. A base position that maximizes the reachable workspace
+          of one arm may minimize it for the other, or may force both arms into configurations that
+          leave no collision-free coordination space between them. Bimanual reachability (the
+          intersection of the two arms' reachable workspaces) produces significantly different optimal
+          placements than single-arm reachability [93]. Extending this to full planning-based
+          feasibility, where bimanual coordination constraints (inter-arm collision, relative
+          end-effector poses) are checked online, enables the placement optimizer to account for the
+          full complexity of two-arm coordination [21, 75].
+        </p>
+
+        <h3>6.2 Whole-Body IK as a Screening Primitive</h3>
+
+        <p>
+          Inverse kinematics for high-DoF systems is itself computationally expensive and benefits
+          directly from the same acceleration techniques as trajectory planning. Fast whole-body IK is
+          a screening primitive that precedes full trajectory optimization. Before committing to a
+          heavier trajectory plan, the system checks whether a kinematically valid configuration exists
+          at the target pose. For bimanual humanoids, whole-body IK must simultaneously satisfy
+          constraints on two end-effectors, torso pose for balance, and possibly leg configurations for
+          stance stability [29]. The multi-constraint IK problem has many solutions under
+          high-DoF redundancy or none under infeasibility, and rapid enumeration of the solution
+          manifold or certification of infeasibility is critical for upstream decision-making.
+        </p>
+
+        <p>
+          Neural warm-starts for a two-stage Jacobian-based IK solver reduce collision-free IK to under
+          10 ms per query on a single CPU core for 19 DoF bimanual humanoids, fast enough to screen many
+          candidate base placements in real time before the robot commits to a position [86]. The
+          analytic IK-Geo decomposition of any 6 DoF all-revolute manipulator into six canonical
+          geometric subproblems [32] serves as the closed-form baseline that neural warm-starts
+          must beat. The concept of <strong>IK pre-configuration</strong> extends screening by
+          pre-computing IK solutions for each proposed action's target pose before the task planner
+          commits to a sequence, using the existence and quality of the solutions to inform task-level
+          decisions [27, 87, 46a]. For a bimanual handoff, pre-computing IK for both
+          arms at the transfer pose reveals whether the handoff is feasible and how much of the robot's
+          joint range it consumes, feeding back to the task planner, which can choose between
+          alternative transfer locations or restructure the action sequence.
+        </p>
+
+        <h3>6.3 Co-Optimization of Stance and Manipulation</h3>
+
+        <p>
+          The most architecturally ambitious application of fast planning to base placement is
+          co-optimization of stance (base position, foot placement, torso posture) and manipulation
+          plan. Rather than fixing the base first and then planning arm motions (a sequential
+          decomposition that can miss globally superior solutions), co-optimization treats the full
+          whole-body configuration, base included, as a single decision variable [9, 81].
+          Feasibility depends on inner-loop planning speed. With classical planners at seconds per
+          query, the outer loop was limited to a handful of preselected candidates. With
+          GPU-accelerated planners the outer loop can afford dense grid search, gradient-based
+          optimization over continuous base-pose parameters, or evolutionary strategies [14].
+        </p>
+
+        <p>
+          Kinodynamics-based pose optimization for humanoid loco-manipulation [46a] combines the
+          object-robot dynamics model, robot kinematic constraints, and ground reaction force
+          constraints to compute stance configurations that are dynamically feasible for pushing heavy
+          objects, coupling object dynamics with whole-body pose before MPC execution. Pre-specifying
+          contact timings as MPC inputs [46] handles discrete contact-mode switches (grasp,
+          release, footstep) within the prediction horizon, avoiding combinatorial contact selection
+          during online optimization, while modeling manipulated object dynamics as external forces
+          rather than additional rigid-body states reduces model complexity while preserving dynamics
+          consistency across loco-manipulation modes [46]. Affordance-guided coarse-to-fine
+          exploration [54b] couples VLM-derived affordance priors with geometric feasibility in a
+          coarse-to-fine loop. Semantics first narrow candidates to task-relevant regions, and spatial
+          constraints refine them, achieving high zero-shot success in open-vocabulary mobile
+          manipulation and avoiding local-optima failures of purely proximity-based or purely geometric
+          planners. GenerativeMPC [25a] folds VLM-RAG-guided reasoning into a whole-body MPC with
+          virtual impedance, producing a hierarchical framework that bridges semantic context and
+          compliant physical interaction for bimanual mobile manipulation. Together these works
+          exemplify the survey's general pattern. Cheap planning enables new integration patterns
+          between learned and structured components.
+        </p>
+
+        <h2>7. Tighter Planning-Perception-Action Feedback Loops</h2>
+
+        <h3>7.1 Model-Predictive Whole-Body Control</h3>
+
+        <p>
+          When trajectory planning completes within one control cycle, the boundary between planning and
+          control dissolves. The system replans a complete trajectory at every timestep, incorporating
+          the latest state estimate and any changes in the environment. This <strong>model-predictive
+          planning</strong> paradigm extends MPC from its traditional domain of trajectory tracking to
+          the full motion-planning problem, including collision avoidance and task-level constraints.
+          Whole-body MPC for humanoid-class systems has been demonstrated with steadily decreasing
+          computation times. Unified MPC for legged mobile manipulators [81] jointly optimizes
+          locomotion and manipulation through a single nonlinear program. BiConMP [49] and
+          HS-DDP [45] bring whole-body trajectory optimization for humanoid-class systems into the
+          sub-second regime. Warm-start whole-body MPC for bipedal locomotion with a novel kino-dynamic
+          model [48] and inverse-dynamics MPC for loco-manipulation [60] reach the regime
+          where full-body replanning keeps pace with perception updates. Collision-free whole-body MPC
+          [20a] enforces self-collision and environment-collision avoidance as soft constraints
+          inside multi-contact optimal control.
+        </p>
+
+        <p>
+          The architectural consequence of MPC-rate planning is the elimination of the traditional
+          planning-execution-monitoring trichotomy. Classical architectures plan a trajectory once,
+          execute it open-loop under a tracking controller, and monitor deviations that trigger
+          replanning. Each component operates at a different rate and communicates through interfaces
+          that introduce latency and information loss. MPC-rate planning collapses these into a single
+          loop that plans, executes one step, observes, and plans again. This tight loop is inherently
+          more robust to disturbances, model errors, and environmental changes than any open-loop
+          architecture, but demands that the planner complete within the control period, a requirement
+          only the fastest whole-body planners can meet [60, 48, 81].
+        </p>
+
+        <h3>7.2 Perception-Driven Online Replanning</h3>
+
+        <p>
+          Below MPC rate but above the traditional planning rate lies a regime of perception-driven
+          replanning at 5 to 30 Hz, matching the update rates of typical vision systems. In this regime
+          the planner incorporates new obstacle observations, object pose updates, and task-state
+          transitions at each perception cycle, producing trajectories that are always consistent with
+          the current world model. STORM [12] demonstrates this architecture for manipulation.
+          At each perception update the GPU-parallel MPPI optimizer generates a new trajectory from the
+          current state, using the latest voxel-grid representation. The manipulation system naturally
+          avoids dynamically appearing obstacles, tracks moving targets, and recovers from perturbations
+          without explicit replanning triggers. The insight is that when replanning is cheap and
+          continuous, separate monitoring or recovery modules are unnecessary. Those behaviors emerge
+          from the planner's interaction with a continuously updated world model. Predicted composite
+          SDFs extend this principle to dynamic environments by accounting for predicted trajectories
+          of moving objects inside the signed-distance representation, letting the planner reason
+          jointly about current and predicted collision surfaces [30].
+        </p>
+
+        <p>
+          For bimanual humanoid systems, perception-driven replanning introduces additional complexity.
+          The two arms may execute different phases of a coordinated task, and a perception update that
+          invalidates one arm's plan may require replanning for both arms simultaneously. Whole-body
+          planning handles this naturally, since the planner optimizes all joints jointly and can
+          propagate the effect of a local obstacle change to the entire body posture, but the
+          computational cost of whole-body replanning at perception rates remains at the boundary of
+          current capability [84, 81]. The integration of neural scene representations (NeRFs,
+          3D Gaussians, neural SDFs) with planning creates new possibilities for perception-planning
+          coupling. These representations provide smooth differentiable distance fields compatible with
+          gradient-based trajectory optimization, enabling the planner to reason about partially
+          observed environments through learned scene completions [71].
+        </p>
+
+        <h3>7.3 Contact-Aware and Intent-Aware Reactive Planning</h3>
+
+        <p>
+          Manipulation tasks, especially bimanual tasks such as regrasping, pivoting, and assembly, are
+          fundamentally contact-rich. The robot must make and break contacts in controlled ways, and the
+          dynamics of these contacts are discontinuous, hybrid, and partially observable. Classical
+          motion planners treat contacts as hard constraints to be avoided, but a growing body of work
+          treats contacts as resources to be exploited [64, 89, 58, 47].
+          Contact-implicit trajectory optimization formulates the planning problem with contact forces
+          as decision variables alongside joint trajectories, enabling the optimizer to discover
+          contact-exploitation strategies invisible to a collision-avoidance planner.
+        </p>
+
+        <p>
+          Motion intent inferred at planning time can be routed back to reweight perceptual features,
+          for example via multi-scale attention, creating an intra-step planning-to-perception feedback
+          loop that adapts what the system looks at based on its current manipulation stage rather than
+          relying on static or purely reactive attention [54a, 92a, 79]. Decoupling base
+          and arm action streams while jointly modeling their coordination (for example via flow
+          matching on a shared latent) reduces optimization interference from control coupling,
+          producing less entangled action signals that downstream perception and replanning can
+          condition on more cleanly [6]. Adversarial motion priors extended to perceptual settings
+          serve as a physically coherent feedback channel. The prior regularizes visually reactive
+          behaviors to remain kinematically plausible, while a paired encoder-decoder recovers
+          privileged state estimates from imperfect observations, effectively amplifying the
+          information the policy can act on without ground-truth sensing at deployment [92a].
+        </p>
+
+        <p>
+          Contract-based abstraction boundaries between deliberative and reactive layers let the
+          deliberative planner reason over provable reachability guarantees rather than specific
+          trajectories, replacing trajectory evaluation with guarantee composition and tightening the
+          deliberative-reactive loop [90, 92]. The reactive dimension of contact-aware
+          planning (adjusting plans in response to tactile feedback during execution) requires planning
+          speeds that match the bandwidth of tactile sensors. Full trajectory reoptimization at those
+          rates remains out of reach for high-DoF systems, but hybrid architectures that combine a fast
+          local reactive controller with a slower but more capable trajectory replanner achieve
+          effective contact-reactive behavior. Recent humanoid teleoperation and real-time interaction
+          systems (RHINO [19a], humanoid soccer skills [92a], Mobile ALOHA bimanual
+          teleoperation [59]) push this integration onto real hardware by folding perception,
+          intent, and contact reasoning into tightly coupled loops.
+        </p>
+
+        <h2>8. Cross-Cutting Analysis</h2>
+
+        <p>
+          Several structural patterns and tensions emerge across the thematic sections of this survey.
+        </p>
+
+        <p>
+          <strong>The virtuous cycle of speed and data.</strong> The most consequential cross-cutting
+          pattern is the mutually reinforcing relationship between fast planners and learned components
+          (Sections 3 and 5). Fast planners generate training data for learned samplers and diffusion
+          models. Learned components accelerate planners by providing better initial samples or
+          heuristics. The accelerated planners generate still more diverse training data. The cycle has
+          been operationalized in guiding-space formulations [4], local control predictors
+          [40a], constraint-manifold learning [73], and teacher-student diffusion
+          distillation [93, 95]. The risk is that errors in learned components produce
+          biased training data producing biased samplers, and the conditions under which this cycle
+          converges reliably are not yet theoretically characterized.
+        </p>
+
+        <p>
+          <strong>The feasibility oracle as a universal interface.</strong> Across task decomposition
+          (Section 4), base placement (Section 6), and language-grounded planning (Section 4.3), the
+          motion planner is increasingly used not to produce trajectories for execution but to answer
+          yes/no feasibility queries. This shift from <em>planner as trajectory producer</em> to
+          <em>planner as feasibility oracle</em> changes the planner's design requirements. Low latency
+          and high throughput matter more than trajectory quality, and false negatives (reporting
+          infeasible when a plan exists) are more damaging than suboptimal trajectories. GPU-parallel
+          planners that evaluate many trajectory seeds and return any feasible one are well-suited to
+          this oracle role [3, 84, 86, 91]. Optimization-based planners that
+          converge slowly toward high-quality solutions are less so. This tension suggests future
+          systems may employ distinct planner configurations for each role.
+        </p>
+
+        <p>
+          <strong>Hierarchical decomposition versus end-to-end optimization.</strong> A persistent
+          tension throughout the surveyed literature lies between hierarchical architectures that
+          decompose the problem along kinematic, spatial, or temporal dimensions (Sections 3.3, 6.3)
+          and monolithic approaches that optimize all variables jointly (Section 7.1). Hierarchical
+          decomposition is more computationally tractable and more amenable to modular system design,
+          but introduces interface constraints that can exclude globally superior solutions. End-to-end
+          optimization avoids interface losses but scales poorly with system complexity. The current
+          frontier lies in <em>tightly coupled hierarchies</em>, architectures that maintain
+          decomposition for tractability but use fast cross-layer communication (enabled by cheap
+          planning queries) to recover some of the global coherence lost to decomposition
+          [87, 81, 90]. Logic-Geometric Programming and unified MPC approach this
+          from opposite directions.
+        </p>
+
+        <p>
+          <strong>Locomotion and manipulation as a single contact-mode search.</strong> The traditional
+          boundary between locomotion and manipulation is a legacy of planning cost. When symbolic
+          actions are defined as contact-mode changes (shared across foot and hand contacts) the
+          combinatorial space unifies, and emergent loco-manipulation behaviors appear without
+          pre-partitioning [13, 41]. Multi-contact planning work bridging climbing,
+          wheeled-quadruped manipulation, humanoid pivoting, and slithering loco-manipulation
+          [11, 97, 89, 33] illustrates how the same decomposition
+          transfers across embodiments. Progress here is gated more by contact-mode search than by
+          planning speed per se.
+        </p>
+
+        <p>
+          <strong>The sim-to-real transfer problem for learned components.</strong> Learned samplers,
+          diffusion planners, and neural cost-to-go estimators are typically trained in simulation
+          using idealized kinematics and synthetic environments. Their transfer to physical robots,
+          where sensor noise, model inaccuracies, and unmodeled contacts degrade performance, remains a
+          significant concern. The interaction between fast planners and learned components creates a
+          specific transfer challenge. A fast planner in simulation may generate training data that
+          exercises parts of configuration space the physical robot cannot safely reach, producing
+          learned components that are optimistic about feasibility. This concern is less acute for
+          planning algorithms that operate on explicit geometric models, which can be updated from
+          real sensor data more readily.
+        </p>
+
+        <p>
+          <strong>Bimanual planning as a stress test.</strong> Bimanual humanoid planning sits at the
+          intersection of every theme surveyed. It requires fast planning (high DoF), tight task
+          decomposition (coordinated two-arm actions), informed sampling (narrow feasible regions),
+          careful base placement (dual-arm reachability), and reactive control (contact-rich
+          coordination). It is a natural stress test and integration platform for advances in each
+          individual area [21, 75, 5, 83, 18, 53, 61,
+          59]. Progress on bimanual planning is gated by the slowest component in the pipeline,
+          which has historically been motion planning but is increasingly shifting to task-level
+          reasoning about coordination strategies and to perception of contact states.
+        </p>
+
+        <p>
+          <strong>Foundation models and planning compute contention.</strong> Integrating LLMs and VLMs
+          with fast planners raises a question largely unaddressed in the literature. Both compete for
+          on-robot compute. If VLM inference takes 500 ms per call while planning takes 1 ms per call,
+          the new bottleneck moves from geometry to language [1, 74, 79, 25a].
+          A realistic end-to-end stack must budget latency across perception, reasoning, and planning
+          jointly, and future architectures will likely distribute inference between a shared
+          accelerator and dedicated compute islands rather than treat each subsystem in isolation.
+        </p>
+
+        <h2>9. Open Problems and Future Directions</h2>
+
+        <p>
+          Several specific open problems emerge from this survey.
+        </p>
+
+        <p>
+          <strong>Certified completeness and optimality under speed constraints.</strong> GPU-parallel
+          trajectory optimization achieves speed by sacrificing completeness. Running many random
+          trajectory seeds in parallel and taking the best feasible one provides no guarantee that a
+          feasible trajectory is found even when one exists [3, 84]. For safety-critical
+          applications the absence of completeness certificates is a significant limitation. Extending
+          graph-of-convex-sets style frameworks and convex kinematic relaxations [31, 21] to
+          whole-body humanoid planning, which requires convex decomposition of free space in 24 to 40
+          dimensions, remains an open algorithmic challenge. Chance-constrained methods [22] and
+          reactive guarantees [90, 92] are partial answers that cover specific subregimes
+          but do not yet compose into a unified framework.
+        </p>
+
+        <p>
+          <strong>Unified training frameworks for learned planning components.</strong> The learned
+          components surveyed in Section 5 (CVAE samplers, diffusion planners, neural cost-to-go
+          estimators, feasibility classifiers) are currently developed and trained independently, each
+          with its own data pipeline, architecture, and training procedure. A unified framework that
+          co-trains these components end-to-end, using a fast planner as both data source and
+          verification oracle, could capture cross-component dependencies and reduce the total data
+          requirement. The challenge is designing loss functions and training curricula that balance
+          the competing objectives.
+        </p>
+
+        <p>
+          <strong>Scaling to deformable objects and tool use.</strong> The fast planners surveyed in
+          Section 3 assume rigid-body kinematics and collision geometries. Bimanual manipulation of
+          deformable objects (cloth, cables, soft packaging) requires planning in the joint
+          configuration-and-object-state space, which is infinite-dimensional in principle and very
+          high-dimensional in any practical discretization. Extending GPU-accelerated planning to
+          deformable-object manipulation, where the object's state depends on the entire history of
+          manipulator contacts, is a major open challenge that will require new representations and
+          algorithms.
+        </p>
+
+        <p>
+          <strong>Real-time whole-body planning with dynamic environments.</strong> Most fast planners
+          assume quasi-static environments where obstacle positions are known and fixed during a
+          planning cycle. In household or industrial settings where humans and other agents move
+          unpredictably, the planner must reason about obstacle dynamics or replan fast enough that
+          static snapshots are approximately valid. The interaction between prediction uncertainty and
+          planning speed defines a largely unexplored design space [30]. A dedicated treatment
+          of the foundation-model-latency versus planning-latency trade-off, and of how the two should
+          share on-robot accelerators, would sharpen the design of the next generation of stacks.
+        </p>
+
+        <p>
+          <strong>Bimanual integration on real hardware.</strong> Bimanual coordination has essentially
+          one dedicated paper in the curated theme [46] despite being central to the stated scope
+          of this survey. A structured analysis of which upstream enablements have been demonstrated on
+          real hardware versus only in simulation would sharpen practical significance claims.
+          Teleoperation interfaces [59, 19a], imitation-learning stacks [18,
+          53, 10], and WBC-seeded offline RL [39, 25a] are the components
+          currently nearest to a real-hardware bimanual integration, and a focused benchmark combining a
+          bimanual humanoid platform with standardized task distributions would allow fair comparison
+          across approaches.
+        </p>
+
+        <p>
+          <strong>Benchmarks and standardized metrics.</strong> The field lacks standardized benchmarks
+          for whole-body bimanual planning that would enable fair comparison across methods. Existing
+          benchmarks focus on single-arm planning in static environments. Bimanual benchmarks must
+          additionally specify coordination constraints, base mobility assumptions, and task-level
+          success criteria. A quantitative planner-family comparison (wall-clock time, DoF, constraint
+          types, hardware demonstrated) is currently left to individual papers, and community-owned
+          leaderboards would substantiate the millisecond-scale threshold claim with replicable
+          evidence.
+        </p>
+
+        <h2>10. Conclusion</h2>
+
+        <p>
+          The reduction of whole-body motion planning from seconds to milliseconds is not merely an
+          incremental performance improvement. It is a phase transition that reorganizes the robotics
+          stack. When planning is expensive, it sits at the periphery of the system, invoked once,
+          pre-computed, and executed open-loop. When planning is cheap, it migrates to the center,
+          serving as a feasibility oracle for task planners, a training-data generator for learned
+          components, a screening primitive for base-placement search, and the inner loop of reactive
+          controllers. The specific architectural patterns this transition enables (fine-grained TAMP
+          with online feasibility checking, neural samplers trained on planner-generated data,
+          co-optimized stance-and-manipulation planning, and MPC-rate whole-body replanning) are
+          individually well-documented in the literature but have not been previously recognized as
+          consequences of a single underlying cause.
+        </p>
+
+        <p>
+          The most important open challenge is integration. Each architectural pattern has been
+          demonstrated independently, yet no system yet combines all of them into a unified whole-body
+          bimanual pipeline operating at millisecond rates in unstructured environments. Achieving this
+          integration will require not only faster algorithms but new interface standards between
+          components, particularly between learned perception models and structured planners, that
+          preserve the speed advantages of each while enabling the tight coupling that reactive bimanual
+          manipulation demands. The field is converging on this integration, and the next generation of
+          bimanual humanoid systems will be defined by how well they exploit the architectural freedoms
+          that fast planning provides.
+        </p>
+
+        </section>
+
+        <div class="citation-section">
+          <h2 class="citation-header">Citation</h2>
+          <p class="citation-text">
+            If you find this survey useful, please cite it as
+          </p>
+          <pre class="citation-pre">
+@misc{fast_planner_upstreams_survey_2026,
+  author    = {Hu Tianrun},
+  title     = {Fast Whole-Body Planners and Upstream Architecture},
+  year      = {2026},
+  publisher = {GitHub},
+  url       = {https://h-tr.github.io/blog/surveys/fast-planner-upstreams.html}
+}
+          </pre>
+        </div>
+
+        <div class="references-section">
+          <h2 class="references-header">References</h2>
+          <ol class="references-list">
+            <li id="ref-1">Ahn, M., Brohan, A., Brown, N., et al. (2022). &ldquo;Do As I Can, Not As I Say. Grounding Language in Robotic Affordances (SayCan).&rdquo; <em>arXiv:2204.01691</em>.</li>
+            <li id="ref-3">Alvarez-Padilla, J., et al. (2024). &ldquo;Real-Time Whole-Body Control of Legged Robots with Model-Predictive Path Integral Control.&rdquo; <em>arXiv:2409.10469</em>.</li>
+            <li id="ref-4">Attali, A., et al. (2022). &ldquo;Evaluating Guiding Spaces for Motion Planning.&rdquo; <em>arXiv:2210.08640</em>.</li>
+            <li id="ref-5">SafeBimanual Authors. (2025). &ldquo;SafeBimanual. Diffusion-based Trajectory Optimization for Safe Bimanual Manipulation.&rdquo; <em>arXiv:2508.18268</em>.</li>
+            <li id="ref-6">Liu, J. (2026). &ldquo;InCoM. Intent-Driven Perception and Structured Coordination for Whole-Body Mobile Manipulation.&rdquo; <em>Open MIND</em>.</li>
+            <li id="ref-9">Tonneau, S., Del Prete, A., Pettr&eacute;, J., Park, C., Manocha, D., &amp; Mansard, N. (2018). &ldquo;An Efficient Acyclic Contact Planner for Multiped Robots.&rdquo; <em>IEEE Transactions on Robotics</em>, 34(3), 586&ndash;601.</li>
+            <li id="ref-10">Carvalho, J., Le, A.T., Baierl, M., Koert, D., &amp; Peters, J. (2023). &ldquo;Motion Planning Diffusion. Learning and Planning of Robot Motions with Diffusion Models.&rdquo; <em>IROS 2023</em>.</li>
+            <li id="ref-11">Bjelonic, M., et al. (2019). &ldquo;Keep Rollin'. Whole-Body Motion Control and Planning for Wheeled Quadrupedal Robots.&rdquo; <em>IEEE Robotics and Automation Letters</em>.</li>
+            <li id="ref-12">Bhardwaj, M., Sundaralingam, B., &amp; Boots, B. (2022). &ldquo;STORM. An Integrated Framework for Fast Joint-Space Model-Predictive Control for Reactive Manipulation.&rdquo; <em>CoRL 2022</em>.</li>
+            <li id="ref-13">Ciebielski, M., et al. (2025). &ldquo;Task and Motion Planning for Humanoid Loco-manipulation.&rdquo; <em>arXiv:2508.14099</em>.</li>
+            <li id="ref-14">Burget, F., Bennewitz, M., &amp; Burgard, W. (2015). &ldquo;Stance Optimization for Whole-Body Reaching Movements in Humanoid Robots.&rdquo; <em>IROS 2015</em>.</li>
+            <li id="ref-15">Burget, F., Hornung, A., &amp; Bennewitz, M. (2013). &ldquo;Whole-Body Motion Planning for Manipulation of Articulated Objects.&rdquo; <em>ICRA 2013</em>.</li>
+            <li id="ref-16">Carpentier, J., et al. (2019). &ldquo;The Pinocchio C++ Library. A Fast and Flexible Implementation of Rigid Body Dynamics Algorithms and their Analytical Derivatives.&rdquo; <em>IEEE SII 2019</em>.</li>
+            <li id="ref-17">Dai, H., Valenzuela, A., &amp; Tedrake, R. (2014). &ldquo;Whole-Body Motion Planning with Centroidal Dynamics and Full Kinematics.&rdquo; <em>Humanoids 2014</em>.</li>
+            <li id="ref-18">Chi, C., Feng, S., Du, Y., Xu, Z., Cousineau, E., Burchfiel, B., &amp; Song, S. (2023). &ldquo;Diffusion Policy. Visuomotor Policy Learning via Action Diffusion.&rdquo; <em>RSS 2023</em>.</li>
+            <li id="ref-19">Chignoli, M., et al. (2021). &ldquo;The MIT Humanoid Robot. Design, Motion Planning, and Control For Acrobatic Behaviors.&rdquo; <em>arXiv:2104.09025</em>.</li>
+            <li id="ref-19a">Chen, J. (2025). &ldquo;RHINO. Learning Real-Time Humanoid-Human-Object Interaction from Human Demonstrations.&rdquo; <em>arXiv:2502.13134</em>.</li>
+            <li id="ref-20">Corb&egrave;res, T., et al. (2023). &ldquo;Perceptive Locomotion through Whole-Body MPC and Optimal Region Selection.&rdquo; <em>arXiv:2305.08926</em>.</li>
+            <li id="ref-20a">Chiu, J.-R., et al. (2022). &ldquo;A Collision-Free MPC for Whole-Body Dynamic Locomotion and Manipulation.&rdquo; <em>arXiv:2202.12385</em>.</li>
+            <li id="ref-21">Cohn, T., Shaw, S., Simchowitz, M., &amp; Tedrake, R. (2023). &ldquo;Constrained Bimanual Planning with Analytic Inverse Kinematics.&rdquo; <em>arXiv:2309.08770</em>.</li>
+            <li id="ref-22">Dai, S. (2018). &ldquo;Chance Constrained Motion Planning for High-Dimensional Robots.&rdquo; <em>arXiv:1811.03073</em>.</li>
+            <li id="ref-23">Dalibard, S., El Khoury, A., Lamiraux, F., Nakhaei, A., Taix, M., &amp; Laumond, J.-P. (2013). &ldquo;Dynamic Walking and Whole-Body Motion Planning for Humanoid Robots. An Integrated Approach.&rdquo; <em>IJRR</em>, 32(9&ndash;10), 1089&ndash;1103.</li>
+            <li id="ref-24">Dantam, N.T., Kingston, Z., Chaudhuri, S., &amp; Kavraki, L.E. (2016). &ldquo;Incremental Task and Motion Planning. A Constraint-Based Approach.&rdquo; <em>RSS 2016</em>.</li>
+            <li id="ref-25">Driess, D., Xia, F., Sajjadi, M.S.M., Lynch, C., et al. (2023). &ldquo;PaLM-E. An Embodied Multimodal Language Model.&rdquo; <em>ICML 2023</em>.</li>
+            <li id="ref-25a">Fernando, M.J. (2026). &ldquo;GenerativeMPC. VLM-RAG-guided Whole-Body MPC with Virtual Impedance for Bimanual Mobile Manipulation.&rdquo; <em>arXiv:2604.19522</em>.</li>
+            <li id="ref-26">Ficht, G., &amp; Behnke, S. (2018). &ldquo;Online Balanced Motion Generation for Humanoid Robots.&rdquo; <em>arXiv:1810.08388</em>.</li>
+            <li id="ref-27">Garrett, C.R., Lozano-P&eacute;rez, T., &amp; Kaelbling, L.P. (2020). &ldquo;PDDLStream. Integrating Symbolic Planners and Blackbox Samplers via Optimistic Adaptive Planning.&rdquo; <em>ICAPS 2020</em>.</li>
+            <li id="ref-28">Garrett, C.R., Chitnis, R., Holladay, R., Kim, B., Silver, T., Kaelbling, L.P., &amp; Lozano-P&eacute;rez, T. (2021). &ldquo;Integrated Task and Motion Planning.&rdquo; <em>Annual Review of Control, Robotics, and Autonomous Systems</em>, 4, 265&ndash;293.</li>
+            <li id="ref-29">Escande, A., Mansard, N., &amp; Wieber, P.-B. (2014). &ldquo;Hierarchical Quadratic Programming. Fast Online Humanoid-Robot Motion Generation.&rdquo; <em>IJRR</em>, 33(7), 1006&ndash;1028.</li>
+            <li id="ref-30">Finean, M.N., et al. (2020). &ldquo;Predicted Composite Signed-Distance Fields for Real-Time Motion Planning in Dynamic Environments.&rdquo; <em>arXiv:2008.00969</em>.</li>
+            <li id="ref-30a">Frank, A., et al. (2020). &ldquo;Socially Intelligent Task and Motion Planning for Human-Robot Interaction.&rdquo; <em>arXiv:2001.08398</em>.</li>
+            <li id="ref-31">Gonzalez, C., et al. (2024). &ldquo;Guiding Collision-Free Humanoid Multi-Contact Locomotion using Convex Kinematic Relaxations and Dynamic Optimization.&rdquo; <em>arXiv:2410.08335</em>.</li>
+            <li id="ref-32">Elias, A.J. (2022). &ldquo;IK-Geo. Unified Robot Inverse Kinematics Using Subproblem Decomposition.&rdquo; <em>arXiv:2211.05737</em>.</li>
+            <li id="ref-33">Gu, L., et al. (2024). &ldquo;Loco-Manipulation with Nonimpulsive Contact-Implicit Planning in a Slithering Robot.&rdquo; <em>arXiv:2404.08174</em>.</li>
+            <li id="ref-34">Gilbert, E., Johnson, D., &amp; Keerthi, S. (1988). &ldquo;A Fast Procedure for Computing the Distance between Complex Objects in Three-Dimensional Space.&rdquo; <em>IEEE Journal on Robotics and Automation</em>.</li>
+            <li id="ref-35a">Janner, M., Du, Y., Tenenbaum, J.B., &amp; Levine, S. (2022). &ldquo;Planning with Diffusion for Flexible Behavior Synthesis (Diffuser).&rdquo; <em>ICML 2022</em>.</li>
+            <li id="ref-36">Kalakrishnan, M., Chitta, S., Theodorou, E., Pastor, P., &amp; Schaal, S. (2011). &ldquo;STOMP. Stochastic Trajectory Optimization for Motion Planning.&rdquo; <em>ICRA 2011</em>.</li>
+            <li id="ref-37">Kavraki, L.E., Svestka, P., Latombe, J.-C., &amp; Overmars, M.H. (1996). &ldquo;Probabilistic Roadmaps for Path Planning in High-Dimensional Configuration Spaces.&rdquo; <em>IEEE Transactions on Robotics and Automation</em>, 12(4), 566&ndash;580.</li>
+            <li id="ref-38">Ichter, B., Harrison, J., &amp; Pavone, M. (2018). &ldquo;Learning Sampling Distributions for Robot Motion Planning.&rdquo; <em>ICRA 2018</em>.</li>
+            <li id="ref-39">Jauhri, S. (2026). &ldquo;Whole-Body Mobile Manipulation using Offline Reinforcement Learning on Sub-optimal Controllers.&rdquo; <em>arXiv:2604.12509</em>.</li>
+            <li id="ref-40">Jenamani, R.K., et al. (2020). &ldquo;Robotic Motion Planning using Learned Critical Sources and Local Sampling.&rdquo; <em>arXiv:2006.04194</em>.</li>
+            <li id="ref-40a">Karten, S., et al. (2022). &ldquo;Data-Efficient Learning of High-Quality Controls for Kinodynamic Planning used in Vehicular Navigation.&rdquo; <em>arXiv:2201.02254</em>.</li>
+            <li id="ref-41">Wang, J. (2024). &ldquo;Autonomous Behavior Planning for Humanoid Loco-manipulation through Grounded Language Model.&rdquo; <em>arXiv:2408.08282</em>.</li>
+            <li id="ref-42">Kaelbling, L.P., &amp; Lozano-P&eacute;rez, T. (2013). &ldquo;Integrated Task and Motion Planning in Belief Space.&rdquo; <em>IJRR</em>, 32(9&ndash;10), 1194&ndash;1227.</li>
+            <li id="ref-43">Lin, K., Agia, C., Migimatsu, T., Pavone, M., &amp; Bohg, J. (2023). &ldquo;Text2Motion. From Natural Language Instructions to Feasible Plans.&rdquo; <em>Autonomous Robots</em>, 47, 1345&ndash;1365.</li>
+            <li id="ref-44">Kuffner, J.J., &amp; LaValle, S.M. (2002). &ldquo;RRT-Connect. An Efficient Approach to Single-Query Path Planning.&rdquo; <em>ICRA 2002</em>.</li>
+            <li id="ref-45">Li, H., et al. (2020). &ldquo;Hybrid Systems Differential Dynamic Programming for Whole-Body Motion Planning of Legged Robots.&rdquo; <em>IEEE Robotics and Automation Letters</em>.</li>
+            <li id="ref-46">Li, J. (2022). &ldquo;Multi-contact MPC for Dynamic Loco-manipulation on Humanoid Robots.&rdquo; <em>arXiv:2209.08662</em>.</li>
+            <li id="ref-46a">Li, J. (2023). &ldquo;Kinodynamics-based Pose Optimization for Humanoid Loco-manipulation.&rdquo; <em>arXiv:2303.04985</em>.</li>
+            <li id="ref-47">Lev&eacute;, V. (2025). &ldquo;Scaling Whole-body Multi-contact Manipulation with Contact Optimization.&rdquo; <em>arXiv:2508.12980</em>.</li>
+            <li id="ref-48">Kim, J. (2025). &ldquo;Real-time Whole-body Model Predictive Control for Bipedal Locomotion with a Novel Kino-dynamic Model and Warm-start Method.&rdquo; <em>arXiv:2505.19540</em>.</li>
+            <li id="ref-49">Meduri, A. (2023). &ldquo;BiConMP. A Nonlinear Model Predictive Control Framework for Whole Body Motion Planning.&rdquo; <em>IEEE Transactions on Robotics</em>.</li>
+            <li id="ref-50">Mastalli, C., et al. (2020). &ldquo;Crocoddyl. An Efficient and Versatile Framework for Multi-Contact Optimal Control.&rdquo; <em>ICRA 2020</em>.</li>
+            <li id="ref-51">Mukadam, M. (2016). &ldquo;Gaussian Process Motion Planning.&rdquo; <em>ICRA 2016</em>.</li>
+            <li id="ref-52">Mukadam, M., Dong, J., Yan, X., Dellaert, F., &amp; Boots, B. (2018). &ldquo;Continuous-Time Gaussian Process Motion Planning via Probabilistic Inference.&rdquo; <em>IJRR</em>, 37(11), 1319&ndash;1340.</li>
+            <li id="ref-53">Lee, K.B. (2025). &ldquo;Scene-agnostic Hierarchical Bimanual Task Planning via Visual Affordance Reasoning.&rdquo; <em>arXiv:2512.09310</em>.</li>
+            <li id="ref-54">Mastalli, C., et al. (2020). &ldquo;Motion Planning for Quadrupedal Locomotion. Coupled Planning, Terrain Mapping, and Whole-Body Control.&rdquo; <em>IEEE Transactions on Robotics</em>.</li>
+            <li id="ref-54a">Lv, K. (2025). &ldquo;Kinematics-Aware Diffusion Policy with Consistent 3D Observation and Action Space for Whole-Arm Robotic Manipulation.&rdquo; <em>arXiv:2512.17568</em>.</li>
+            <li id="ref-54b">Lin, T.-J. (2025). &ldquo;Affordance-Guided Coarse-to-Fine Exploration for Base Placement in Open-Vocabulary Mobile Manipulation.&rdquo; <em>arXiv:2511.06240</em>.</li>
+            <li id="ref-55">Liu, F. (2024). &ldquo;Opt2Skill. Imitating Dynamically-feasible Whole-Body Trajectories for Versatile Humanoid Loco-Manipulation.&rdquo; <em>arXiv:2409.20514</em>.</li>
+            <li id="ref-56">Orthey, A., Chamzas, C., &amp; Kavraki, L.E. (2024). &ldquo;Sampling-Based Robot Motion Planning. A Review.&rdquo; <em>Annual Review of Control, Robotics, and Autonomous Systems</em>, 7, 285&ndash;310.</li>
+            <li id="ref-57">Mirabel, J., et al. (2016). &ldquo;HPP. A C++ Framework for Humanoid Path Planning.&rdquo; <em>Humanoids 2016</em>.</li>
+            <li id="ref-58">Liu, H. (2025). &ldquo;Ego-Vision World Model for Humanoid Contact Planning.&rdquo; <em>arXiv:2510.11682</em>.</li>
+            <li id="ref-59">Fu, Z., et al. (2024). &ldquo;Mobile ALOHA. Learning Bimanual Mobile Manipulation with Low-Cost Whole-Body Teleoperation.&rdquo; <em>arXiv:2401.02117</em>.</li>
+            <li id="ref-60">Molnar, L. (2025). &ldquo;Whole-Body Inverse Dynamics MPC for Legged Loco-Manipulation.&rdquo; <em>arXiv:2511.19709</em>.</li>
+            <li id="ref-61">Motoda, T. (2021). &ldquo;Bimanual Shelf Picking Planner Based on Collapse Prediction.&rdquo; <em>arXiv:2105.14764</em>.</li>
+            <li id="ref-62">Murooka, M. (2025). &ldquo;Humanoid Loco-manipulation Planning based on Graph Search and Reachability Maps.&rdquo; <em>arXiv:2505.23505</em>.</li>
+            <li id="ref-63">Murooka, M. (2025). &ldquo;Learning Differentiable Reachability Maps for Optimization-based Humanoid Motion Generation.&rdquo; <em>arXiv:2508.11275</em>.</li>
+            <li id="ref-64">Posa, M., Cantu, C., &amp; Tedrake, R. (2014). &ldquo;A Direct Method for Trajectory Optimization of Rigid Bodies through Contact.&rdquo; <em>IJRR</em>, 33(1), 69&ndash;81.</li>
+            <li id="ref-65">Orin, D.E., Goswami, A., &amp; Lee, S.-H. (2013). &ldquo;Centroidal Dynamics of a Humanoid Robot.&rdquo; <em>Autonomous Robots</em>.</li>
+            <li id="ref-66">Ratliff, N., Zucker, M., Bagnell, J.A., &amp; Srinivasa, S. (2009). &ldquo;CHOMP. Gradient Optimization Techniques for Efficient Motion Planning.&rdquo; <em>ICRA 2009</em>.</li>
+            <li id="ref-67">Schulman, J., et al. (2013). &ldquo;Finding Locally Optimal, Collision-Free Trajectories with Sequential Convex Optimization.&rdquo; <em>RSS 2013</em>.</li>
+            <li id="ref-68">Schulman, J., et al. (2014). &ldquo;Motion Planning with Sequential Convex Optimization and Convex Collision Checking.&rdquo; <em>IJRR</em>, 33(9), 1251&ndash;1270.</li>
+            <li id="ref-70">Petrovi&cacute;, L. (2018). &ldquo;Motion Planning in High-Dimensional Spaces.&rdquo; <em>arXiv:1806.07457</em>.</li>
+            <li id="ref-71">Pantic, M., et al. (2022). &ldquo;Sampling-Free Obstacle Gradients and Reactive Planning in Neural Radiance Fields (NeRF).&rdquo; <em>arXiv:2205.01389</em>.</li>
+            <li id="ref-72">Qureshi, A.H., Miao, Y., Simeonov, A., &amp; Yip, M.C. (2020). &ldquo;Motion Planning Networks. Bridging the Gap between Learning-Based and Classical Motion Planners.&rdquo; <em>IEEE Transactions on Robotics</em>.</li>
+            <li id="ref-73">Fern&aacute;ndez, I.M.R. (2020). &ldquo;Learning Manifolds for Sequential Motion Planning.&rdquo; <em>arXiv:2006.07746</em>.</li>
+            <li id="ref-74">Schakkal, A. (2025). &ldquo;Hierarchical Vision-Language Planning for Multi-Step Humanoid Manipulation.&rdquo; <em>arXiv:2506.22827</em>.</li>
+            <li id="ref-75">Rudorfer, M. (2025). &ldquo;A Framework for Joint Grasp and Motion Planning in Confined Spaces.&rdquo; <em>arXiv:2505.07259</em>.</li>
+            <li id="ref-76">Smith, W. (2024). &ldquo;Lie Theory Based Optimization for Unified State Planning of Mobile Manipulators.&rdquo; <em>arXiv:2410.15443</em>.</li>
+            <li id="ref-77">LaValle, S.M. (2006). <em>Planning Algorithms</em>. Cambridge University Press.</li>
+            <li id="ref-79">Skreta, M. (2024). &ldquo;RePLan. Robotic Replanning with Perception and Language Models.&rdquo; <em>arXiv:2401.04157</em>.</li>
+            <li id="ref-81">Sleiman, J.-P., Farshidian, F., Minniti, M.V., &amp; Hutter, M. (2021). &ldquo;A Unified MPC Framework for Whole-Body Dynamic Locomotion and Manipulation.&rdquo; <em>IEEE Robotics and Automation Letters</em>.</li>
+            <li id="ref-82">Stilman, M. (2010). &ldquo;Global Manipulation Planning in Robot Joint Space with Task Constraints.&rdquo; <em>IEEE Transactions on Robotics</em>.</li>
+            <li id="ref-83">TOCALib Authors. (2025). &ldquo;TOCALib. Optimal Control Library with Interpolation for Bimanual Manipulation and Obstacles Avoidance.&rdquo; <em>arXiv:2504.07708</em>.</li>
+            <li id="ref-84">Sundaralingam, B., et al. (2023). &ldquo;cuRobo. Parallelized Collision-Free Robot Motion Generation.&rdquo; <em>ICRA 2023</em>.</li>
+            <li id="ref-86">Tenhumberg, J. (2023). &ldquo;Efficient Learning of Fast Inverse Kinematics with Collision Avoidance.&rdquo; <em>arXiv:2311.05938</em>.</li>
+            <li id="ref-87">Toussaint, M., Harris, J., Ha, J.-S., Driess, D., &amp; Schmitt, M. (2022). &ldquo;Sequence-of-Constraints MPC. Reactive Timing-Optimal Control of Sequential Manipulation.&rdquo; <em>IROS 2022</em>.</li>
+            <li id="ref-88">Toussaint, M., et al. (2018). &ldquo;Differentiable Physics and Stable Modes for Tool-Use and Manipulation Planning.&rdquo; <em>RSS 2018</em>.</li>
+            <li id="ref-89">Zhang, J. (2021). &ldquo;Transition Motion Planning for Multi-Limbed Vertical Climbing Robots Using Complementarity Constraints.&rdquo; <em>arXiv:2106.07127</em>.</li>
+            <li id="ref-90">Vasilopoulos, V., et al. (2022). &ldquo;A Hierarchical Deliberative-Reactive System Architecture for Task and Motion Planning in Partially Known Environments.&rdquo; <em>arXiv:2202.01385</em>.</li>
+            <li id="ref-91">Thomason, W., Kingston, Z., &amp; Kavraki, L.E. (2023). &ldquo;VAMP. SIMD-Accelerated Motion Planning for Robot Manipulators.&rdquo; <em>IROS 2023</em>.</li>
+            <li id="ref-92">Vasilopoulos, V., et al. (2020). &ldquo;Reactive Semantic Planning in Unexplored Semantic Environments Using Deep Perceptual Feedback.&rdquo; <em>arXiv:2002.12349</em>.</li>
+            <li id="ref-92a">Wang, Y. (2025). &ldquo;Learning Vision-Driven Reactive Soccer Skills for Humanoid Robots.&rdquo; <em>arXiv:2511.03996</em>.</li>
+            <li id="ref-93">Wu, T. (2024). &ldquo;Dexterous Functional Pre-Grasp Manipulation with Diffusion Policy.&rdquo; <em>arXiv:2403.12421</em>.</li>
+            <li id="ref-94">Vahrenkamp, N., Asfour, T., &amp; Dillmann, R. (2013). &ldquo;Robot Placement Based on Reachability Inversion.&rdquo; <em>ICRA 2013</em>.</li>
+            <li id="ref-95">Yang, J. (2025). &ldquo;Deep Reactive Policy. Learning Reactive Manipulator Motion Planning for Dynamic Environments.&rdquo; <em>arXiv:2509.06953</em>.</li>
+            <li id="ref-96">Ze, Y. (2024). &ldquo;Generalizable Humanoid Manipulation with 3D Diffusion Policies.&rdquo; <em>arXiv:2410.10803</em>.</li>
+            <li id="ref-97">Yoshida, E., et al. (2008). &ldquo;Whole-Body Motion Planning for Pivoting Based Manipulation by Humanoids.&rdquo; <em>ICRA 2008</em>.</li>
+            <li id="ref-98">Lambert, A. (2021). &ldquo;Entropy Regularized Motion Planning via Stein Variational Inference.&rdquo; <em>arXiv:2107.05146</em>.</li>
+          </ol>
+        </div>
+      </article>
+    </div>
+
+    <!-- Blog styling and spacing script -->
+    <script defer src="/js/blog.js"></script>
+    <script defer src="/js/katex-init.js"></script>
+    <script defer src="/js/references.js"></script>
+  </body>
+</html>

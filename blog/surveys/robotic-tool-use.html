@@ -1,0 +1,1258 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Robotic Tool Use and Non-Prehensile Manipulation | Hu Tianrun</title>
+
+    <!-- Fonts -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Prism.js initialization -->
+    <script src="/js/prism-init.js"></script>
+
+    <!-- KaTeX Math Support -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Site Assets -->
+    <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg" />
+    <link href="/css/blog.css" rel="stylesheet" />
+    <link href="/css/references.css" rel="stylesheet" />
+
+    <!-- KaTeX Scripts -->
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"
+    ></script>
+  </head>
+  <body>
+    <div class="blog-post">
+      <a href="../?tab=survey" class="back-button">
+        <i class="fas fa-arrow-left"></i>Back
+      </a>
+
+      <header class="blog-post-header">
+        <h1 class="blog-post-title">Robotic Tool Use and Non-Prehensile Manipulation</h1>
+        <div class="blog-post-date">April 23, 2026</div>
+      </header>
+
+      <article class="blog-post-content">
+        <section class="blog-section">
+
+        <h2>1. Introduction</h2>
+
+        <p>
+          The ability to alter an object's state without forming a stable grasp, pushing, sliding, pivoting,
+          toppling, and the ability to wield tools to extend physical reach and mechanical advantage, are among
+          the capabilities that most clearly separate versatile manipulators from pick-and-place automata.
+          Decades of robotics research have yielded increasingly capable grasp planners and motion generators,
+          yet the vast majority of real-world manipulation tasks demand strategies that fall outside the
+          prehensile paradigm. A warehouse robot must slide a box too large to pinch, a kitchen assistant must
+          flip food with a spatula rather than a finger, and a maintenance platform must press a tool against a
+          workpiece with regulated force. These scenarios call for non-prehensile manipulation, robotic tool
+          use, or, most demandingly, both at once.
+        </p>
+
+        <p>
+          The convergence of several technical developments makes a joint survey of these two research
+          threads timely. Contact-implicit trajectory optimization has matured to the point where it offers a
+          principled alternative to combinatorial contact-mode enumeration, with state-triggered and
+          variable-smooth formulations closing much of the gap between fidelity and tractability
+          [36, 4, 5]. Deep reinforcement learning now achieves zero-shot sim-to-real transfer for
+          contact-rich manipulation [38, 42, 44]. Affordance learning has evolved from single-object
+          feature classifiers into relational, multi-granularity models that capture the asymmetric structure
+          of tool-target interactions [22, 26, 28]. And vision-language models have begun to bridge the
+          gap between natural-language intent and low-level non-prehensile control [3, 39]. Yet despite this
+          momentum, most existing surveys treat non-prehensile manipulation [9, 56] and tool use
+          [57, 58] as separate problems, leaving the field without a unified map of the computational
+          methods, representations, and learning paradigms that span both capabilities.
+        </p>
+
+        <p>
+          This review asks a single question. What are the computational methods, representations, and
+          learning paradigms that enable robotic tool use and non-prehensile manipulation, and how do these
+          two capabilities intersect to extend the range of tasks robots can perform? We adopt a scoping
+          methodology covering 2014 to 2026, with foundational works from earlier years included where they
+          establish essential theoretical grounding. The review draws on literature from robotic
+          manipulation, planning and control, robot learning, and cognitive robotics.
+        </p>
+
+        <p>
+          The remainder of the survey is organized as follows. Section 2 establishes definitions and scope
+          boundaries. Sections 3 through 6 present four thematic analyses. Section 3 addresses model-based
+          planning and control for non-prehensile manipulation. Section 4 treats tool use reasoning and
+          affordance learning. Section 5 surveys learning-based approaches, spanning reinforcement learning,
+          imitation learning, and sim-to-real transfer. Section 6 examines integrated systems where tools
+          extend non-prehensile capabilities. Section 7 provides a cross-cutting analysis identifying
+          convergent trends and methodological shifts. Section 8 maps specific open problems. Section 9
+          concludes with a synthesis of the state of knowledge and the single most important direction for
+          future research.
+        </p>
+
+        <div class="blog-callout">
+          <p>
+            <strong>The single most important takeaway.</strong> The boundary between the robot, the tool,
+            and the environment is an artifact of modeling convenience rather than a physical reality. The
+            dominant factor determining capability, efficiency, and generalization across every theme of this
+            survey is the choice of representation. Advances in algorithms and hardware yield incremental
+            gains, while representational innovations, contact-implicit formulations, relational affordance
+            models, hybrid discrete-continuous action spaces, reduced-order mode-aware models, and
+            semantic-contact fields, yield qualitative capability jumps. The most impactful future work will
+            unify these representations across the contact-physics to semantic-reasoning spectrum while
+            remaining tractable for closed-loop control.
+          </p>
+        </div>
+
+        <h2>2. Background and Definitions</h2>
+
+        <p>
+          <strong>Non-prehensile manipulation</strong> refers to any manipulation strategy that alters an
+          object's state without establishing a form-closure or force-closure grasp. It encompasses pushing
+          (translating an object through sustained frictional contact), sliding (controlled object motion
+          across a supporting surface), pivoting (rotating an object about a contact point with the
+          environment), toppling (inducing controlled tipping), tossing (ballistic launching), and
+          non-prehensile transport (carrying an object on a tray or palm without enclosure). The defining
+          characteristic is that the manipulator does not kinematically constrain all degrees of freedom of
+          the object. Environmental contacts, gravity, and friction contribute to the object's motion and
+          stability [10, 1]. The analytical foundations trace to Mason's seminal work on planar pushing
+          mechanics [8], which established the quasi-static framework that remains the basis for most
+          modern contact models, and to Lynch and Mason [47], who proved controllability of the
+          pusher-slider system and derived stable pushing strategies that maintain predictable contact. The
+          resulting mismatch between the robot's fully actuated kinematics and the object's partially
+          constrained dynamics is both the source of non-prehensile manipulation's versatility and its
+          central computational challenge.
+        </p>
+
+        <p>
+          <strong>Robotic tool use</strong> refers to the purposeful wielding of an intermediary object, the
+          tool, to achieve a manipulation objective that would be difficult or impossible with the robot's
+          bare end-effector. Tool use subsumes grasping the tool, reasoning about its functional properties,
+          planning how to bring it into effective contact with a target, and executing the resulting
+          contact-rich motion [46, 45]. Tool use is distinct from fixture-based manipulation, where the
+          environment geometry is passively exploited, in that the tool is actively grasped and controlled by
+          the robot. It is also distinct from end-effector design, although the boundary blurs when modular
+          tool attachments are swapped during task execution [1].
+        </p>
+
+        <p>
+          <strong>Affordances</strong>, following Gibson's ecological psychology and its robotics
+          formalization by Şahin et al. [46], denote the action possibilities that an environment offers an
+          agent. In the context of this review, an affordance model maps from perceptual features of objects
+          (geometry, material properties, spatial relations) and agent capabilities (reach, grasp repertoire,
+          force capacity) to predicted action outcomes. Affordance models range from hand-coded functional
+          features [49] to learned probabilistic mappings [48, 23] to structured knowledge graphs [28].
+          A key distinction is between <em>single-object affordances</em> (what can I do with this object?)
+          and <em>relational affordances</em> (what can I do to object B using object A as a tool?). The
+          latter are essential for tool use [52] and have emerged as the dominant paradigm over the review
+          period.
+        </p>
+
+        <p>
+          <strong>Scope boundaries.</strong> This review does not cover purely prehensile manipulation (grasp
+          planning, in-hand reorientation without environmental contacts), prosthetic or soft robotic tool
+          use, tool manufacturing or 3D printing of tools (except where the design process is learned as a
+          policy [17]), or cognitive-science studies of animal or human tool use except where they directly
+          motivate computational models. We focus on computational methods (algorithms, representations, and
+          learning frameworks) rather than mechanical design of end-effectors or tools, although we note
+          hardware developments where they are tightly coupled with the algorithmic contribution.
+        </p>
+
+        <p>
+          The survey organizes roughly seventy papers around an expanded thematic taxonomy. A compact view of
+          the four themes and the representative classes of methods under each appears below.
+        </p>
+
+        <div class="taxonomy-tree">
+          <div class="taxonomy-root">Computational Methods for Non-Prehensile Manipulation and Tool Use</div>
+          <ul>
+            <li>
+              <div class="taxonomy-branch"><span class="branch-id">1</span> <span class="branch-label">Planning and control for non-prehensile manipulation</span></div>
+              <ul class="taxonomy-leaves">
+                <li>Control-based randomized planning and human-guided search</li>
+                <li>Contact-implicit trajectory optimization and contact-model selection</li>
+                <li>Reactive hybrid model predictive control and real-time pushing</li>
+                <li>Decomposed planner-controller architectures</li>
+                <li>Mode-aware reduced-order models and closed-form specializations</li>
+                <li>Multi-agent and extended non-prehensile domains</li>
+              </ul>
+            </li>
+            <li>
+              <div class="taxonomy-branch"><span class="branch-id">2</span> <span class="branch-label">Tool use reasoning and affordance learning</span></div>
+              <ul class="taxonomy-leaves">
+                <li>Ecological affordances and Object-Action Complexes</li>
+                <li>Body-schema extension and kinematic tool embodiment</li>
+                <li>Relational two-object affordance models</li>
+                <li>Grasp-conditioned and multi-granularity prediction</li>
+                <li>Self-supervised affordance discovery and hand-to-tool transfer</li>
+                <li>Task-conditioned tool design and semantic-contact fields</li>
+                <li>Online visuo-haptic affordance refinement</li>
+              </ul>
+            </li>
+            <li>
+              <div class="taxonomy-branch"><span class="branch-id">3</span> <span class="branch-label">Learning-based approaches</span></div>
+              <ul class="taxonomy-leaves">
+                <li>Deep reinforcement learning for non-prehensile skills</li>
+                <li>Sim-to-real transfer through geometry, tactile, and physics</li>
+                <li>Multimodal perception for robust contact control</li>
+                <li>Imitation learning and sample-efficient skill transfer</li>
+                <li>Bimanual, whole-body, and loco-manipulation</li>
+                <li>Human-robot integration in learned systems</li>
+              </ul>
+            </li>
+            <li>
+              <div class="taxonomy-branch"><span class="branch-id">4</span> <span class="branch-label">Integrated tool use with non-prehensile strategies</span></div>
+              <ul class="taxonomy-leaves">
+                <li>Taxonomic characterization of tool properties</li>
+                <li>Modular tool systems extending gripper capability</li>
+                <li>Closing the perception-planning-control loop for tool-mediated contact</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+
+        <h2>3. Planning and Control for Non-Prehensile Manipulation</h2>
+
+        <h3>3.1 The Randomized Planning Paradigm and Its Computational Limits</h3>
+
+        <p>
+          Control-based randomized planning served for much of the review period as the dominant paradigm for
+          non-prehensile manipulation in clutter, yet it faces persistent computational bottlenecks that have
+          motivated over a decade of algorithmic improvement. Approaches in this family typically interleave
+          random configuration sampling with physics-based forward simulation, and they suffer from planning
+          times on the order of tens of seconds to minutes and success rates that degrade sharply on
+          difficult instances [30, 6, 19]. The core difficulty is the high dimensionality of the joint
+          robot-object configuration space coupled with the need to reason about frictional contact modes at
+          every candidate interaction. Muhayyuddin et al. [59] and Agboh and Dogar [60] showed that
+          physics-based sampling under state uncertainty can be sped up by caching rollouts and re-using them
+          across online replanning, but even these optimizations leave the underlying combinatorial structure
+          intact. Bejjani et al. [61] proposed receding-horizon planning with a learned value function to
+          shorten the effective horizon, which reduces computation at the cost of potential suboptimality on
+          long-range tasks. Dogar and Srinivasa [54] earlier demonstrated the practical value of combining
+          pushing and grasping in a unified planner for cluttered rearrangement, establishing the
+          push-grasping paradigm that later randomized planners extended and refined.
+        </p>
+
+        <p>
+          Human-in-the-loop guidance remains an effective pragmatic response when fully autonomous planning
+          is too slow. Papallas and Dogar [30] demonstrated that injecting minimal operator guidance (a few
+          mouse clicks indicating promising push directions) into a control-based randomized planner
+          substantially reduced planning time and improved success rates, suggesting that the search space
+          contains exploitable structure that pure random sampling fails to leverage. While this human-guided
+          approach is pragmatically valuable, particularly for time-critical teleoperation, it sidesteps
+          rather than solves the underlying combinatorial challenge. The persistent difficulty of fully
+          autonomous randomized planning has driven three broad responses, covered in the remainder of this
+          section. Embedding contact physics directly into continuous optimization (Section 3.2), replacing
+          uniform sampling with learned generative models that focus search on promising regions (Section
+          3.4), and replacing general-purpose numerical machinery with mode-aware abstractions derived from
+          first-principles contact mechanics (Section 3.5).
+        </p>
+
+        <h3>3.2 Contact-Implicit Trajectory Optimization</h3>
+
+        <p>
+          Contact-implicit trajectory optimization (CITO) offers a principled model-based alternative that
+          avoids the combinatorial explosion of explicit contact-mode enumeration by embedding contact
+          constraints directly into a continuous optimization problem. Wang et al. [36] formulated
+          non-prehensile manipulation planning as trajectory optimization with state-triggered constraints,
+          where contact forces are activated and deactivated based on the optimizer's state trajectory rather
+          than pre-assigned to discrete modes. The formulation enables the optimizer to discover contact
+          sequences autonomously, eliminating the need for a priori mode scheduling. Moura et al. [62]
+          pursued a complementarity-constraint variant for non-prehensile planar manipulation, showing that
+          modern mixed-integer and nonlinear solvers can handle contact complementarity directly for
+          practical problem sizes, albeit with longer solve times than smoothed formulations.
+        </p>
+
+        <p>
+          Chen et al. [14] extended CITO to three-dimensional non-prehensile transport, demonstrating that
+          incorporating end-effector rotation as an explicit optimization variable, rather than treating the
+          tray orientation as fixed, reduced transport time by exploiting orientation to counteract inertial
+          forces on unstable carried objects. The result establishes that end-effector orientation is a
+          first-class degree of freedom in non-prehensile transport planning, not merely a kinematic
+          convenience. Kitaev et al. [15] pursued a complementary strategy in which physics-simulation
+          rollouts with finite-difference gradients served as the contact model inside trajectory
+          optimization for cluttered grasping. Non-prehensile pushing behaviors (clearing obstacles, avoiding
+          cascade toppling) emerged automatically from the grasp-success objective without any explicit
+          push-planning module, demonstrating that differentiable simulation can serve as a viable
+          alternative to complementarity-based CITO when the contact environment is complex.
+        </p>
+
+        <h3>3.3 Contact Model Selection and Its Consequences</h3>
+
+        <p>
+          The choice of contact model within trajectory optimization involves quantifiable trade-offs
+          between physical fidelity, motion quality, and computational cost, and the choice matters more
+          than the quality of the initial guess. Onol et al. [4] conducted a systematic comparison of three
+          contact-model families for manipulation trajectory optimization. Complementarity-based models are
+          mathematically exact but introduce non-smooth constraints, smooth contact models are differentiable
+          but physically approximate, and variable smooth models interpolate between the two. Their analysis
+          revealed that variable smooth models offer the best balance for non-prehensile tasks, and, more
+          importantly, that contact-implicit pushing optimization can succeed from zero-torque
+          initialization, indicating that the contact-model formulation dominates solution quality over
+          initial-guess quality.
+        </p>
+
+        <p>
+          Friction uncertainty presents a distinct but related modeling challenge. Zhou et al. [11]
+          addressed it by parameterizing physically consistent friction distributions with a single noise
+          scalar, yielding uncertainty-aware predictions without requiring explicit contact-mode selection.
+          This stochastic formulation complements the smooth-model approach of Onol et al. [4] by adding
+          robustness without adding combinatorial complexity. Chavan-Dafle and Rodriguez [5] demonstrated a
+          different efficiency strategy altogether. By restricting external pushes to sticking contact modes
+          (no pusher-object sliding), they obtained a closed-form dynamics formulation that evaluates
+          100-1000 times faster than complementarity-based dynamics within sampling-based planners for
+          in-hand manipulation. This contact-mode specialization is orthogonal to both the
+          smooth-versus-complementarity trade-off and the reduced-order abstractions discussed in Section
+          3.5, offering a targeted acceleration when task physics permit the sticking assumption.
+        </p>
+
+        <div class="math-block">
+          $\min_{\mathbf{x}(t),\mathbf{u}(t),\boldsymbol{\lambda}(t)} \; \int_0^T \ell\bigl(\mathbf{x}(t),\mathbf{u}(t)\bigr)\,dt \quad \text{s.t.} \; \dot{\mathbf{x}} = f(\mathbf{x},\mathbf{u},\boldsymbol{\lambda}),\; 0 \leq \boldsymbol{\lambda} \perp \phi(\mathbf{x}) \geq 0$
+        </div>
+
+        <p>
+          The complementarity constraints (\(0 \leq \boldsymbol{\lambda} \perp \phi(\mathbf{x}) \geq 0\))
+          that couple contact forces (\(\boldsymbol{\lambda}\)) to the signed gap function (\(\phi\)) are
+          the formal object around which smooth, variable-smooth, sticking-mode, and differentiable-physics
+          relaxations all revolve. Every variant in this family trades a different aspect of the
+          complementarity structure for tractability.
+        </p>
+
+        <h3>3.4 Decomposing Planning from Control</h3>
+
+        <p>
+          A recurring architectural insight across the literature is that separating scene-level planning
+          from object-level control yields modular, transferable systems. Mandadi et al. [37] introduced a
+          framework where an A*-based scene-aware planner handles collision avoidance while an
+          object-centric, context-free reinforcement learning controller executes push-by-strike primitives.
+          The controller learns purely from object-state representations and transfers across scenes without
+          retraining. Haustein et al. [29] pursued decomposition at the search level. By replacing uniform
+          random sampling in the planner with a GAN-based generative model that proposes robot
+          configurations from which objects can be transported toward goal states, paired with an
+          RL-learned action policy, they substantially accelerated non-prehensile rearrangement planning by
+          focusing search on promising regions of the composite configuration space.
+        </p>
+
+        <p>
+          Wu et al. [16] demonstrated decomposition at the temporal level for long-horizon extrinsic
+          manipulation. By representing a demonstration as an ordered sequence of contact specifications
+          (each primitive's precondition expressed as a state constraint) and retargeting those constraints
+          via inverse kinematics, their system achieved one-shot transfer to novel objects and scenes using a
+          fixed library of short-horizon goal-conditioned primitive policies, attaining approximately 80
+          percent success across diverse tasks without scene-specific retraining. Lee et al. [63] pushed
+          decomposition into task-and-motion planning for obstacle rearrangement in clutter, interleaving
+          prehensile and non-prehensile primitives within a tree-search framework that exploits the
+          structural differences between the two action types. These four approaches share a common
+          principle, that non-prehensile manipulation decomposes more naturally into layered abstractions
+          than into monolithic end-to-end controllers, but they differ in where the decomposition boundary
+          is drawn. Scene versus object [37], sampling versus dynamics [29], temporal segments versus
+          primitive execution [16], or symbolic task versus continuous motion [63].
+        </p>
+
+        <h3>3.5 Reactive Hybrid Control and Mode-Aware Reduced-Order Models</h3>
+
+        <p>
+          An emerging alternative to both full-fidelity contact models and learned surrogates is the
+          construction of compact, mode-aware abstractions from first-principles mechanics. Hogan and
+          Rodriguez [64] first demonstrated real-time reactive planar non-prehensile manipulation by
+          restricting the pusher-slider system to a small library of hybrid modes and solving a
+          mode-scheduled model-predictive control problem at every step. Their approach achieved closed-loop
+          pushing at frame rates unattainable by contact-implicit optimization at the time, at the cost of a
+          hand-engineered mode structure specific to planar pushing. Özcan et al. [7] generalized this
+          mode-aware philosophy. They demonstrated that wrench-twist limit-surface mechanics for planar
+          non-prehensile manipulation can be abstracted into a small discrete library of reduced-order
+          non-holonomic models (unicycle dynamics indexed by contact topology). Pairing this mode-aware
+          abstraction with algebraic force allocation yields an optimization-free, real-time-capable
+          controller for pushing and press-and-slide tasks, eliminating iterative solvers entirely. The
+          approach differs fundamentally from the smooth-model approximations of Onol et al. [4] and the
+          sticking-contact specialization of Chavan-Dafle and Rodriguez [5]. Rather than relaxing or
+          restricting the contact physics, it replaces the full dynamics with a topologically indexed family
+          of simple models, each exact within its contact mode. The result is a system that runs in real
+          time without sacrificing model validity within each mode, a compelling demonstration that
+          domain-specific physical insight can outperform general-purpose numerical machinery for
+          well-structured manipulation problems.
+        </p>
+
+        <h3>3.6 Multi-Agent and Extended Non-Prehensile Domains</h3>
+
+        <p>
+          The core computational frameworks for non-prehensile manipulation have been extended to settings
+          that introduce structural complexity beyond single-arm, single-object interaction. Tang et al.
+          [12] formulated collaborative pushing by teams of mobile robots (without manipulators) as hybrid
+          optimization over quasi-statically feasible contact modes shared across multiple agents, with
+          hierarchical path decomposition and per-robot model-predictive-control tracking. Their formulation
+          generalizes the single-arm pushing paradigm by treating under-actuation as arising from
+          constrained multi-contact force distributions across multiple bodies rather than from a single
+          end-effector. Sahin and Chakraborty [13] explored a non-standard actuation modality. Actively
+          modulating contact friction on robot fingers, switching between high- and low-friction surface
+          states, serves as the primary control input for within-hand manipulation, enabling a small
+          primitive library (sliding, rotation, pivoting) to achieve 3D dexterity from a low-degree-of-freedom
+          hand without tactile sensing. This reframes the non-prehensile control problem from "what force to
+          apply" to "what friction to present," opening a design space that complements force-centric
+          planning. Selvaggio et al. [65] approached non-prehensile transport of objects from the model
+          predictive control angle, deriving a non-sliding MPC that guarantees object stability on a moving
+          tray. Rigo et al. [66] extended contact optimization to non-prehensile loco-manipulation with a
+          hierarchical MPC that coordinates whole-body locomotion with contact-rich object interaction.
+          Huang et al. [67] scaled the rearrangement problem to large numbers of objects, revealing that the
+          planning structure that works for two or three objects does not transfer directly to scenes with
+          tens of objects. Lee and Kim [68] extended goal-driven pushing to unknown object properties by
+          treating mass, friction, and inertia as latent variables to be estimated online. Liu et al. [69]
+          demonstrated bimanual non-prehensile manipulation of semi-fluid objects (stir-fry) that couples
+          fluid-like material dynamics with dual-arm coordination, a regime where rigid-body contact models
+          fundamentally break down. Collectively, these extensions show that the principles developed for
+          single-arm planar pushing, contact-mode reasoning, quasi-static models, decomposed planning
+          architectures, transfer to structurally richer domains when the appropriate generalizations of
+          contact mechanics and actuation are identified.
+        </p>
+
+        <h2>4. Tool Use Reasoning and Affordance Learning</h2>
+
+        <h3>4.1 From Ecological Affordances to Computational Models</h3>
+
+        <p>
+          The theoretical grounding for computational affordance models in robotics derives from Gibson's
+          ecological psychology, formalized for robotic control by Şahin et al. [46], who proposed a
+          three-part structure. Affordances are relations between agent capabilities, object properties, and
+          action effects. Krüger et al. [45] operationalized this structure through Object-Action Complexes
+          (OACs), grounded abstractions of sensorimotor processes that bind perception, action, and predicted
+          effect into reusable planning units. Montesano et al. [48] provided the first probabilistic
+          implementation, learning affordance distributions from a robot's own sensorimotor interaction with
+          its environment, demonstrating that affordances could be acquired from experience rather than
+          hand-coded, a foundational result that enabled the subsequent proliferation of learning-based
+          affordance models.
+        </p>
+
+        <p>
+          Gonçalves et al. [22] extended the self-supervised paradigm to two-object settings, learning
+          visual affordances through autonomous robot exploration where the robot predicts the consequences
+          of its actions on objects without human-provided labels. Jain and Inamura [51] provided a Bayesian
+          formulation that generalizes functional features to estimate the effects of previously unseen
+          tools. Hassanin et al. [70] surveyed the broader visual affordance and function understanding
+          literature, revealing a split between perception-focused affordance segmentation (popular in
+          computer vision) and interaction-focused affordance learning (dominant in robotics). These
+          foundational works established the computational affordance paradigm, which subsequent research has
+          elaborated along three main axes. Richer relational structure (Section 4.3), grasp-conditioned
+          prediction (Section 4.4), and scalable self-supervised discovery (Section 4.5).
+        </p>
+
+        <h3>4.2 Body Schema Extension and Tool Embodiment</h3>
+
+        <p>
+          One influential line of work treats tool use not as an external planning problem but as an
+          extension of the robot's internal body representation. Nabeshima et al. [18] demonstrated that a
+          robot could incorporate a tool into its body schema via temporal integration of multisensory
+          signals (vision, touch, proprioception), treating the tool as a functional body extension rather
+          than an external object, enabling reach and interaction planning in body-centric coordinates
+          without explicit geometric tool modeling. The body-schema approach draws on neuroscience evidence
+          that primates neurally integrate tools into their peripersonal-space representations.
+        </p>
+
+        <p>
+          Kothavale and Boddepalli [20] pursued a kinematic variant of the body-schema idea. By extending
+          the inverse kinematics solver to treat tool length as an explicit input parameter, a single
+          trained policy generalizes across tools of varying lengths without retraining. This kinematic-layer
+          mechanism for tool affordance adaptation is both simpler and more transparent than perceptual
+          body-schema approaches, although it sacrifices the rich multisensory integration that makes body
+          schema methods robust to visual occlusion. Takahashi et al. [71] bridged the two approaches with a
+          tool-body assimilation model that uses deep learning to integrate grasping motion, tool geometry,
+          and task dynamics into a single latent representation, effectively learning a body schema
+          end-to-end rather than through hand-designed multisensory fusion. Mar et al. [21] showed that
+          grasp-dependent affordance learning on the iCub humanoid implicitly builds a body-tool schema. The
+          robot's functional representation of what it can do with a grasped tool adapts based on how the
+          tool is held, re-parameterizing the body model through the grasp configuration. The body-schema
+          paradigm remains influential because it offers a unified representational framework (the extended
+          body model) that subsumes both tool-tip pose estimation and affordance reasoning, although its
+          reliance on temporal multisensory integration makes it less applicable to one-shot tool
+          encounters.
+        </p>
+
+        <h3>4.3 Relational Affordance Models for Tool-Target Interaction</h3>
+
+        <p>
+          The most significant conceptual advance in computational affordance modeling over the review
+          period has been the shift from single-object affordances to relational models that capture the
+          asymmetric structure of tool-target interactions. Gonçalves et al. [22] established the relational
+          framework by modeling affordances as probabilistic dependencies over (action, tool visual
+          features, target visual features, effect) tuples, enabling bidirectional inference (predicting
+          effects from actions or selecting actions to achieve desired effects). Saponaro et al. [24]
+          extended this to cross-modal transfer. Their hand-to-tool affordance model used visual imagination
+          to project tool appearance into a learned hand-posture representation space, enabling zero-shot
+          tool affordance estimation from bare-hand sensorimotor experience without tool-specific training
+          data.
+        </p>
+
+        <p>
+          Jamone et al. [25] demonstrated that relational affordance models support multi-step planning
+          through affordance chaining (using the predicted effect of one action as the starting state for
+          the next affordance inference), enabling goal-directed tool-use sequences beyond single-step action
+          selection. Horton and St. Amant [72] developed a partial-contour similarity metric for
+          habile-agent affordance transfer, which matches tools whose silhouettes share functional
+          substructure rather than overall shape. More recently, Tian et al. [52] formalized one-shot 3D
+          object-to-object affordance grounding, arguing that most real-world interactions are inherently
+          relational and that prior work's focus on single-object affordance prediction overlooked this
+          fundamental structure. Ding et al. [27] extended relational modeling to secondary (non-designed)
+          tool affordances, learning from human observation of non-canonical tool actions (a ruler used to
+          push objects) using visual before-and-after object-state changes as the learning signal. The
+          trajectory from single-object to relational to secondary affordance models reflects a progressive
+          expansion of what counts as a relevant affordance feature, from intrinsic tool geometry, to
+          tool-target geometric relations, to use-context-dependent functional properties.
+        </p>
+
+        <h3>4.4 Grasp-Conditioned and Multi-Granularity Affordance Prediction</h3>
+
+        <p>
+          A critical empirical finding, replicated across multiple studies, is that tool affordances depend
+          jointly on tool geometry and grasp configuration. The same physical tool affords different actions
+          when grasped differently. Mar et al. [23] demonstrated this through a multi-model approach.
+          Rather than training a single affordance model conditioned on continuous grasp parameters, they
+          first clustered tool-grasp configurations into discrete pose categories (without human labels),
+          then trained a separate affordance model per category, enabling generalization to unseen tools by
+          routing through the nearest discovered category. The discrete multi-model decomposition was
+          motivated by the observation that continuous grasp-conditioned models exhibit poor interpolation
+          in regions of grasp space that are physically discontinuous (power grip versus precision grip, for
+          instance).
+        </p>
+
+        <p>
+          Yang et al. [26] advanced this line of work by decomposing affordances into two feature scales.
+          Fine-grained finger-contact-level features spatially localize the functional interaction region on
+          the tool, while coarse-grained hand-object-interaction-level features predict the dexterous grasp
+          gesture. This multi-granularity decomposition treats affordance as a multi-scale phenomenon where
+          different spatial resolutions serve distinct downstream tasks (where to grasp versus how to
+          grasp). Fang et al. [73] addressed the same where-to-grasp question from a task-oriented
+          perspective, learning grasps optimized not for stability but for downstream tool-use effectiveness
+          via simulated self-supervision. Qin et al. [74] introduced KETO, which represents tool function
+          through a small set of semantically meaningful keypoints whose spatial relationships encode
+          functional constraints. Keypoint representations offer a middle ground between dense shape
+          descriptors (expensive to optimize) and parametric models (too rigid for diverse tools), and they
+          transfer across tool instances that share functional structure despite geometric variation.
+        </p>
+
+        <p>
+          Zhong et al. [28] proposed a fundamentally different generalization mechanism. A semantic
+          knowledge graph explicitly encodes task-tool-grasp affordance mappings, and a Graph Attention
+          Network propagates relational affordance knowledge from seen to novel task-tool combinations. The
+          graph-based approach offers structured, interpretable generalization rather than interpolation in
+          continuous feature space or clustering-based routing. The diversity of these approaches, discrete
+          clustering, multi-scale feature decomposition, keypoint representations, task-oriented grasp
+          optimization, graph-based propagation, reflects the absence of consensus on the right inductive
+          bias for grasp-conditioned affordance generalization. The question likely depends on the diversity
+          and continuity of the target tool and task distributions.
+        </p>
+
+        <h3>4.5 Self-Supervised Affordance Discovery</h3>
+
+        <p>
+          A persistent bottleneck in affordance learning is the acquisition of training labels. Manually
+          annotating which tool-action pairs produce which effects does not scale to the diversity of
+          real-world tool encounters. Mar et al. [21] addressed this through self-supervised affordance
+          category discovery, where a robot autonomously discovers affordance categories by clustering the
+          observed effects of tool-use actions, then uses these emergent categories as teaching signals to
+          train a visual functional-feature-to-affordance classifier. The label-free bootstrapping mechanism
+          was extended by Gonçalves et al. [22], whose autonomous exploration pipeline learned visual
+          affordances from the robot's own interaction history without human supervision.
+        </p>
+
+        <p>
+          Tikhanoff et al. [49] demonstrated a related approach on the iCub platform, exploring affordances
+          and tool use through autonomous sensorimotor experimentation. Tee et al. [75] pushed
+          self-supervision toward emergence of tool use without prior tool learning, demonstrating that
+          robots can recognize and use tools through causal observation rather than explicit supervised
+          training on tool categories. Their later work on tool cognition [76] in Nature Machine
+          Intelligence argued that a small set of cognitive primitives (affordance transfer, function
+          abstraction, goal-directed selection) suffices to explain a broad range of animal and human tool
+          behaviors, providing a theoretical framework that has yet to be fully reduced to implementable
+          algorithms. Saponaro et al. [24] achieved a particularly striking form of self-supervised
+          transfer. By projecting tool visual appearance into a hand-posture representation space learned
+          from bare-hand experience, their system estimated tool affordances zero-shot, without any
+          tool-specific interaction data. The common thread across these approaches is that the robot's own
+          sensorimotor experience provides the supervisory signal, with clustering or cross-modal
+          projection replacing human annotation. However, the diversity of affordance categories
+          discoverable through autonomous exploration is bounded by the robot's action repertoire and
+          workspace, a limitation that becomes significant when the target domain includes tools whose
+          affordances require actions outside the robot's exploratory distribution.
+        </p>
+
+        <h3>4.6 Task-Conditioned Tool Design and Generative Approaches</h3>
+
+        <p>
+          Rather than selecting strategies for existing tools, a recent line of work asks whether the tool
+          itself can be designed as part of the policy. Liu et al. [17] proposed a task-conditioned tool
+          design policy that learns to generate task-specific tool morphologies via reinforcement learning,
+          treating tool shape as an adaptive affordance variable and enabling zero-shot generalization to
+          unseen goals through joint optimization of design and control policies. The approach inverts the
+          classical affordance problem. Instead of asking what can I do with this tool, it asks what tool
+          should I create for this task, a question that becomes tractable when the tool can be 3D-printed
+          or otherwise fabricated on demand. Ma et al. [31] pursued a different form of generative
+          reasoning through semantic-contact fields, combining semantic planning from vision-language
+          models with precise contact-field representations for tactile tool manipulation, enabling
+          category-level generalization to novel tool instances by grounding high-level functional intent in
+          low-level contact geometry. These generative approaches, whether generating tool shapes or
+          contact-field representations, share the insight that affordance reasoning need not be purely
+          discriminative. Constructing the right intermediary, physical tool or contact representation, can
+          be more effective than classifying affordances of existing intermediaries.
+        </p>
+
+        <h3>4.7 Online Affordance Refinement and Adaptive Skill Selection</h3>
+
+        <p>
+          Static affordance models, whether learned from demonstration or self-supervised exploration, are
+          insufficient when object properties change during manipulation. Wu et al. [29] demonstrated this
+          in the domain of robot-assisted feeding. Physical affordance properties of food items (softness,
+          moisture, viscosity) were initially estimated via commonsense VLM inference but required
+          continuous updating through multimodal visuo-haptic perception during ongoing manipulation, as
+          food state changes (steak becoming firm as it cools) invalidate initial estimates. Their SAVOR
+          system treats haptic feedback as a live affordance signal rather than a control-level error
+          correction, enabling mid-task skill re-selection as object properties evolve.
+        </p>
+
+        <p>
+          Liu and Asada [50] anticipated this adaptive paradigm in the context of expert tool manipulation.
+          Their process-dynamics model maps task process characteristics (contact dynamics, material state)
+          to control-strategy parameters (feedrate, cutting force, compliance), enabling dynamic,
+          state-adaptive tool strategy switching, treating the process state as the relevant affordance
+          variable rather than static tool or object geometry. Lee and Park [32] explored a related theme in
+          contact tooling for robotic repair, where the manipulation control strategy (hybrid position-force
+          control, admittance control, bilateral telerobotic control) must adapt to the dynamic contact
+          conditions between tool and workpiece. The convergence of these works, from manufacturing skill
+          transfer in 1992 to food manipulation in 2025, establishes that online affordance refinement
+          through closed-loop multimodal sensing is a prerequisite for robust tool use in non-stationary
+          environments.
+        </p>
+
+        <h2>5. Learning-Based Approaches</h2>
+
+        <h3>5.1 Deep Reinforcement Learning for Non-Prehensile Manipulation</h3>
+
+        <p>
+          Deep reinforcement learning has emerged as the primary method for acquiring non-prehensile
+          manipulation policies that generalize across diverse geometric and physical environments. Cho et
+          al. [38] demonstrated that modular, reconfigurable network architectures (specialized sub-networks
+          activated based on detected environmental constraints such as walls, steps, and obstacles) enable
+          policies that adaptively switch non-prehensile strategies, achieving generalization across diverse
+          geometries that monolithic policies struggle with. Their hierarchical architecture explicitly
+          addresses the observation that different environmental structures demand qualitatively different
+          manipulation strategies (pushing against a wall versus sliding across an open surface).
+        </p>
+
+        <p>
+          Zhou et al. [42] introduced HACMan, which learns hybrid actor-critic maps combining discrete
+          contact-location selection from object point clouds with continuous post-contact motion
+          parameters. The hybrid discrete-continuous action representation substantially outperformed pure
+          discrete or pure continuous baselines in 6D non-prehensile manipulation tasks. Xie et al. [77]
+          earlier foreshadowed this line of work with visual foresight for novel-object tool use. Their
+          system demonstrated that a learned video-prediction model trained on diverse pushing interactions
+          could, at test time, select appropriate "tools" (cans, shoes, blocks) to accomplish a target
+          displacement of another object, rediscovering tool-mediated pushing without explicit tool-use
+          supervision. Raei et al. [44] applied deep deterministic policy gradient specifically to
+          non-prehensile sliding, integrating online friction estimation as closed-loop feedback into the RL
+          actor, enabling real-time adaptation to varying surface friction properties without explicit
+          domain randomization of physics parameters. Collectively, these results establish that the choice
+          of action representation (modular versus monolithic, hybrid versus homogeneous, friction-aware
+          versus friction-agnostic) is at least as consequential as the choice of RL algorithm for
+          non-prehensile manipulation performance.
+        </p>
+
+        <h3>5.2 Sim-to-Real Transfer for Contact-Rich Manipulation</h3>
+
+        <p>
+          Zero-shot sim-to-real transfer for non-prehensile manipulation is now achievable through multiple
+          complementary strategies, though the specific combination of techniques varies with the task's
+          contact complexity. Cho et al. [38] demonstrated transfer by combining procedurally generated
+          diverse simulation environments with contact-based geometric representations extended to capture
+          environmental structure, not just object shape, as the observation space. Del Aguila Ferrandis et
+          al. [34] achieved transfer through Bayesian visuotactile state estimators trained via privileged
+          simulation policies, maintaining robust performance under visual occlusions using only a simple
+          onboard camera. Zhou et al. [42] relied on point-cloud-based observations paired with hybrid
+          action spaces, while Raei et al. [44] achieved transfer through online friction estimation that
+          compensates for sim-real friction discrepancies without requiring explicit domain randomization.
+          Park et al. [40] demonstrated that RL-learned non-prehensile skills trained entirely in simulation
+          transfer to semi-autonomous teleoperation contexts where the learned policies serve as suggestion
+          engines for human operators. The diversity of successful transfer strategies, geometric
+          observation augmentation [38], privileged-to-deployable distillation [34], hybrid action spaces
+          [42], online physical-parameter estimation [44], suggests that sim-to-real transfer for
+          non-prehensile manipulation is not a single problem admitting a single solution, but a family of
+          problems where the dominant sim-real gap (visual, geometric, physical, dynamic) determines the
+          appropriate transfer mechanism.
+        </p>
+
+        <h3>5.3 Multimodal Perception for Robust Non-Prehensile Control</h3>
+
+        <p>
+          Contact-rich manipulation under partial observability demands perception systems that fuse
+          multiple modalities, and recent work has demonstrated that incorporating tactile sensing into the
+          RL loop yields substantial robustness gains. Del Aguila Ferrandis et al. [34] showed that
+          Bayesian visuotactile state estimators, coupled into the policy's observation space, enable
+          uncertainty-aware non-prehensile manipulation that remains functional under visual occlusions
+          that would defeat vision-only policies. Kim et al. [43] demonstrated that tactile-sensing-based
+          reward shaping, simultaneously incentivizing firm grasping and smooth finger gaiting using
+          contact feedback, improves data efficiency in contact-rich in-hand manipulation and enables
+          sim-to-real transfer to multi-fingered hands without explicit friction modeling. Wu et al. [29]
+          extended multimodal perception to tool-mediated manipulation, showing that visuo-haptic signals
+          enable real-time affordance estimation that adapts to changing object properties during task
+          execution. The progression from vision-only [40] to visuotactile [34, 43] to visuo-haptic with
+          semantic grounding [29] reflects a broader trend toward richer perceptual foundations for
+          contact-rich manipulation, although it also raises questions about the minimum sensor suite
+          required for specific task families, a question that the field has not yet systematically
+          addressed.
+        </p>
+
+        <h3>5.4 Imitation Learning, Skill Transfer, and Sample Efficiency</h3>
+
+        <p>
+          Reinforcement learning's requirement for millions of environment interactions has motivated a
+          parallel line of work on imitation learning and structured skill transfer that achieves strong
+          generalization from limited demonstrations. Rana et al. [41] demonstrated that oriented
+          affordance frames, object-centric geometric representations of state and action spaces, enable
+          sample-efficient imitation learning from approximately 10 demonstrations, with compositional
+          generalization to long-horizon, multi-object tasks achieved by composing independently trained
+          sub-policies whose transitions are governed by self-progress prediction derived directly from the
+          timing structure of training demonstrations.
+        </p>
+
+        <p>
+          Lu et al. [33] pursued skill transfer across tools rather than scenes. By decomposing tool-use
+          demonstrations into constraint-irrelevant (portable) skill components and separable
+          tool-specific constraint conditions within a Dynamic Movement Primitive (DMP) framework, their
+          method enables cross-tool skill transfer by recombining the portable skill with newly derived
+          constraints, without re-learning from scratch or requiring RL. Zhou and Jia [35] showed that even
+          without RL, bimanual non-prehensile manipulation can be learned from video demonstrations by
+          extracting coarse hand trajectories and refining them with geometry-aware post-optimization,
+          achieving category-level generalization by parameterizing learned skills with object geometric
+          attributes. Nai et al. [53] pushed this paradigm further by eliminating the robot from the
+          demonstration pipeline entirely. Capturing human whole-body motion with portable hardware and
+          translating it through a hierarchical pipeline into feasible humanoid-robot skills achieved 3x
+          faster data collection than teleoperation while enabling tasks that tightly couple locomotion and
+          manipulation. These approaches share a common strategy of imposing geometric or physical
+          structure on the representation to compensate for limited data, but they differ in where that
+          structure is imposed. In the observation space [41], in the skill decomposition [33], in the
+          primitive parameterization [35], or in the motion-retargeting pipeline [53].
+        </p>
+
+        <h3>5.5 Bimanual, Whole-Body, and Loco-Manipulation</h3>
+
+        <p>
+          Non-prehensile manipulation research has expanded from single-arm tabletop settings to bimanual,
+          whole-body, and locomotion-coupled manipulation, driven by the recognition that many real-world
+          non-prehensile tasks require coordinated multi-limb interaction. Zhou and Jia [35] introduced
+          BiNoMaP, a framework for learning category-level bimanual non-prehensile manipulation primitives
+          that eliminates dependence on environmental supports (walls, edges) typically exploited by
+          single-arm RL methods, achieving cross-embodiment transfer across kinematically distinct dual-arm
+          platforms without redesigning skill structures. Nai et al. [53] demonstrated humanoid whole-body
+          manipulation, tasks coupling locomotion with manipulation such as kneeling to pick up objects,
+          squatting to push heavy items, and bimanual tossing, learned from robot-free human demonstrations
+          without complex reward engineering or simulation infrastructure. Portela et al. [55] addressed the
+          force-control dimension of loco-manipulation. Their RL policies learn direct force control without
+          force sensing by training with explicit force targets in simulation, enabling compliant whole-body
+          control in legged manipulators where the robot body automatically adjusts posture to achieve
+          force-regulated interactions during teleoperated tool use. The extension to multi-limb and
+          locomotion-coupled settings introduces additional structure (bimanual coordination constraints,
+          balance dynamics, ground-reaction forces) that single-arm methods do not address, but the same
+          decomposition principle, separating skill primitives from their composition and sequencing,
+          appears to scale to these richer embodiments.
+        </p>
+
+        <h3>5.6 Human-Robot Integration in Learned Manipulation Systems</h3>
+
+        <p>
+          A pragmatically important but theoretically under-explored mode of deploying learned non-prehensile
+          skills is within human-robot collaborative systems, where learned policies augment rather than
+          replace human decision-making. Park et al. [40] introduced a semi-autonomous teleoperation
+          framework where RL-learned non-prehensile policies serve as suggestion engines, presenting
+          multiple candidate rearrangement actions to a human teleoperator who selects among them,
+          combining machine-generated skill options with human judgment to outperform both fully manual
+          control and fully autonomous execution in cluttered environments. Papallas and Dogar [30]
+          demonstrated the complementary direction. Human guidance injected into autonomous planners, where
+          a few human inputs dramatically improve planning efficiency. Portela et al. [55] showed that
+          RL-learned compliant force control makes teleoperation intuitive by automating postural
+          adjustment while humans command only the manipulator, effectively distributing the control
+          problem between human intent and learned compliance.
+        </p>
+
+        <p>
+          Zhu et al. [39] explored VLM-based planning as another form of human-robot interface. Natural
+          language task descriptions are translated into hybrid prehensile and non-prehensile manipulation
+          plans through a digital-twin intermediate layer that enables proactive mental rehearsal and
+          adaptive replanning. These diverse integration modes, human as selector [40], human as guide
+          [30], human as high-level commander [55, 39], suggest that the field is converging toward
+          mixed-initiative systems where the allocation of autonomy between human and robot is itself a
+          design variable, adapted to the task's perceptual and decision complexity. Ravichandar et al.
+          [78] placed these developments in the broader context of learning from demonstration, noting that
+          the field's evolution from low-level trajectory imitation to task-level intent recognition mirrors
+          the trajectory of non-prehensile and tool-use learning specifically.
+        </p>
+
+        <h2>6. Integrated Tool Use with Non-Prehensile Strategies</h2>
+
+        <h3>6.1 Taxonomic Characterization of Tool Properties for Non-Prehensile Action</h3>
+
+        <p>
+          A prerequisite for principled tool selection in non-prehensile manipulation is a systematic
+          characterization of which tool properties matter for which actions. Sommer et al. [1] proposed a
+          taxonomy of non-actuated end-effector properties (rigidity, friction coefficient, geometry,
+          including curvature, edge profile, and surface area) that characterizes the affordances of tools
+          for non-prehensile actions such as pressing, rubbing, scraping, and spreading. The taxonomy
+          grounds tool selection in principled physical reasoning rather than ad hoc trial-and-error. Given
+          a target non-prehensile action and its required contact mechanics, the taxonomy identifies which
+          tool-property ranges are compatible. Lee et al. [3] pursued a complementary characterization from
+          the task-planning perspective, using LLM-based symbolic reasoning to decompose tool-object
+          manipulation tasks into sequences of contact actions whose feasibility depends on tool geometry
+          and compliance. The conjunction of bottom-up physical taxonomy [1] and top-down task decomposition
+          [3] provides the beginning of a principled framework for tool selection in non-prehensile
+          contexts, although neither work addresses the problem of uncertain or partially observed tool
+          properties, a gap that online affordance-estimation methods (Section 4.7) are positioned to fill.
+        </p>
+
+        <h3>6.2 Modular Tool Systems for Extending Gripper Capabilities</h3>
+
+        <p>
+          The physical integration of tools with robotic end-effectors has been addressed through modular
+          attachment systems that extend a simple gripper's repertoire to non-prehensile actions. Sommer et
+          al. [1] developed a modular tool system for a standard two-fingered parallel-jaw gripper, where
+          task-matched tool modules (pressing pads, rubbing surfaces, scraping edges) can be swapped to
+          enable diverse household and industrial non-prehensile manipulations from a single hardware
+          platform. The approach occupies a pragmatic middle ground between fixed special-purpose
+          end-effectors (limited flexibility) and fully general dexterous hands (excessive complexity for
+          most non-prehensile tasks). Oller et al. [2] addressed the complementary challenge of using an
+          already-grasped tool for non-prehensile manipulation of a target object, a scenario that arises
+          naturally when a robot picks up a spatula, brush, or screwdriver. Their tactile-driven framework
+          explicitly models extrinsic contacts between the grasped tool and the target, using differentiable
+          contact-mode control to optimize robot actions subject to frictional equilibrium constraints. The
+          distinction between tool-as-attachment [1] and tool-as-grasped-object [2] reflects two
+          fundamentally different integration paradigms. In the former, the tool becomes part of the
+          end-effector (rigid attachment), while in the latter, the tool remains a separate object whose
+          coupling to the gripper introduces additional contact uncertainty that must be sensed and
+          controlled.
+        </p>
+
+        <h3>6.3 Closing the Perception-Action Loop for Tool-Mediated Non-Prehensile Manipulation</h3>
+
+        <p>
+          The most demanding integration challenge is closing the perception-action loop during
+          tool-mediated non-prehensile manipulation, where the robot must simultaneously estimate the
+          tool-object contact state and adjust the tool's motion in response. Oller et al. [2] demonstrated
+          that tactile sensing coupled with differentiable contact-mode control enables reactive tool
+          manipulation by maintaining explicit models of frictional contact between the grasped tool and
+          the target object, allowing gradient-based optimization of robot actions, a capability that
+          tool-design and tool-attachment frameworks leave as an open interface. Ma et al. [31] proposed
+          semantic-contact fields that combine semantic planning from vision-language models with precise
+          contact representations for tactile tool manipulation, enabling category-level generalization
+          while maintaining the physical grounding required for contact-rich tasks. Lee et al. [3]
+          addressed the planning layer of the loop. Their manoeuvrability-driven controller uses a stepping
+          incremental approach with visual-feedback-derived affordance models to adapt tool trajectories
+          online in spatially confined areas where conventional motion planners fail. The convergence of
+          tactile contact control [2], semantic-contact representation [31], and adaptive trajectory
+          planning [3] suggests that closing the full perception-planning-control loop for tool-mediated
+          non-prehensile manipulation requires advances at all three levels, a systems-integration
+          challenge that no single work has yet fully solved.
+        </p>
+
+        <h2>7. Cross-Cutting Analysis</h2>
+
+        <h3>7.1 Convergence of Model-Based and Learning-Based Paradigms</h3>
+
+        <p>
+          The most significant methodological trend across the review period is the erosion of the boundary
+          between model-based planning and control and learning-based approaches. Early non-prehensile
+          manipulation research drew a sharp distinction. Model-based methods (CITO, randomized planning
+          with physics simulators) offered guarantees and interpretability but suffered from computational
+          cost, while learning-based methods (RL, imitation learning) offered speed but lacked guarantees
+          and sample efficiency. By the mid-2020s, the dichotomy has largely dissolved. Haustein et al. [29]
+          injected learned generative models into randomized planners. Mandadi et al. [37] paired
+          model-based A* search with RL controllers. Raei et al. [44] integrated physics-based friction
+          estimation into RL actors. Özcan et al. [7] used first-principles mechanics to derive models fast
+          enough to obviate learning for specific task classes. The most effective systems are not purely
+          model-based or purely learned, but hybrid architectures that use physical models where they are
+          tractable and learning where they are not, with the specific hybrid determined by which aspects of
+          the problem admit closed-form or efficient solutions (quasi-static contacts, sticking-mode
+          dynamics) and which require data-driven approximation (complex contact distributions,
+          high-dimensional perception).
+        </p>
+
+        <h3>7.2 Representation as the Unifying Challenge</h3>
+
+        <p>
+          Across all four themes, the choice of state representation, how objects, contacts, tools, and
+          environments are encoded for planning, control, and learning, emerges as the single most
+          consequential design decision. In planning and control, the representation determines
+          computational tractability. Complementarity models [4] versus smooth models versus reduced-order
+          non-holonomic abstractions [7] versus sticking-mode specializations [5]. In affordance learning,
+          the representation determines generalization. Single-object features [49] versus relational
+          tuples [22] versus keypoint abstractions [74] versus knowledge graphs [28] versus
+          multi-granularity decompositions [26]. In RL, the representation determines sample efficiency
+          and transfer. Monolithic observations versus modular environment encodings [38] versus hybrid
+          discrete-continuous action spaces [42] versus oriented affordance frames [41]. In integrated
+          tool-use systems, the representation determines the interface between perception, planning, and
+          control. Physical tool taxonomies [1] versus semantic-contact fields [31] versus contact-mode
+          specifications [2].
+        </p>
+
+        <div class="blog-table-wrapper">
+          <table class="blog-table">
+            <thead>
+              <tr>
+                <th>Theme</th>
+                <th>Representation axis</th>
+                <th>Spectrum</th>
+                <th>Representative works</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Planning and control</td>
+                <td>Contact model</td>
+                <td>Complementarity to smooth to mode-aware reduced-order</td>
+                <td>[4], [5], [7], [11], [15]</td>
+              </tr>
+              <tr>
+                <td>Affordance learning</td>
+                <td>Object relation</td>
+                <td>Single-object to relational to knowledge graph</td>
+                <td>[22], [28], [52], [74]</td>
+              </tr>
+              <tr>
+                <td>Affordance learning</td>
+                <td>Granularity</td>
+                <td>Whole-object to part-level to keypoint to multi-scale</td>
+                <td>[26], [45], [74]</td>
+              </tr>
+              <tr>
+                <td>Reinforcement learning</td>
+                <td>Action space</td>
+                <td>Continuous to discrete to hybrid discrete-continuous</td>
+                <td>[38], [42], [44]</td>
+              </tr>
+              <tr>
+                <td>Integrated tool use</td>
+                <td>Tool interface</td>
+                <td>Attachment to grasped-tool to semantic-contact</td>
+                <td>[1], [2], [31]</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          No single representation dominates across all settings, suggesting that the field needs either
+          task-adaptive representation selection or a unifying representation framework that spans the
+          fidelity-efficiency spectrum.
+        </p>
+
+        <h3>7.3 From Isolated Skills to Compositional Systems</h3>
+
+        <p>
+          A clear temporal trend in the literature is the progression from isolated manipulation primitives
+          to compositional systems that sequence and combine primitives for long-horizon tasks. Early work
+          focused on individual non-prehensile actions (a single push, a single slide) or individual
+          tool-use skills (a single grasp-and-apply). More recent work addresses composition through
+          multiple mechanisms. Contact retargeting of demonstration sequences [16], affordance chaining for
+          multi-step planning [25], VLM-based plan-skeleton generation [39], self-progress prediction for
+          sub-policy sequencing [41], and DMP-based skill decomposition and recombination [33]. The
+          integration of prehensile and non-prehensile skills within a single system, demonstrated by Zhu
+          et al. [39] and Park et al. [40], represents a particularly important compositional advance, as
+          real-world tasks routinely interleave grasping with pushing, sliding, and tool use. However,
+          compositional systems remain fragile. Errors in early primitives propagate and compound through
+          the sequence, and the interfaces between composed skills (what state must primitive A leave the
+          world in for primitive B to succeed?) are typically specified manually rather than learned.
+        </p>
+
+        <h3>7.4 The Expanding Role of Foundation Models</h3>
+
+        <p>
+          Vision-language models (VLMs) and large language models (LLMs) have rapidly entered the
+          non-prehensile and tool-use manipulation pipeline as task-level planners and affordance
+          initializers, although their role remains circumscribed to high-level reasoning. Zhu et al. [39]
+          used VLMs to generate plan skeletons that sequence prehensile and non-prehensile primitives, with
+          a digital-twin layer enabling execution monitoring and replanning. Lee et al. [3] used LLMs to
+          decompose natural-language instructions into feasible motion sequences for tool-object
+          manipulation. Wu et al. [29] used VLM inference for initial affordance-property estimation (food
+          softness, moisture) that was subsequently refined through haptic feedback. Ma et al. [31] combined
+          VLM semantic planning with contact-field representations for tactile tool manipulation. The
+          consistent pattern is that foundation models provide coarse semantic and spatial reasoning
+          (selecting which tool to use, which non-prehensile action to attempt, in what order) while
+          physical execution remains governed by model-based controllers or learned policies with explicit
+          contact reasoning. This division of labor is likely to persist. The contact physics of
+          non-prehensile manipulation are sufficiently precise that language-level reasoning cannot
+          substitute for geometric and force-level control, but the task-level sequencing and commonsense
+          reasoning that foundation models provide were previously unavailable from any automated source.
+        </p>
+
+        <h3>7.5 Sensing Modalities and Their Impact on Manipulation Capability</h3>
+
+        <p>
+          The review reveals a clear relationship between sensing modality and achievable manipulation
+          complexity. Vision-only systems suffice for pick-and-place in uncluttered environments [40] and
+          for affordance estimation of visible tool properties [22, 21]. Visuotactile systems enable robust
+          non-prehensile manipulation under occlusion [34] and contact-aware in-hand manipulation [43].
+          Haptic-augmented systems enable adaptive tool use with changing material properties [29, 50].
+          Force-sensing (or force-estimating) systems enable compliant loco-manipulation [55] and contact
+          tooling [32]. Variable-friction surfaces enable within-hand manipulation without tactile sensing
+          [13]. The progression suggests a rough correspondence. Each additional sensing modality unlocks a
+          class of tasks inaccessible to systems with fewer modalities, while also imposing hardware,
+          calibration, and integration costs. The field has not yet produced systematic guidelines for
+          minimum-viable sensor suites per task class, an important gap for practical deployment.
+        </p>
+
+        <h3>7.6 Bridging Cognitive Robotics and Control Theory</h3>
+
+        <p>
+          A final cross-cutting observation is that the most conceptually unified treatments of tool use
+          sit at the intersection of cognitive robotics and control theory rather than inside either field
+          alone. Billard and Kragic [9] argued in a widely cited Science review that the grand challenge
+          of robot manipulation lies precisely in this intersection. The low-level contact physics demand
+          principled control-theoretic treatment, while the high-level task structure demands
+          cognitive-architecture reasoning. The work surveyed in this review confirms that prediction. The
+          most effective integrated systems, semantic-contact fields [31], LLM-guided tool selection [3],
+          relational affordance chaining [25], combine symbolic reasoning drawn from cognitive robotics
+          with contact mechanics drawn from control theory. Qin et al. [57] provided a focused survey of
+          robot tool use from this cognitive-robotics perspective, complementing the largely
+          planning-centric non-prehensile surveys [56] and visual-affordance surveys [70]. The convergence
+          of these traditions has not yet produced a unified theoretical framework, but the empirical
+          pattern across the reviewed works strongly suggests that such a framework is an attainable and
+          useful target.
+        </p>
+
+        <h2>8. Open Problems and Future Directions</h2>
+
+        <p>
+          Despite substantial progress, several specific open problems and methodological gaps define the
+          frontier of computational methods for robotic tool use and non-prehensile manipulation.
+        </p>
+
+        <p>
+          <strong>Unified representations spanning contact fidelity and computational cost.</strong> The
+          proliferation of contact representations (complementarity, smooth, variable smooth, reduced-order,
+          sticking-mode, contact fields) reflects the absence of a representation that is simultaneously
+          physically faithful, computationally efficient, and compatible with gradient-based learning.
+          Future work should investigate multi-fidelity contact representations that automatically adjust
+          their complexity based on the current planning or control phase, analogous to adaptive mesh
+          refinement in finite-element analysis. The mode-aware abstractions of Özcan et al. [7] and the
+          variable-smooth models of Onol et al. [4] point toward this direction but remain manually
+          configured rather than automatically adaptive.
+        </p>
+
+        <p>
+          <strong>Compositional manipulation with formal guarantees.</strong> Sequencing non-prehensile and
+          tool-use primitives for long-horizon tasks remains brittle because inter-primitive interfaces are
+          specified informally. Future work should develop compositional verification methods that certify
+          whether the post-condition of one primitive satisfies the pre-condition of the next under contact
+          uncertainty. The contact-retargeting approach of Wu et al. [16] and the affordance chaining of
+          Jamone et al. [25] provide the precondition-postcondition structure on which formal methods
+          could build, but neither work addresses verification under stochastic contact outcomes.
+        </p>
+
+        <p>
+          <strong>Cross-tool and cross-task affordance transfer at scale.</strong> Current affordance models
+          generalize within narrow tool categories (hooks of varying sizes) but struggle with functionally
+          analogous tools of different morphologies (a spatula versus a flat piece of cardboard). The
+          secondary-affordance learning of Ding et al. [27] and the graph-based generalization of Zhong et
+          al. [28] suggest promising directions, but scaling these methods to the diversity of tools
+          encountered in household and industrial settings requires substantially larger and more diverse
+          training distributions than current work employs. Foundation-model-based affordance priors
+          [29, 31] could provide initial broad coverage that is then refined through physical interaction.
+        </p>
+
+        <p>
+          <strong>Minimum-viable sensing for non-prehensile tool use.</strong> The review reveals that
+          different task classes demand different sensor modalities (Section 7.5), but no systematic
+          framework exists for determining the minimum sensor suite required for a given task class and
+          performance level. Future work should develop task-conditioned sensor-selection policies,
+          analogous to the task-conditioned tool-design policy of Liu et al. [17], that recommend the
+          simplest sensor configuration sufficient for a specified manipulation capability.
+        </p>
+
+        <p>
+          <strong>Real-time adaptation to non-stationary contact environments.</strong> Most planning and
+          control methods reviewed assume static or slowly varying contact properties, yet many practical
+          tool-use tasks involve materials that change state during manipulation (food cooking, adhesives
+          curing, surfaces wearing). The online visuo-haptic refinement of Wu et al. [29] and the
+          process-dynamics model of Liu and Asada [50] address this for specific domains, but a general
+          framework for adaptive contact modeling under non-stationary dynamics remains absent. Integrating
+          learned dynamics models with real-time Bayesian updating, extending the stochastic contact model
+          of Zhou et al. [11] to temporal non-stationarity, is a concrete and feasible research direction.
+        </p>
+
+        <p>
+          <strong>Multi-agent and human-robot non-prehensile collaboration.</strong> Tang et al. [12]
+          demonstrated multi-robot collaborative pushing, and Park et al. [40] and Papallas and Dogar [30]
+          demonstrated human-guided non-prehensile manipulation, but no work addresses the combined
+          setting. Multiple robots and humans jointly performing non-prehensile manipulation with shared
+          tools. This combined setting introduces both multi-agent coordination (who pushes what, when)
+          and shared-tool reasoning (who holds the tool, who guides the push) that neither line of work
+          handles in isolation.
+        </p>
+
+        <p>
+          <strong>Benchmarking and evaluation.</strong> Comparing methods across the reviewed themes is
+          hampered by the absence of standardized benchmarks that span the full range of non-prehensile
+          primitives, tool-use tasks, and sim-to-real transfer conditions. Existing manipulation benchmarks
+          tend to emphasize prehensile pick-and-place. A benchmark suite covering planar pushing with
+          varied friction, pivoting and toppling with diverse geometry, tool-mediated scooping and
+          scraping, and semi-fluid manipulation [69] would enable meaningful cross-study comparison and
+          accelerate progress.
+        </p>
+
+        <h2>9. Conclusion</h2>
+
+        <p>
+          This scoping review has examined the computational methods, representations, and learning
+          paradigms that enable robotic tool use and non-prehensile manipulation across the period 2014 to
+          2026. The field has progressed from isolated, single-primitive capabilities toward compositional
+          systems that combine model-based contact reasoning with learned perception and control, although
+          the integration of tool-use reasoning with non-prehensile planning remains nascent, with only a
+          handful of systems [1, 2, 3, 31] addressing the two capabilities jointly. The convergence of
+          model-based and learning-based paradigms, the maturation of relational affordance models, the
+          achievement of zero-shot sim-to-real transfer for contact-rich tasks, and the emergence of
+          foundation models as task-level planners collectively indicate that the technical prerequisites
+          for general-purpose non-prehensile tool use are materializing, albeit not yet unified into a
+          single framework.
+        </p>
+
+        <p>
+          The single most important takeaway is that representation, how contacts, affordances, tool-object
+          relations, and manipulation states are encoded, is the dominant factor determining the capability,
+          efficiency, and generalization of manipulation systems across all four themes examined. Advances
+          in algorithms (better optimizers, more sample-efficient RL) and hardware (better tactile sensors,
+          more dexterous hands) yield incremental improvements, while representational innovations
+          (contact-implicit formulations, relational affordance models, hybrid action spaces,
+          semantic-contact fields) yield qualitative capability jumps. The most impactful future research
+          will therefore focus not on improving existing methods within their current representations, but
+          on developing unified, multi-fidelity representations that span the contact physics to
+          semantic-reasoning spectrum while remaining computationally tractable for real-time closed-loop
+          control. The boundary between the robot, the tool, and the environment will ultimately dissolve
+          into a continuous field of contact possibilities in which any object, hand, tool, table surface,
+          or neighboring object, can serve as a mechanical resource.
+        </p>
+
+        </section>
+
+        <div class="citation-section">
+          <h2 class="citation-header">Citation</h2>
+          <p class="citation-text">
+            If you find this survey useful, please cite it as
+          </p>
+          <pre class="citation-pre">
+@misc{robotic_tool_use_survey_2026,
+  author    = {Hu Tianrun},
+  title     = {Robotic Tool Use and Non-Prehensile Manipulation},
+  year      = {2026},
+  publisher = {GitHub},
+  url       = {https://h-tr.github.io/blog/surveys/robotic-tool-use.html}
+}
+          </pre>
+        </div>
+
+        <div class="references-section">
+          <h2 class="references-header">References</h2>
+          <ol class="references-list">
+            <li id="ref-1">Sommer, C.-P., Mack, L., Lachmair, J., &amp; Steil, J. (2025). &ldquo;Taxonomy and Modular Tool System for Versatile and Effective Non-Prehensile Manipulations.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-2">Oller, M., Berenson, D., &amp; Fazeli, N. (2024). &ldquo;Tactile-Driven Non-Prehensile Object Manipulation via Extrinsic Contact Mode Control.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-3">Lee, H.-Y., Zhou, P., Duan, A., Ma, W., Yang, C., &amp; Navarro-Alarc&oacute;n, D. (2024). &ldquo;Non-Prehensile Tool-Object Manipulation by Integrating LLM-Based Planning and Manoeuvrability-Driven Controls.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-4">Onol, A. &Ouml;., Long, P., &amp; Padir, T. (2018). &ldquo;A Comparative Analysis of Contact Models in Trajectory Optimization for Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-5">Chavan-Dafle, N., &amp; Rodriguez, A. (2017). &ldquo;Stable Prehensile Pushing. In-Hand Manipulation with Alternating Sticking Contacts.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-6">Haustein, J. A., Arnekvist, I., Stork, J., Hang, K., &amp; Kragic, D. (2019). &ldquo;Learning Manipulation States and Actions for Efficient Non-prehensile Rearrangement Planning.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-7">&Ouml;zcan, M., Orguner, U., &amp; Oguz, O. S. (2026). &ldquo;Push, Press, Slide. Mode-Aware Planar Contact Manipulation via Reduced-Order Models.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-8">Mason, M. T. (1986). &ldquo;Mechanics and Planning of Manipulator Pushing Operations.&rdquo; <em>International Journal of Robotics Research</em>, 5(3), 53&ndash;71.</li>
+            <li id="ref-9">Billard, A., &amp; Kragic, D. (2019). &ldquo;Trends and Challenges in Robot Manipulation.&rdquo; <em>Science</em>, 364(6446), eaat8414.</li>
+            <li id="ref-10">Ruggiero, F., Lippiello, V., &amp; Siciliano, B. (2018). &ldquo;Nonprehensile Dynamic Manipulation. A Survey.&rdquo; <em>IEEE Robotics and Automation Letters</em>, 3(3), 1711&ndash;1718.</li>
+            <li id="ref-11">Zhou, J., Paolini, R., Bagnell, J. A., &amp; Mason, M. T. (2017). &ldquo;A Fast Stochastic Contact Model for Planar Pushing and Grasping. Theory and Experimental Validation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-12">Tang, Z., Feng, Y., &amp; Guo, M. (2024). &ldquo;Collaborative Planar Pushing of Polytopic Objects with Multiple Robots in Complex Scenes.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-13">Sahin, A., Spiers, A. J., &amp; Calli, B. (2020). &ldquo;Region-Based Planning for 3D Within-Hand-Manipulation via Variable Friction Robot Fingers and Extrinsic Contacts.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-14">Chen, L., Yu, H., Naceri, A., Swikir, A., &amp; Haddadin, S. (2024). &ldquo;Time-Optimized Trajectory Planning for Non-Prehensile Object Transportation in 3D.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-15">Kitaev, N., Mordatch, I., Patil, S., &amp; Abbeel, P. (2015). &ldquo;Physics-Based Trajectory Optimization for Grasping in Cluttered Environments.&rdquo; <em>ICRA 2015</em>.</li>
+            <li id="ref-16">Wu, A., Wang, R., Chen, S., Eppner, C., &amp; Liu, C. K. (2024). &ldquo;One-Shot Transfer of Long-Horizon Extrinsic Manipulation Through Contact Retargeting.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-17">Liu, Z., Tian, S., Guo, M., Liu, C. K., &amp; Wu, J. (2023). &ldquo;Learning to Design and Use Tools for Robotic Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-18">Nabeshima, C., Kuniyoshi, Y., &amp; Lungarella, M. (2006). &ldquo;Adaptive Body Schema for Robotic Tool-Use.&rdquo; <em>Advanced Robotics</em>, 20(10), 1105&ndash;1126.</li>
+            <li id="ref-19">Mandadi, V., Saha, K., Guhathakurta, D., Qureshi, M., Agarwal, A., Sen, B., Das, D., et al. (2023). &ldquo;Disentangling Planning and Control for Non-Prehensile Tabletop Manipulation.&rdquo; <em>Conference proceedings</em>.</li>
+            <li id="ref-20">Kothavale, P., &amp; Boddepalli, S. (2025). &ldquo;Adaptive Inverse Kinematics Framework for Learning Variable-Length Tool Manipulation in Robotics.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-21">Mar, T., Tikhanoff, V., Metta, G., &amp; Natale, L. (2015). &ldquo;Self-Supervised Learning of Grasp Dependent Tool Affordances on the iCub Humanoid Robot.&rdquo; <em>ICRA 2015</em>.</li>
+            <li id="ref-22">Gon&ccedil;alves, A., Abrantes, J., Saponaro, G., Jamone, L., &amp; Bernardino, A. (2014). &ldquo;Learning Visual Affordances of Objects and Tools Through Autonomous Robot Exploration.&rdquo; <em>ICARSC 2014</em>.</li>
+            <li id="ref-23">Mar, T., Tikhanoff, V., Metta, G., &amp; Natale, L. (2015). &ldquo;Multi-Model Approach Based on 3D Functional Features for Tool Affordance Learning in Robotics.&rdquo; <em>Humanoids 2015</em>.</li>
+            <li id="ref-24">Saponaro, G., Vicente, P., Dehban, A., Jamone, L., Bernardino, A., &amp; Santos-Victor, J. (2017). &ldquo;Learning at the Ends. From Hand to Tool Affordances in Humanoid Robots.&rdquo; <em>ICDL-EpiRob 2017</em>.</li>
+            <li id="ref-25">Jamone, L., Saponaro, G., Antunes, A., Ventura, R., Bernardino, A., &amp; Santos-Victor, J. (2015). &ldquo;Learning Object Affordances for Tool Use and Problem Solving in Cognitive Robots.&rdquo; <em>Conference proceedings</em>.</li>
+            <li id="ref-26">Yang, F., Chen, W., Yang, K., Lin, H., Luo, D., Tang, C., Li, Z., &amp; Wang, Y. (2024). &ldquo;Learning Granularity-Aware Affordances from Human-Object Interaction for Tool-Based Functional Grasping in Dexterous Robotics.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-27">Ding, B., Mar, T., &amp; Natale, L. (2025). &ldquo;Learning Secondary Tool Affordances from Human Actions Using the iCub Robot.&rdquo; <em>Conference proceedings</em>.</li>
+            <li id="ref-28">Zhong, X., Zou, Z., Yu, J., Zhou, C., Zhong, X., &amp; Hu, H. (2025). &ldquo;GATGrasp. Learning Task-Aware Affordance Grasp for Robotic Tool Usage With Knowledge Graph Attention Mechanism.&rdquo; <em>IEEE Transactions on Automation Science and Engineering</em>.</li>
+            <li id="ref-29">Wu, Z., Jenamani, R. K., &amp; Bhattacharjee, T. (2025). &ldquo;SAVOR. Skill Affordance Learning from Visuo-Haptic Perception for Robot-Assisted Bite Acquisition.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-30">Papallas, R., &amp; Dogar, M. R. (2020). &ldquo;Human-Guided Planner for Non-Prehensile Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-31">Ma, K. Y., Hou, Y., &amp; Song, S. (2026). &ldquo;Semantic-Contact Fields for Category-Level Generalizable Tactile Tool Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-32">Lee, J.-K., &amp; Park, Y. S. (2024). &ldquo;Contact Tooling Manipulation Control for Robotic Repair Platform.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-33">Lu, Z., Wang, N., &amp; Yang, C. (2024). &ldquo;A Dynamic Movement Primitives-Based Tool Use Skill Learning and Transfer Framework for Robot Manipulation.&rdquo; <em>IEEE Transactions on Automation Science and Engineering</em>.</li>
+            <li id="ref-34">Del Aguila Ferrandis, J., Moura, J., &amp; Vijayakumar, S. (2024). &ldquo;Learning Visuotactile Estimation and Control for Non-prehensile Manipulation under Occlusions.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-35">Zhou, H., &amp; Jia, K. (2025). &ldquo;BiNoMaP. Learning Category-Level Bimanual Non-Prehensile Manipulation Primitives.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-36">Wang, M., Onol, A. &Ouml;., Long, P., &amp; Padir, T. (2023). &ldquo;Contact-Implicit Planning and Control for Non-prehensile Manipulation Using State-Triggered Constraints.&rdquo; <em>Springer Proceedings in Advanced Robotics</em>.</li>
+            <li id="ref-37">Mandadi, V., et al. (2023). &ldquo;Disentangling Planning and Control for Non-Prehensile Tabletop Manipulation.&rdquo; <em>Conference proceedings</em>.</li>
+            <li id="ref-38">Cho, Y., Han, J., Han, J., &amp; Kim, B. (2025). &ldquo;Hierarchical and Modular Network on Non-prehensile Manipulation in General Environments.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-39">Zhu, J., Xie, J., Jia, M., Tang, J., Wang, P., &amp; Li, Y.-L. (2025). &ldquo;AdaptPNP. Integrating Prehensile and Non-Prehensile Skills for Adaptive Robotic Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-40">Park, S., Chai, Y., Park, S., Park, J., Lee, K., &amp; Choi, S. (2021). &ldquo;Semi-Autonomous Teleoperation via Learning Non-Prehensile Manipulation Skills.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-41">Rana, K., Abou-Chakra, J., Garg, S., Lee, R., Reid, I., &amp; Suenderhauf, N. (2024). &ldquo;Learning from 10 Demos. Generalisable and Sample-Efficient Policy Learning with Oriented Affordance Frames.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-42">Zhou, W., Jiang, B., Yang, F., Paxton, C., &amp; Held, D. (2023). &ldquo;HACMan. Learning Hybrid Actor-Critic Maps for 6D Non-Prehensile Manipulation.&rdquo; <em>arXiv preprint arXiv:2305.03942</em>.</li>
+            <li id="ref-43">Kim, Y., Rask, C. H., &amp; Sloth, C. (2025). &ldquo;Tac2Motion. Contact-Aware Reinforcement Learning with Tactile Feedback for Robotic Hand Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-44">Raei, H., De Momi, E., &amp; Ajoudani, A. (2025). &ldquo;A Reinforcement Learning Approach to Non-prehensile Manipulation through Sliding.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-45">Kr&uuml;ger, N., Geib, C., Piater, J., Petrick, R., Steedman, M., W&ouml;rg&ouml;tter, F., Ude, A., Asfour, T., Kraft, D., Omr&#269;en, D., Agostini, A., &amp; Dillmann, R. (2011). &ldquo;Object-Action Complexes. Grounded Abstractions of Sensory-Motor Processes.&rdquo; <em>Robotics and Autonomous Systems</em>, 59(10), 740&ndash;757.</li>
+            <li id="ref-46">&#350;ahi&#803;n, E., &Ccedil;akmak, M., Do&#287;ar, M. R., U&#287;ur, E., &amp; &Uuml;&ccedil;oluk, G. (2007). &ldquo;To Afford or Not to Afford. A New Formalization of Affordances Toward Affordance-Based Robot Control.&rdquo; <em>Adaptive Behavior</em>, 15(4), 447&ndash;472.</li>
+            <li id="ref-47">Lynch, K. M., &amp; Mason, M. T. (1996). &ldquo;Stable Pushing. Mechanics, Controllability, and Planning.&rdquo; <em>International Journal of Robotics Research</em>, 15(6), 533&ndash;556.</li>
+            <li id="ref-48">Montesano, L., Lopes, M., Bernardino, A., &amp; Santos-Victor, J. (2008). &ldquo;Learning Object Affordances. From Sensory-Motor Coordination to Imitation.&rdquo; <em>IEEE Transactions on Robotics</em>, 24(1), 15&ndash;26.</li>
+            <li id="ref-49">Tikhanoff, V., Pattacini, U., Natale, L., &amp; Metta, G. (2013). &ldquo;Exploring Affordances and Tool Use on the iCub.&rdquo; <em>Humanoids 2013</em>.</li>
+            <li id="ref-50">Liu, S., &amp; Asada, H. (1992). &ldquo;Transferring Manipulative Skills to Robots. Representation and Acquisition of Tool Manipulative Skills Using a Process Dynamics Model.&rdquo; <em>Journal of Dynamic Systems, Measurement, and Control</em>, 114(2), 220&ndash;228.</li>
+            <li id="ref-51">Jain, R., &amp; Inamura, T. (2013). &ldquo;Bayesian Learning of Tool Affordances Based on Generalization of Functional Feature to Estimate Effects of Unseen Tools.&rdquo; <em>Artificial Life and Robotics</em>, 18(1&ndash;2), 95&ndash;103.</li>
+            <li id="ref-52">Tian, T., Kang, X., &amp; Kuo, Y.-L. (2025). &ldquo;O$^3$Afford. One-Shot 3D Object-to-Object Affordance Grounding for Generalizable Robotic Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-53">Nai, R., Zheng, B., Zhao, J., Zhu, H., Dai, S., Chen, Z., Hu, Y., Hu, Y., Zhang, T., et al. (2026). &ldquo;Humanoid Manipulation Interface. Humanoid Whole-Body Manipulation from Robot-Free Demonstrations.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-54">Dogar, M. R., &amp; Srinivasa, S. S. (2011). &ldquo;A Framework for Push-Grasping in Clutter.&rdquo; <em>RSS 2011</em>.</li>
+            <li id="ref-55">Portela, T., Margolis, G. B., Ji, Y., &amp; Agrawal, P. (2024). &ldquo;Learning Force Control for Legged Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-56">Mason, M. T. (1999). &ldquo;Progress in Nonprehensile Manipulation.&rdquo; <em>International Journal of Robotics Research</em>, 18(11), 1129&ndash;1141.</li>
+            <li id="ref-57">Qin, M., Brawer, J., &amp; Scassellati, B. (2023). &ldquo;Robot Tool Use. A Survey.&rdquo; <em>Frontiers in Robotics and AI</em>.</li>
+            <li id="ref-58">Stoytchev, A. (2005). &ldquo;Behavior-Grounded Representation of Tool Affordances.&rdquo; <em>ICRA 2005</em>, 3060&ndash;3065.</li>
+            <li id="ref-59">Muhayyuddin, Moll, M., Kavraki, L. E., &amp; Rosell, J. (2017). &ldquo;Randomized Physics-Based Motion Planning for Grasping in Cluttered and Uncertain Environments.&rdquo; <em>IEEE RA-L</em>, 3(2).</li>
+            <li id="ref-60">Agboh, W. C., &amp; Dogar, M. R. (2018). &ldquo;Real-Time Online Re-Planning for Grasping Under Clutter and Uncertainty.&rdquo; <em>Humanoids 2018</em>.</li>
+            <li id="ref-61">Bejjani, W., Papallas, R., Leonetti, M., &amp; Dogar, M. R. (2018). &ldquo;Planning with a Receding Horizon for Manipulation in Clutter Using a Learned Value Function.&rdquo; <em>Humanoids 2018</em>.</li>
+            <li id="ref-62">Moura, J., Stouraitis, T., &amp; Vijayakumar, S. (2022). &ldquo;Non-prehensile Planar Manipulation via Trajectory Optimization with Complementarity Constraints.&rdquo; <em>ICRA 2022</em>.</li>
+            <li id="ref-63">Lee, J., Nam, C., Park, J.-H., &amp; Kim, C.-H. (2021). &ldquo;Tree Search-based Task and Motion Planning with Prehensile and Non-prehensile Manipulation for Obstacle Rearrangement in Clutter.&rdquo; <em>Conference proceedings</em>.</li>
+            <li id="ref-64">Hogan, F. R., &amp; Rodr&iacute;guez, A. (2020). &ldquo;Reactive Planar Non-Prehensile Manipulation with Hybrid Model Predictive Control.&rdquo; <em>International Journal of Robotics Research</em>, 39(7), 755&ndash;773.</li>
+            <li id="ref-65">Selvaggio, M., Garg, A., Ruggiero, F., Oriolo, G., &amp; Siciliano, B. (2023). &ldquo;Non-Prehensile Object Transportation via Model Predictive Non-Sliding Manipulation Control.&rdquo; <em>IEEE Transactions on Control Systems Technology</em>.</li>
+            <li id="ref-66">Rigo, A., Chen, Y., Gupta, S. K., &amp; Nguyen, Q. (2023). &ldquo;Contact Optimization for Non-Prehensile Loco-Manipulation via Hierarchical Model Predictive Control.&rdquo; <em>Conference proceedings</em>.</li>
+            <li id="ref-67">Huang, E., Jia, Z., &amp; Mason, M. T. (2019). &ldquo;Large-Scale Multi-Object Rearrangement.&rdquo; <em>ICRA 2019</em>.</li>
+            <li id="ref-68">Lee, Y., &amp; Kim, K. (2025). &ldquo;Goal-Driven Robotic Pushing Manipulation Under Uncertain Object Properties.&rdquo; <em>Conference proceedings</em>.</li>
+            <li id="ref-69">Liu, J., Chen, Y.-T., Dong, Z., Wang, S., Calinon, S., Li, M., &amp; Chen, F. (2022). &ldquo;Robot Cooking With Stir-Fry. Bimanual Non-Prehensile Manipulation of Semi-Fluid Objects.&rdquo; <em>IEEE Robotics and Automation Letters</em>.</li>
+            <li id="ref-70">Hassanin, M., Khan, S., &amp; Tahtali, M. (2021). &ldquo;Visual Affordance and Function Understanding.&rdquo; <em>ACM Computing Surveys</em>.</li>
+            <li id="ref-71">Takahashi, K., Kim, K., Ogata, T., &amp; Sugano, S. (2017). &ldquo;Tool-Body Assimilation Model Considering Grasping Motion Through Deep Learning.&rdquo; <em>Robotics and Autonomous Systems</em>.</li>
+            <li id="ref-72">Horton, T. E., &amp; St. Amant, R. (2017). &ldquo;A Partial Contour Similarity-Based Approach to Visual Affordances in Habile Agents.&rdquo; <em>IEEE Transactions on Cognitive and Developmental Systems</em>.</li>
+            <li id="ref-73">Fang, K., Zhu, Y., Garg, A., Kurenkov, A., Mehta, V., Fei-Fei, L., &amp; Savarese, S. (2019). &ldquo;Learning Task-Oriented Grasping for Tool Manipulation from Simulated Self-Supervision.&rdquo; <em>International Journal of Robotics Research</em>, 39(2&ndash;3), 202&ndash;216.</li>
+            <li id="ref-74">Qin, Z., Fang, K., Zhu, Y., Fei-Fei, L., &amp; Savarese, S. (2020). &ldquo;KETO. Learning Keypoint Representations for Tool Manipulation.&rdquo; <em>ICRA 2020</em>, 7278&ndash;7285.</li>
+            <li id="ref-75">Tee, K. P., Li, J., Chen, L. T. P., Wan, K.-W., &amp; Ganesh, G. (2018). &ldquo;Towards Emergence of Tool Use in Robots. Automatic Tool Recognition and Use Without Prior Tool Learning.&rdquo; <em>ICRA 2018</em>.</li>
+            <li id="ref-76">Tee, K. P., Cheong, S., Li, J., &amp; Ganesh, G. (2022). &ldquo;A Framework for Tool Cognition in Robots Without Prior Tool Learning or Observation.&rdquo; <em>Nature Machine Intelligence</em>.</li>
+            <li id="ref-77">Xie, A., Ebert, F., Levine, S., &amp; Finn, C. (2019). &ldquo;Improvisation Through Physical Understanding. Using Novel Objects as Tools with Visual Foresight.&rdquo; <em>RSS 2019</em>.</li>
+            <li id="ref-78">Ravichandar, H., Polydoros, A., Chernova, S., &amp; Billard, A. (2019). &ldquo;Recent Advances in Robot Learning from Demonstration.&rdquo; <em>Annual Review of Control, Robotics, and Autonomous Systems</em>.</li>
+          </ol>
+        </div>
+
+      </article>
+    </div>
+
+    <!-- Blog styling and spacing script -->
+    <script defer src="/js/blog.js"></script>
+    <script defer src="/js/katex-init.js"></script>
+    <script defer src="/js/references.js"></script>
+  </body>
+</html>

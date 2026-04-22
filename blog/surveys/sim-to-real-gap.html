@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Survey: Bridging the Simulation-to-Reality Gap</title>
+    <title>Bridging the Simulation-to-Reality Gap | Hu Tianrun</title>
 
     <!-- Fonts -->
     <link
@@ -54,1029 +54,1457 @@
       </a>
 
       <header class="blog-post-header">
-        <h1 class="blog-post-title">Survey: Bridging the Simulation-to-Reality Gap</h1>
-        <div class="blog-post-date">April 1, 2026</div>
+        <h1 class="blog-post-title">Bridging the Simulation-to-Reality Gap</h1>
+        <div class="blog-post-date">April 23, 2026</div>
       </header>
 
       <article class="blog-post-content">
         <section class="blog-section">
 
-        <h2>1. Introduction and Problem Definition</h2>
+        <h2>1. Introduction</h2>
 
         <p>
-          Training robot controllers in the real world is slow, expensive, and dangerous. A single reinforcement
-          learning (RL) policy for dexterous manipulation may require millions of environment interactions, each
-          carrying the risk of hardware damage, human injury, or simply wasted hours waiting for a robot arm to reset.
-          Simulation offers an escape: physics engines like MuJoCo and NVIDIA PhysX can run thousands of parallel
-          environments on a single GPU, compressing years of experience into hours of wall-clock time. But policies
-          that master simulated tasks routinely fail when transferred to physical hardware. The gap between what a
-          simulator models and what actually happens on a real robot is the <strong>sim-to-real gap</strong>, and
-          closing it is one of the central challenges of modern robotics.
+          Simulation has become the dominant substrate for training learned robot controllers. Physics
+          engines and rendering pipelines can generate millions of interaction episodes at a fraction of
+          the cost and risk of physical experimentation, enabling reinforcement learning and imitation
+          learning to scale to behaviors that would be infeasible to acquire on hardware alone
+          [81, 51, 54, 68]. Yet a persistent and well-documented discrepancy, the
+          <strong>simulation-to-reality gap</strong>, continues to separate policies that perform well in
+          simulation from those that succeed on physical platforms. Closing the gap, or circumventing it
+          through clever training and deployment strategies, is arguably the central bottleneck for
+          deploying learning-based robotics at scale [29, 57, 62].
         </p>
 
         <p>
-          The term "reality gap" was coined by [15] in the context of
-          evolutionary robotics, where controllers evolved in a simulated Khepera robot failed on the physical
-          platform. Three decades later, the problem persists, though the tools and techniques for addressing it have
-          grown enormously more sophisticated.
+          The urgency of this problem has intensified in the 2018 to 2026 period for three converging
+          reasons. First, reinforcement learning algorithms and computing infrastructure have matured to
+          the point where simulation-trained policies can solve tasks of genuine practical complexity.
+          Dexterous in-hand reorientation [4], Rubik's cube solving on the Shadow Dexterous
+          Hand [1], agile quadrupedal locomotion over challenging terrain
+          [44, 43, 54, 17], perceptive locomotion in natural
+          environments [54], and champion-level autonomous drone racing [40]
+          all demonstrate that simulation-trained controllers now reach or exceed human expert performance
+          on meaningful tasks. Second, the proliferation of high-fidelity, GPU-accelerated simulators such
+          as MuJoCo [81], Isaac Gym [51], Habitat [70], AI2-THOR
+          [42], and ProcTHOR [20] has lowered the barrier to simulation-based research
+          and expanded the community studying sim-to-real transfer [29, 57]. Third,
+          deployment pressure from logistics, manufacturing, healthcare, and service robotics is elevating
+          transfer reliability from an academic curiosity to an engineering requirement
+          [23, 74, 63].
         </p>
 
-        <h3>What makes it hard</h3>
+        <p>
+          This survey addresses the following research question. What methods and frameworks have been
+          proposed to bridge the sim-to-real transfer gap in robotics, specifically for locomotion,
+          navigation, manipulation, and mobile manipulation tasks, and how effective are they? We survey
+          the literature from 2018 to 2026, while incorporating foundational earlier work where it remains
+          directly influential on contemporary methods. Our scope encompasses domain randomization and
+          adaptation, system identification and calibration, task-specific transfer strategies for
+          locomotion [77, 32, 44, 43, 54, 72, 65, 24],
+          navigation [69, 39, 70, 42, 20, 3, 11, 71],
+          manipulation [4, 1, 7, 36, 52, 59, 64, 87, 82],
+          and mobile manipulation [76, 25, 26, 27, 85, 84, 45], as well as
+          emerging paradigms, including foundation-model-based methods and real-to-sim-to-real pipelines,
+          that seek to reshape or bypass the gap entirely [9, 82, 8, 60, 31, 46].
+        </p>
 
         <p>
-          The sim-to-real gap is not a single problem but a constellation of mismatches. Following the taxonomy
-          proposed by [2], these mismatches fall into four categories:
+          The review is organized as follows. Section 2 establishes definitions and scope boundaries.
+          Section 3 examines domain randomization and adaptation as a cross-cutting methodological family,
+          tracing its evolution from heuristic practice to theoretically grounded methodology. Section 4
+          addresses sim-to-real transfer for locomotion and legged robots. Section 5 covers
+          navigation-specific transfer methods. Section 6 surveys manipulation transfer. Section 7 treats
+          the emerging area of mobile manipulation, where navigation and manipulation gaps compound.
+          Section 8 provides cross-cutting analysis of trends and tensions shared across themes. Section 9
+          identifies open problems and specific future directions. Section 10 concludes.
+        </p>
+
+        <div class="blog-callout">
+          <p>
+            <strong>Central thesis.</strong> The sim-to-real gap is not a single problem but a
+            <em>composite</em> of distinct, diagnosable error sources (dynamics, sensors, visual
+            appearance, actuators, action space abstractions, computational constraints). The most
+            effective transfer pipelines diagnose the dominant gap sources for a specific task and apply
+            targeted methodological tools, rather than relying on any single technique as a universal
+            remedy. The field is converging on a hybrid strategy that combines <em>targeted fidelity</em>
+            for well-understood gap sources with <em>broad randomization</em> for poorly characterized
+            ones, and is migrating from one-time zero-shot transfer toward continual adaptation during
+            deployment.
+          </p>
+        </div>
+
+        <h2>2. Background and Definitions</h2>
+
+        <h3>2.1 The Reality Gap</h3>
+
+        <p>
+          The <strong>reality gap</strong> refers to the aggregate discrepancy between a simulated
+          training environment and the physical deployment environment that causes degraded performance
+          when a simulation-trained policy is executed on real hardware. The term was coined in the
+          evolutionary robotics literature of the 1990s, where controllers evolved inside a simulator for
+          the Khepera and octopod platforms frequently failed on the corresponding hardware
+          [34, 33, 47]. Three decades later the problem persists, though the analytical
+          vocabulary has sharpened. Following diagnostic taxonomies developed in the locomotion literature
+          [5, 6, 41] and broader surveys [29, 57, 62], the gap
+          can be decomposed into five principal sources.
         </p>
 
         <ol>
-          <li><strong>Dynamics mismatch.</strong> Simulators approximate physics with rigid-body contact models,
-            simplified friction cones, and idealized actuators. Real robots have tendon compliance, backlash, motor
-            heating, and contact dynamics that no simulator fully captures. This is especially acute for contact-rich
-            manipulation, where small errors in friction or stiffness compound into qualitatively different outcomes.</li>
-          <li><strong>Perception mismatch.</strong> Rendered images differ from camera images in lighting, texture,
-            reflections, lens distortion, and noise characteristics. Depth sensors in simulation produce clean point
-            clouds; real depth cameras suffer from missing returns on reflective or transparent surfaces. Even
-            proprioceptive sensors (joint encoders, IMUs) have noise profiles and latencies that simulators approximate
-            imperfectly.</li>
-          <li><strong>Actuation mismatch.</strong> The commanded torque is not the delivered torque. Real actuators have
-            current limits, thermal throttling, gear friction, and communication delays. Many commercial robots run
-            proprietary low-level controllers whose behavior is opaque to the researcher. [6] found that simulating an ANYmal quadruped required setting the
-            virtual mass to 8,500 kg (versus the real 730 kg) to match real locomotion dynamics, illustrating how far
-            default simulator parameters can be from reality.</li>
-          <li><strong>System-level mismatch.</strong> Real deployments introduce distributed computing latency, safety
-            watchdogs that override commands, sensor synchronization jitter, and environmental factors (temperature,
-            humidity, surface wear) that change over time.</li>
+          <li>
+            <strong>Dynamics modeling errors.</strong> Inaccuracies in rigid-body parameters (masses,
+            inertias, centers of mass), contact models (penetration depth, restitution, friction cones),
+            and actuator models (torque limits, backlash, transmission losses, thermal effects)
+            [77, 32, 6].
+          </li>
+          <li>
+            <strong>Sensor modeling errors.</strong> Discrepancies in simulated sensor outputs relative
+            to physical sensor behavior, including noise characteristics, latency, field-of-view
+            artifacts, and calibration errors for cameras, depth sensors, LiDAR, force and torque
+            sensors, and inertial measurement units [83, 21, 36].
+          </li>
+          <li>
+            <strong>Visual appearance errors.</strong> Differences in rendering quality, lighting,
+            texture, material properties, and scene composition between synthetic and real images,
+            affecting vision-based perception [79, 69, 2, 7].
+          </li>
+          <li>
+            <strong>Structural and computational errors.</strong> Mismatches arising from discretization
+            (integration timestep, solver accuracy), action space abstractions (discrete versus
+            continuous commands), communication latency, and control frequency limitations [3, 63].
+          </li>
+          <li>
+            <strong>Unmodeled phenomena.</strong> Effects absent from simulation entirely, including air
+            currents, cable forces, surface deformations, thermal drift, wear, and payload changes, that
+            accumulate during real-world deployment [38, 30, 6].
+          </li>
         </ol>
 
         <p>
-          The fundamental tension is this: making the simulator more faithful is expensive and never complete, while
-          making the policy more robust risks sacrificing performance by being conservative. The field has spent three
-          decades exploring different points on this trade-off curve.
+          This taxonomy is useful because different transfer strategies target different gap sources, and
+          the relative importance of each source varies by task domain. Locomotion is dominated by
+          dynamics and actuator modeling errors [77, 32, 6]; navigation by sensor and
+          visual appearance errors [69, 39, 3]; manipulation by contact dynamics and
+          unmodeled phenomena [4, 59, 89]; mobile manipulation inherits all of the above
+          and compounds them across subsystems [76, 84, 45]. This task dependence recurs
+          throughout the review.
         </p>
 
-        <h2>2. Taxonomy of Approaches</h2>
+        <h3>2.2 Key Methodological Concepts</h3>
 
         <p>
-          The sim-to-real literature can be organized into six families of methods, distinguished by <em>where</em>
-          they intervene in the sim-to-real pipeline and <em>what assumption</em> they make about the gap.
+          <strong>Domain randomization (DR)</strong> trains policies over a distribution of simulation
+          parameters, physical, visual, or both, so that the real world appears as merely another sample
+          from the training distribution [79, 61, 80]. <strong>Domain adaptation
+          (DA)</strong> explicitly aligns representations or distributions across source (simulation) and
+          target (reality) domains, typically using adversarial training or image translation
+          [7, 36, 56, 67]. <strong>System identification (SysID)</strong> estimates
+          the physical parameters of the real system and configures the simulator to match, reducing the
+          gap at its source [77, 66]. <strong>Residual learning</strong> trains a learned
+          component to correct or augment a classical controller, limiting the scope of what must
+          transfer [73, 37, 89]. <strong>Teacher-student distillation</strong> trains a
+          privileged teacher with access to ground-truth simulation state, then distills it into a
+          deployable student that uses only real-world-available observations [44, 15, 11].
+          <strong>Real-to-sim-to-real transfer</strong> constructs a personalized simulation from real
+          observations and trains policies within it before redeployment [82].
+          <strong>Continual adaptation</strong> performs ongoing learning during deployment, tracking
+          non-stationary real-world dynamics rather than treating transfer as a one-time event
+          [38, 30, 43].
         </p>
 
-        <div class="taxonomy-tree">
-          <div class="taxonomy-root">Sim-to-Real Transfer Methods</div>
-          <ul>
-            <li>
-              <div class="taxonomy-branch"><span class="branch-id">1</span> <span class="branch-label">Domain Randomization (DR)</span></div>
-              <ul class="taxonomy-leaves">
-                <li><span class="leaf-id">1a.</span> Visual DR (textures, lighting, camera)</li>
-                <li><span class="leaf-id">1b.</span> Dynamics DR (masses, friction, damping)</li>
-                <li><span class="leaf-id">1c.</span> Manual DR (hand-tuned ranges)</li>
-                <li><span class="leaf-id">1d.</span> Automatic DR (learned/adaptive ranges)
-                  <ul>
-                    <li>ADR (progressive expansion)</li>
-                    <li>DORAEMON (entropy maximization)</li>
-                    <li>DROPO/BayesSim (data-driven fitting)</li>
-                  </ul>
-                </li>
-              </ul>
-            </li>
-            <li>
-              <div class="taxonomy-branch"><span class="branch-id">2</span> <span class="branch-label">System Identification &amp; Sim Calibration</span></div>
-              <ul class="taxonomy-leaves">
-                <li><span class="leaf-id">2a.</span> Classical parametric ID</li>
-                <li><span class="leaf-id">2b.</span> Learned residual dynamics</li>
-                <li><span class="leaf-id">2c.</span> Causal discovery (COMPASS)</li>
-                <li><span class="leaf-id">2d.</span> Auto-tuned search (SPM)</li>
-              </ul>
-            </li>
-            <li>
-              <div class="taxonomy-branch"><span class="branch-id">3</span> <span class="branch-label">Domain Adaptation</span></div>
-              <ul class="taxonomy-leaves">
-                <li><span class="leaf-id">3a.</span> GAN-based image translation
-                  <ul>
-                    <li>RCAN (randomized-to-canonical)</li>
-                    <li>RL-CycleGAN (task-aware)</li>
-                    <li>RetinaGAN (object-aware)</li>
-                  </ul>
-                </li>
-                <li><span class="leaf-id">3b.</span> Neural rendering (NeRF/3DGS-based)</li>
-                <li><span class="leaf-id">3c.</span> Language-based alignment</li>
-              </ul>
-            </li>
-            <li>
-              <div class="taxonomy-branch"><span class="branch-id">4</span> <span class="branch-label">Privileged Learning &amp; Teacher-Student Distillation</span></div>
-              <ul class="taxonomy-leaves">
-                <li><span class="leaf-id">4a.</span> Asymmetric actor-critic</li>
-                <li><span class="leaf-id">4b.</span> Teacher-student policy distillation</li>
-                <li><span class="leaf-id">4c.</span> Teacher-student world model distillation</li>
-                <li><span class="leaf-id">4d.</span> Single-stage privileged learning</li>
-              </ul>
-            </li>
-            <li>
-              <div class="taxonomy-branch"><span class="branch-id">5</span> <span class="branch-label">Meta-Learning &amp; Online Adaptation</span></div>
-              <ul class="taxonomy-leaves">
-                <li><span class="leaf-id">5a.</span> Gradient-based (MAML-style)</li>
-                <li><span class="leaf-id">5b.</span> Recurrence-based (LSTM implicit ID)</li>
-                <li><span class="leaf-id">5c.</span> Rapid Motor Adaptation (RMA)</li>
-                <li><span class="leaf-id">5d.</span> Uncertainty-aware adaptation</li>
-              </ul>
-            </li>
-            <li>
-              <div class="taxonomy-branch"><span class="branch-id">6</span> <span class="branch-label">Real-to-Sim-to-Real</span></div>
-              <ul class="taxonomy-leaves">
-                <li><span class="leaf-id">6a.</span> Digital twin reconstruction</li>
-                <li><span class="leaf-id">6b.</span> Scene-level reconstruction (RialTo)</li>
-                <li><span class="leaf-id">6c.</span> Object-level reconstruction (COV-NeRF)</li>
-              </ul>
-            </li>
-          </ul>
+        <h3>2.3 Scope and Boundaries</h3>
+
+        <p>
+          This review covers methods that involve a simulation training phase and a physical deployment
+          phase, with the explicit goal of bridging the performance gap between them. We include
+          zero-shot transfer (no real-world training data) [79, 69, 61], few-shot
+          adaptation (limited real-world data for calibration or fine-tuning) [66, 78, 14],
+          and continual adaptation (ongoing real-world learning after deployment) [38, 43, 30].
+          We exclude pure real-world learning that does not involve simulation, classical control without
+          learned components, and sim-to-sim transfer used solely as a research methodology, except where
+          it explicitly proxies the reality gap [47]. While we note connections to the
+          foundation model literature where it intersects with sim-to-real methods, a comprehensive
+          review of large-scale robot learning is beyond our scope.
+        </p>
+
+        <h2>3. Domain Randomization and Adaptation</h2>
+
+        <p>
+          Domain randomization has emerged as the most widely adopted family of techniques for sim-to-real
+          transfer, owing to its conceptual simplicity, ease of implementation, and generality across task
+          domains [79, 61, 4, 1, 57]. This section traces its evolution from an
+          early heuristic to a theoretically grounded methodology, examines distinct considerations for
+          visual versus dynamics randomization, surveys principled calibration methods, and reviews domain
+          adaptation as an alternative alignment strategy.
+        </p>
+
+        <h3>3.1 Visual Domain Randomization</h3>
+
+        <p>
+          A foundational insight of visual domain randomization is that diversity of training appearances
+          matters more than photorealistic rendering fidelity. Tobin et al. [79] demonstrated
+          that training object detectors on non-photorealistic synthetic images with highly varied random
+          textures, lighting, and camera placements enabled successful transfer to real visual
+          environments, because broad distributional coverage causes the real world to appear as just
+          another variation within the training distribution. This diversity-over-realism principle has
+          been independently validated across manipulation [80, 35], navigation
+          [69], and grasping perception [88, 22, 49].
+        </p>
+
+        <p>
+          The relationship between rendering quality and transfer performance is not monotonic. Alghonaim
+          and Liarokapis [2] conducted a systematic benchmark of visual DR design choices and
+          found a quality-quantity tradeoff. A small number of high-fidelity rendered images consistently
+          outperformed a large number of low-quality images, which nuances the diversity principle. While
+          photorealism is not <em>necessary</em>, rendering quality is not <em>irrelevant</em>, and
+          computational budgets should prioritize fidelity over sheer dataset size when both cannot be
+          maximized. Procedural environment generation at scale, as in ProcTHOR [20], offers
+          a middle path by algorithmically generating diverse but structured environments that maintain
+          geometric plausibility while varying broadly in layout, texture, and lighting.
+        </p>
+
+        <p>
+          Sadeghi and Levine [69] provided an early and influential demonstration that purely
+          simulated visual data, with no real images whatsoever, could train collision-avoidance policies
+          for indoor drone navigation that transferred zero-shot to real flight. Their CAD2RL result
+          established the viability of the synthetic-only training paradigm for navigation well before
+          the broader adoption of visual DR. The practical implication across this body of work is that
+          visual DR design requires balancing coverage breadth against per-sample quality, a tradeoff that
+          remains underspecified by theory and is typically resolved through empirical tuning
+          [2, 20]. Object-aware GAN adaptation [67] further shows that pairing
+          visual DR with targeted region-aware translation can preserve task-relevant appearance while
+          randomizing nuisance factors.
+        </p>
+
+        <h3>3.2 Dynamics Domain Randomization</h3>
+
+        <p>
+          Dynamics randomization, varying physical simulation parameters during training, addresses the
+          complementary problem of physics modeling inaccuracy. Peng et al. [61]
+          established the modern dynamics DR paradigm by demonstrating that randomizing masses, friction,
+          damping, and actuator gains produced pushing policies that transferred successfully to real
+          robots, even when no single parameter setting matched reality. This work, together with the
+          visual DR results of Tobin et al. [79], established the two pillars of the DR
+          framework that subsequent work has refined [4, 1, 43, 28].
+        </p>
+
+        <p>
+          The question of <em>which</em> parameters to randomize has yielded surprising findings.
+          Exarchos et al. [24] challenged the conventional practice of carefully measuring
+          kinematic parameters while randomizing dynamic ones, showing that randomizing <em>kinematic</em>
+          parameters (link lengths, joint offsets) yields more robust transfer than randomizing dynamic
+          parameters alone. Geometric uncertainty may therefore be a more impactful gap source than
+          dynamic uncertainty for many tasks. The early work of Jakobi [34] anticipated this
+          selectivity by proposing <em>minimal simulation</em> with targeted noise injection. Rather than
+          exhaustively randomizing all parameters, identify only the sensorimotor features that can be
+          reliably simulated and inject noise specifically into those features. This principle of
+          surgical randomization has been independently rediscovered in several contemporary studies
+          [22, 16, 6].
+        </p>
+
+        <p>
+          The question of <em>how much</em> to randomize received theoretical grounding from Chen et al.
+          [16], who proved that history-dependent policies are not merely a practical heuristic
+          but a theoretically necessary ingredient for DR to achieve tight performance bounds. Their
+          analysis demonstrates that the sim-to-real gap under DR is provably reducible under mild
+          conditions even without real-world samples, but only when the policy architecture has
+          sufficient memory to implicitly identify the current domain from interaction history. This
+          formal result retroactively explains the empirical success of recurrent and transformer-based
+          policy architectures in DR-heavy training regimes and motivated the widespread adoption of
+          observation histories as policy inputs [43, 44, 54].
+        </p>
+
+        <h3>3.3 Automatic Domain Randomization</h3>
+
+        <p>
+          Manual specification of randomization ranges scales poorly to complex environments. Akkaya et
+          al. [1] introduced <strong>Automatic Domain Randomization (ADR)</strong>, which
+          progressively expands parameter ranges during training based on policy performance thresholds.
+          When the policy achieves a target success rate under the current range, ADR automatically
+          widens it; when performance drops, ADR narrows. Applied to Rubik's cube solving with a Shadow
+          Dexterous Hand, arguably the most complex sim-to-real manipulation result to date, ADR enabled
+          transfer of a policy trained entirely in simulation to solve the cube on physical hardware.
+          ADR eliminates the need for manual range engineering and naturally produces a curriculum from
+          easy (narrow randomization) to hard (broad randomization), improving both training stability
+          and final transfer performance.
+        </p>
+
+        <p>
+          Mehta et al. [53] proposed <strong>Active Domain Randomization</strong>, which uses
+          a discriminator network to identify simulation parameters where the policy is most likely to
+          fail and concentrates randomization effort on those parameters. Rather than uniformly expanding
+          all ranges as in ADR, active DR allocates randomization budget where it matters most,
+          producing policies that are robust specifically where the gap is largest. Auto-tuned sim-to-real
+          transfer [91] connects these curricular approaches with automated calibration,
+          jointly searching over the randomization schedule and the policy parameters. Both strategies
+          echo the broader principle that surgical randomization outperforms brute-force approaches
+          [34, 24].
+        </p>
+
+        <h3>3.4 Calibrating Randomization Distributions</h3>
+
+        <p>
+          A critical limitation of standard DR is that randomization ranges are typically chosen ad hoc.
+          Too narrow a distribution fails to cover the real world, while too broad a distribution
+          produces an overly conservative policy. Several principled calibration strategies have emerged.
+        </p>
+
+        <p>
+          <strong>Bayesian system identification</strong> frames simulator calibration as posterior
+          inference over physical parameters. Ramos et al. [66] introduced BayesSim, which
+          uses likelihood-free inference to estimate posterior distributions over simulation parameters
+          from small sets of real-world trajectories, providing both point estimates and calibrated
+          uncertainty bounds. Tiboni et al. [78] pursued a complementary approach with DROPO,
+          fitting simulation parameter distributions to maximize the likelihood of offline real
+          trajectories and enabling zero-shot transfer by centering the randomization distribution on the
+          true physical parameters. Both methods convert the manual range-engineering problem into a
+          principled statistical inference problem, though they require some real-world data, typically
+          between five and fifty trajectories.
+        </p>
+
+        <p>
+          <strong>Closed-loop simulation-to-real methods</strong> iteratively alternate between policy
+          training in simulation and parameter estimation from real-world trials. Chebotar et al.
+          [14] demonstrated this approach with SimOpt, using real-world rollout data to update
+          the distribution over simulation parameters, which in turn guides the next round of policy
+          optimization. This iterative refinement converges to parameter distributions that are
+          well-calibrated to the specific deployment environment, achieving better transfer than static
+          randomization ranges while requiring only modest real-world interaction. Digital-twin
+          approaches [92] extend this closed loop by maintaining a persistent real-robot
+          calibration database that guides simulator configuration across tasks.
+        </p>
+
+        <p>
+          <strong>Online fine-tuning</strong> takes a different philosophy. Train with broad DR to obtain
+          a robust initialization, then fine-tune on limited real-world data to close the residual gap
+          [55, 43, 82]. Josifovski et al. [38] extended this with
+          <em>safe continual adaptation</em>, combining safe reinforcement learning constraints with
+          continual learning during deployment to track non-stationary dynamics without catastrophic
+          forgetting. The practical reality that deployed environments are never stationary motivates
+          this shift from one-time calibration to continuous refinement.
+        </p>
+
+        <h3>3.5 Domain Adaptation Across Representations</h3>
+
+        <p>
+          While DR achieves robustness by training across a distribution of environments,
+          <strong>domain adaptation</strong> methods explicitly align the statistical properties of
+          simulated and real observations, typically through learned image transformations or
+          feature-space alignment. Generative adversarial approaches have been particularly influential.
+          Bousmalis et al. [7] demonstrated GraspGAN, which uses GAN-based pixel-level
+          adaptation to translate simulated grasping images toward realistic appearance, enabling
+          training of grasping policies on adapted synthetic data that transfer to real robots. James et
+          al. [36] proposed Randomized-to-Canonical Adaptation Networks (RCAN), which invert
+          the usual adaptation direction. Rather than making simulation look real, they train a network
+          to map both randomized simulation images and real images to a shared <em>canonical</em>
+          representation. This sim-to-sim-to-real approach elegantly combines DR (to provide input
+          diversity for the adaptation network) with DA (to align the canonical space) and achieves
+          sim-to-real transfer of visuomotor manipulation policies with no real-world training.
+        </p>
+
+        <p>
+          Müller et al. [56] applied a similar philosophy to autonomous driving, using domain
+          adaptation to translate between simulated and real driving scenes. Rao et al. [67]
+          combined reinforcement learning with cycle-consistent image translation in RL-CycleGAN,
+          jointly optimizing the policy and the domain translator. RetinaGAN [93] added
+          object-awareness to the pixel-level translator so that task-relevant instances remain
+          perceptually consistent across the translated images. The consistent finding across these works
+          is that explicit visual alignment can substantially reduce the visual sim-to-real gap, at the
+          cost of additional architectural complexity and the risk that the adaptation network introduces
+          artifacts that degrade policy performance.
+        </p>
+
+        <h3>3.6 Representation-Based Adaptation</h3>
+
+        <p>
+          A more recent trend moves beyond pixel-level alignment toward learning representations that are
+          inherently domain invariant. Ma [50] proposed spectral skill representations in which
+          spectral decomposition of the simulator Markov decision process yields basis functions (skills)
+          spanning the Q-function space. Real-world deployment then discovers <em>orthogonal complement
+          skills</em> from limited real data, which by construction capture only the dynamics
+          discrepancy. This provides a principled adaptation mechanism that avoids the brute-force
+          coverage of DR while requiring less real-world data than full fine-tuning.
+        </p>
+
+        <p>
+          Dense object descriptors offer a complementary approach for visual manipulation. Cao
+          [12] demonstrated that learning a domain-invariant dense descriptor space with
+          explicit cross-domain pixel consistency constraints enables zero-training generalization to
+          unseen objects and visual environments, extending the Dense Object Nets line of work
+          [94, 95] into the sim-to-real setting. Similarly, point cloud observations serve as
+          a naturally domain-invariant input modality, because 3D geometric structure is more consistent
+          between simulation and reality than visual appearance, so policies trained on point clouds
+          transfer more readily than those trained on RGB images [64, 87]. R3M
+          [96] and related pretrained visual representations provide another path by learning
+          domain-invariant features from large real-world video corpora, then freezing those features as
+          backbones for simulation-trained policies. These representation-centric strategies reflect a
+          broader shift from making the <em>data</em> transferable (DR, DA) to making the
+          <em>representation</em> transferable, connecting sim-to-real research to the broader transfer
+          learning community.
+        </p>
+
+        <div class="blog-callout">
+          <p>
+            <strong>A unifying view.</strong> DR, DA, and representation-based adaptation are three
+            points on a single continuum. DR covers the real world in data space; DA aligns source and
+            target in pixel space; representation-based methods align in a learned feature space. Each
+            trades a different axis of cost (sample count, model complexity, representation expressiveness)
+            for a different axis of robustness, and practical systems increasingly combine all three.
+          </p>
         </div>
+
+        <h2>4. Sim-to-Real for Locomotion</h2>
+
+        <p>
+          Locomotion has served as one of the most active proving grounds for sim-to-real methods, driven
+          by the convergence of capable reinforcement learning algorithms, accurate actuator models, and
+          commercially available legged platforms. This section traces the progression from early
+          system-identification-based approaches through the domain randomization revolution to the
+          current state of the art in agile, terrain-adaptive locomotion.
+        </p>
+
+        <h3>4.1 System Identification and Actuator Modeling</h3>
+
+        <p>
+          Early sim-to-real work for locomotion emphasized minimizing the gap through careful system
+          identification. Tan et al. [77] demonstrated that systematic motor modeling,
+          specifically fitting an accurate actuator model from hardware data, combined with careful
+          simulation tuning, enabled transfer of agile locomotion gaits to the Minitaur robot. Their
+          approach of training in a well-calibrated simulator and then deploying with latency
+          compensation achieved remarkably robust transfer, establishing system identification as a
+          viable standalone strategy for platforms with well-characterized dynamics.
+        </p>
+
+        <p>
+          Hwangbo et al. [32] extended this approach by training a neural network actuator
+          model (the "actuator net") from real motor data, which was then integrated into the simulator
+          as a drop-in replacement for the idealized actuator model. When combined with reinforcement
+          learning training, this produced agile and dynamic locomotion behaviors on the ANYmal
+          quadruped that transferred reliably to hardware. The actuator net concept demonstrated that
+          <em>learning</em> the sim-to-real gap, rather than engineering it away through physics
+          equations, could be both more accurate and more general than analytical models.
+        </p>
+
+        <p>
+          Bjelonic et al. [6] identified actuator-specific energy losses, namely electrical and
+          mechanical dissipation in permanent magnet synchronous motors, as a distinct, previously
+          underappreciated gap component. Integrating a first-principles motor energy model into the
+          reinforcement learning reward simultaneously closed this gap and improved real-world energy
+          efficiency by 32 percent in cost of transport. This illustrates a general principle. Modeling
+          a specific physical phenomenon not only improves transfer fidelity but can unlock performance
+          benefits that generic robustness strategies cannot capture.
+        </p>
+
+        <h3>4.2 Domain Randomization in Locomotion</h3>
+
+        <p>
+          The breakthrough in scaling sim-to-real locomotion came from combining domain randomization
+          with teacher-student training architectures. Lee et al. [44] trained a teacher
+          policy with access to privileged terrain information in simulation, then distilled it into a
+          student policy that used only proprioceptive observations and an observation history. The
+          history implicitly encoded terrain properties through the policy's experience. Combined with
+          extensive DR over terrain types and dynamics parameters, this teacher-student pipeline enabled
+          a quadruped to traverse challenging terrains (stairs, slopes, gaps) that no single simulation
+          setting could have prepared it for.
+        </p>
+
+        <p>
+          Kumar et al. [43] formalized the implicit system identification happening through
+          observation histories with <strong>Rapid Motor Adaptation (RMA)</strong>, which explicitly
+          decomposes the policy into a base policy and an adaptation module. The adaptation module
+          estimates a latent encoding of the current environment dynamics from a short history of
+          proprioceptive observations, which modulates the base policy's behavior. Trained with DR in
+          simulation, RMA enables rapid online adaptation to novel terrains, payloads, and motor
+          degradation in the real world, all without explicit system identification or fine-tuning. This
+          architecture has become arguably the most influential sim-to-real framework in locomotion,
+          with numerous subsequent works adopting its core design [54, 17, 65].
+        </p>
+
+        <p>
+          The combination of massively parallel simulation and DR enabled dramatic scaling. Rudin et al.
+          [68] demonstrated that locomotion policies could be learned in minutes using Isaac
+          Gym's GPU-parallel simulation, with the resulting policies transferring directly to hardware.
+          Miki et al. [54] extended this to <em>perceptive</em> locomotion, combining
+          exteroceptive sensing (elevation maps from depth cameras) with proprioceptive adaptation to
+          enable robust navigation over diverse terrains including snow, mud, and urban environments.
+          The key insight is that proprioceptive adaptation handles dynamics uncertainty, while
+          exteroceptive perception handles geometric uncertainty. This decomposition has become standard
+          practice. Recent benchmarks comparing sim-to-real quadruped locomotion on Isaac-family stacks
+          [23, 97] reaffirm that the RMA-style teacher-student template transfers across
+          hardware platforms with modest retuning.
+        </p>
+
+        <h3>4.3 Agile and Extreme Locomotion</h3>
+
+        <p>
+          Recent work has pushed sim-to-real locomotion toward increasingly athletic behaviors. Zhuang et
+          al. [90] and Cheng et al. [17] demonstrated parkour-capable quadrupeds
+          that can jump over obstacles, climb walls, and leap across gaps, with behaviors learned
+          entirely in simulation through curriculum learning with DR and transferred zero-shot to
+          hardware. These results suggest that the combination of large-scale DR, curriculum design, and
+          sufficient policy capacity can produce even highly dynamic behaviors that transfer reliably,
+          though the curriculum design itself remains a manual engineering challenge.
+        </p>
+
+        <p>
+          In the aerial domain, Loquercio et al. [48] demonstrated sim-to-real transfer of
+          agile drone flight policies through gates and obstacle courses at speeds exceeding human pilot
+          performance. Kaufmann et al. [40] achieved champion-level autonomous drone racing,
+          with simulation-trained policies competing against and defeating world-class human pilots.
+          Both works relied on privileged teacher-student training combined with DR, confirming that the
+          architectural patterns developed for ground locomotion generalize to aerial platforms, albeit
+          with domain-specific gap sources (aerodynamic effects, motor response curves). Dedicated
+          quadrotor benchmarks such as Learning to Fly in Seconds [98] further compress the
+          simulation time budget.
+        </p>
+
+        <p>
+          For humanoid and bipedal locomotion the gap remains more challenging due to higher
+          dimensionality and more complex contact patterns. Radosavovic et al. [65]
+          demonstrated that simulation-trained transformer policies can enable humanoid walking in the
+          real world, though the behavioral repertoire remains more limited than for quadrupeds.
+          Siekmann et al. [72] achieved sim-to-real transfer for the Cassie bipedal robot
+          using reward shaping and DR. Bao [5] and Kim [41] provide diagnostic
+          taxonomies identifying four primary gap sources for bipedal locomotion (dynamics modeling,
+          contact modeling, state estimation, solver discrepancies), with Kim's controlled ablation
+          study establishing a prioritized ranking of individual technique importance. Singh
+          [74] trained a robust biped locomotion policy via systematic DR combined with
+          reference-free reward shaping, and Nai et al. [58] recently proposed a robot-free
+          humanoid manipulation interface that feeds IMU-captured human motion to the humanoid,
+          bypassing both simulation and teleoperation for the upper body.
+        </p>
+
+        <h3>4.4 Real-World Learning Infrastructure</h3>
+
+        <p>
+          An emerging approach addresses the gap not through better simulation but through better
+          real-world infrastructure. Hu et al. [30] proposed using a secondary robotic system
+          (a robotic arm) as physical teacher infrastructure that provides safety support, perturbations,
+          reward signals, and automatic resets for humanoid locomotion learning. This "robot trains
+          robot" paradigm enables direct real-world policy training with minimal human intervention,
+          complementing simulation-based approaches with a pathway to ground-truth dynamics. Smith et al.
+          [75] similarly demonstrated that real-world reinforcement learning for quadruped
+          locomotion is tractable with appropriate safety infrastructure and reset mechanisms. As robotic
+          platforms become more reliable, the role of simulation may shift from training substrate to
+          initialization source, with real-world learning closing the final gap after deployment.
+        </p>
+
+        <h2>5. Sim-to-Real for Navigation</h2>
+
+        <p>
+          Navigation presents distinctive sim-to-real challenges because it involves sustained
+          interaction with large-scale, visually complex environments where sensor fidelity and scene
+          diversity are the dominant gap sources, rather than the contact dynamics that challenge
+          locomotion and manipulation. Early visual-servoing work on AR.Drone platforms [83]
+          and task-level grounding studies in urban search and rescue [13] established the
+          problem well before the current learning-centric formulations.
+        </p>
+
+        <h3>5.1 The Visual Navigation Gap</h3>
+
+        <p>
+          For visual navigation the primary gap source is the discrepancy between rendered and real
+          visual observations. Sadeghi and Levine [69] demonstrated that this gap can be
+          crossed with sufficient visual diversity. Their CAD2RL approach trained collision-avoidance
+          policies entirely on synthetic images with no real-world data, transferring zero-shot to indoor
+          drone flight. The key enabler was massive visual randomization of textures, objects, and
+          lighting rather than photorealistic rendering.
+        </p>
+
+        <p>
+          Kadian et al. [39] systematically evaluated the <em>sim-to-real predictivity</em> of
+          the Habitat simulator for PointGoal navigation, finding that relative performance rankings
+          between methods in simulation were largely preserved in real-world deployment, even when
+          absolute performance differed. This result, that simulation is a reliable <em>ordinal</em>
+          predictor of real-world performance even if it is not an accurate <em>cardinal</em> predictor,
+          has important implications for using simulation as a development tool. Researchers can trust
+          that methods ranking better in simulation will rank better in reality, even if the precise
+          transfer gap is unpredictable.
+        </p>
+
+        <p>
+          The sim-to-real gap for <strong>Vision-and-Language Navigation (VLN)</strong> introduces
+          qualitatively different challenges. Anderson et al. [3] identified a
+          discrete-to-continuous action space mismatch as a distinct gap source. Policies trained with
+          high-level discrete navigation actions in simulation (turn left, go forward) cannot directly
+          command real actuators, requiring an intermediate waypoint model. This structural gap is
+          orthogonal to visual and dynamics gaps, and highlights that sim-to-real transfer involves not
+          only physical fidelity but also <em>architectural</em> alignment between training and
+          deployment interfaces.
+        </p>
+
+        <h3>5.2 Simulation Platforms and Scene Diversity</h3>
+
+        <p>
+          The development of large-scale, photorealistic simulation platforms has been a major enabler
+          for navigation research. Habitat [70] reconstructs real indoor environments from 3D
+          scans, providing visually realistic navigation environments. AI2-THOR [42] and its
+          extension RoboTHOR [19] offer interactive environments with manipulable objects.
+          ProcTHOR [20] addresses scene diversity through procedural generation of thousands
+          of house-scale environments, significantly expanding the distributional coverage of training
+          environments. Earlier multimodal indoor simulators such as MINOS [99] and
+          high-fidelity procedural pipelines for mobile robots [100] informed this progression.
+        </p>
+
+        <p>
+          These platforms have enabled a progression from simple PointGoal navigation toward
+          semantically rich tasks. ObjectGoal navigation requires navigating to an instance of a
+          category, ImageGoal navigation requires matching a depicted location, and Vision-and-Language
+          Navigation requires grounding language in perceptual experience. Each task type introduces
+          additional gap sources. ObjectGoal requires recognizing real instances of object categories
+          encountered only in simulation; ImageGoal requires visual matching across domain differences;
+          VLN requires grounding language in real perceptual experience. The trend is toward increasingly
+          complex navigation tasks where the sim-to-real gap is multifaceted and irreducible to a single
+          source.
+        </p>
+
+        <h3>5.3 Privileged Information and Teacher-Student Methods</h3>
+
+        <p>
+          A powerful strategy for bridging the navigation gap leverages simulation's unique advantage,
+          access to ground-truth information unavailable in the real world. Cai [11] proposed
+          NavDP, which trains a critic on contrastive trajectory samples supervised by privileged labels
+          (ground-truth occupancy maps, full scene geometry) to distill spatial understanding into the
+          policy, enabling zero-shot transfer with only RGB-D observations at inference time. This
+          teacher-student approach, using simulation's perfect information as a training signal while
+          deploying with partial observations, mirrors the architecture that transformed locomotion
+          [44, 43] and has become a standard design pattern.
+        </p>
+
+        <p>
+          Chen et al. [15] demonstrated that training a privileged teacher for navigation with
+          access to the full floor plan, then distilling into a student with only egocentric
+          observations, substantially outperforms end-to-end training of the student alone. The
+          distillation process effectively compresses global spatial understanding into local
+          observation patterns, producing policies that behave as if they understand the global
+          environment structure despite perceiving only locally. Gervet et al. [26] combined
+          this privileged-information paradigm with classical mapping modules for real-world object
+          navigation, delivering one of the first science-style demonstrations of modular sim-to-real
+          navigation at home-robot scale.
+        </p>
+
+        <h3>5.4 Deployment Extremes</h3>
+
+        <p>
+          Practical deployment introduces additional gap dimensions underrepresented in the academic
+          literature. Pylypenko [63] demonstrated that INT8 quantization of
+          reinforcement-learning-trained navigation policies enables deployment on bare microcontrollers
+          (ESP32) with less than 2.5 percent accuracy loss and sub-millisecond inference, showing that
+          sim-to-real transfer and severe compute constraints can be jointly satisfied. At the opposite
+          extreme, modern visual navigation transformers such as ViNT [71] leverage
+          large-scale pretraining on diverse navigation data to learn representations that generalize
+          across environments, potentially reducing the sim-to-real gap through the same mechanisms that
+          make foundation models domain robust.
+        </p>
+
+        <p>
+          An alternative to gap reduction is gap avoidance. Bruce et al. [10] demonstrated that
+          grounding the training world model in a single real-world sensor traversal and applying
+          stochastic augmentation can provide sufficient coverage for zero-shot transfer, sidestepping
+          the sim-to-real gap entirely by never constructing a synthetic environment. While limited in
+          scalability (it requires at least one physical traversal per environment), this approach
+          offers a valuable complement in settings where simulation fidelity is particularly poor or
+          where rapid deployment in a specific environment is the priority. The historical rescue
+          robotics literature [13, 101] anticipated this grounded approach by emphasizing
+          that physically traversed maps beat generic indoor simulators for targeted field tasks.
+        </p>
+
+        <h2>6. Sim-to-Real for Manipulation</h2>
+
+        <p>
+          Manipulation tasks impose distinctive transfer challenges. Precise contact interactions,
+          complex and variable object geometries, and the requirement for accurate perception of
+          potentially novel objects jointly determine the transfer surface. The sim-to-real manipulation
+          literature has developed specialized strategies spanning visual perception transfer, dexterous
+          skill transfer, contact-rich assembly, and emerging paradigms that reshape the simulation-to-reality
+          relationship [62].
+        </p>
+
+        <h3>6.1 Visual Perception Transfer</h3>
+
+        <p>
+          A large body of manipulation transfer work focuses on bridging the visual gap for perception
+          components. The progression from sparse to dense visual representations illustrates the
+          field's maturation. Keypoint-based approaches train detectors to localize semantically
+          meaningful points on robots or objects. Lu et al. [49] demonstrated sim-to-real
+          transfer of marker-less keypoint detectors for robot pose estimation, trained entirely on
+          synthetic data, with the notable innovation of optimizing keypoint placement in simulation to
+          maximize detection robustness. KOVIS [102] extended this to keypoint-based visual
+          servoing with zero-shot transfer across manipulators.
+        </p>
+
+        <p>
+          Dense pixel-level descriptors represent a more expressive alternative. Cao [12]
+          showed that domain-invariant dense descriptor spaces with cross-domain consistency constraints
+          enable zero-real-training generalization to unseen objects, addressing the per-object
+          limitation of keypoint methods. Dense Object Nets [94] established the feature-space
+          paradigm, with subsequent work extending it to multi-step pick-and-place [95],
+          multi-object grasping [103], and cluttered picking [104]. Self-supervised
+          sim-to-real visual adaptation [105] offers an alternative that trains on unlabeled
+          real data through reconstruction and contrastive objectives.
+        </p>
+
+        <p>
+          Ding et al. [21] extended the synthetic-only training paradigm from visual to
+          <em>tactile</em> modalities, demonstrating that soft-body simulation of a deformable TacTip
+          sensor can train contact geometry inference networks that transfer to real hardware with no
+          real data. The wider tactile sensing literature, spanning GelSight [106],
+          BioTac-style vibration sensing [107], FingerVision [108], and finite-element
+          force supervision [109], collectively establishes tactile simulation as a viable
+          training substrate. This cross-modal extension suggests that the DR framework is not
+          fundamentally limited to vision. Any approximately simulable sensor modality is amenable to
+          synthetic training, and recent surveys of sim-to-real manipulation [62] highlight
+          tactile transfer as one of the fastest-growing subareas.
+        </p>
+
+        <p>
+          Rather than adapting visual representations, an alternative strategy selects input modalities
+          that are inherently domain invariant. Qin et al. [64] proposed DexPoint, using point
+          cloud inputs for dexterous manipulation. Because 3D geometric structure is more consistent
+          across domains than visual appearance, point cloud policies transfer directly without
+          adaptation. Ze et al. [87] extended this to 3D Diffusion Policy, combining point
+          cloud representations with denoising diffusion architectures for more expressive and
+          generalizable manipulation policies. The tradeoff is that point clouds require depth sensing
+          and may lose appearance-relevant information, but for geometric manipulation tasks this
+          tradeoff is highly favorable.
+        </p>
+
+        <h3>6.2 Dexterous Manipulation at Scale</h3>
+
+        <p>
+          The most ambitious demonstrations of DR-based sim-to-real manipulation come from OpenAI's
+          series of works. Andrychowicz et al. [4] achieved sim-to-real transfer of in-hand
+          object reorientation on the Shadow Dexterous Hand through massive DR of physical and visual
+          parameters combined with distributed reinforcement learning and no human demonstrations.
+          Human-like manipulation strategies (finger gaiting, multi-finger coordination, gravity
+          exploitation) emerged naturally from reward maximization, suggesting that sufficiently
+          randomized simulation can discover contact-rich skills without imitation signals. Akkaya et
+          al. [1] extended this to Rubik's cube solving with Automatic Domain Randomization,
+          demonstrating that ADR's progressive range expansion can handle the extreme complexity of
+          multi-step, multi-finger manipulation.
+        </p>
+
+        <p>
+          These results are important not only technically but for their implication about the
+          <em>sufficiency</em> of DR at scale. With broad enough randomization and sufficient policy
+          capacity, emergent dexterous behaviors can arise without explicit modeling of the specific
+          phenomena that produce them. However, both required enormous computational resources, raising
+          questions about accessibility and scalability. Handa et al. [28] (DeXtreme) advanced
+          dexterous manipulation sim-to-real further using Isaac Gym's GPU parallelism, demonstrating
+          that GPU-accelerated simulation can reduce the computational barrier while maintaining
+          transfer quality for in-hand reorientation tasks.
+        </p>
+
+        <p>
+          Subsequent work extended DR-based manipulation transfer to broader domains. Matas et al.
+          [52] demonstrated transfer for deformable object manipulation (cloth folding), where
+          explicit physical modeling is impractical. Zhang L. [88] combined DR with
+          task-specific data augmentation for model-free grasping of novel complex-shaped objects. Dong
+          et al. [22] showed that geometric primitives (cylinders, ellipsoids) trained with
+          targeted DR transfer cleanly to industrial picking. GraspNet-1Billion [110] and
+          related large-scale grasping benchmarks [111] now provide standardized evaluation
+          platforms for DR-trained grasping policies. These extensions confirm that the DR paradigm
+          generalizes beyond the rigid-body, fixed-geometry settings where it was first validated.
+        </p>
+
+        <h3>6.3 Hybrid and Residual Approaches</h3>
+
+        <p>
+          End-to-end learned manipulation policies face particularly severe gaps in contact-rich tasks
+          because contact dynamics are among the least accurately simulated phenomena. <strong>Residual
+          policy learning</strong> addresses this by training a learned component to correct a classical
+          baseline, limiting the scope of what must transfer. Johannink et al. [37] and Silver
+          et al. [73] established residual reinforcement learning as a general paradigm,
+          showing that learning a residual correction on top of a hand-designed controller can overcome
+          both the limitations of the controller (inability to handle complex dynamics) and the
+          limitations of pure reinforcement learning (sample inefficiency, poor transfer).
+        </p>
+
+        <p>
+          Yoneda et al. [86] demonstrated this in the Real Robot Challenge for dexterous
+          manipulation with the TriFinger platform. Zhang X. [89] extended residual learning
+          specifically to compliance control, showing that online residual learning of admittance
+          parameters using force feedback bridges the sim-to-real gap for assembly tasks. Their two-phase
+          approach (offline reinforcement learning with DR, then lightweight online residual adaptation)
+          achieves robust transfer without extensive real-world data. Narang et al. [59]
+          demonstrated this principle at industrial scale with Factory, using residual learning for
+          contact-rich assembly in simulation with transfer to real peg-insertion and gear-meshing. The
+          common principle is <em>scope limitation</em>. By constraining the learned component to
+          correct a classical baseline rather than generate the full control signal, the magnitude of
+          what must transfer is reduced and the classical component provides a safety floor.
+        </p>
+
+        <h3>6.4 Imitation Learning and the Foundation Model Era</h3>
+
+        <p>
+          A parallel development has reshaped manipulation transfer through large-scale imitation
+          learning. While not sim-to-real transfer in the classical sense, these methods intersect with
+          the sim-to-real literature through their use of simulation for data augmentation, policy
+          initialization, and evaluation.
+        </p>
+
+        <p>
+          Diffusion-based policies have emerged as a powerful architecture for manipulation. Chi et al.
+          [18] introduced Diffusion Policy, which models action generation as iterative
+          denoising, achieving strong performance on contact-rich manipulation. While the original work
+          focused on real-world imitation, the diffusion architecture has been adopted for sim-to-real
+          pipelines [87, 11] because its multimodal action distribution naturally accommodates
+          the variability introduced by domain randomization. Generalist robot manipulation frameworks
+          beyond action-labeled data [112] further blur the sim-to-real boundary by training
+          action-free video policies and composing them with simulation-trained controllers.
+        </p>
+
+        <p>
+          The RT series from Google DeepMind [8, 9] demonstrated that scaling robot data and
+          model capacity can produce manipulation policies with broad generalization. RT-2
+          [9] showed that vision-language models pretrained on internet-scale data can serve as
+          manipulation policy backbones, potentially providing domain-invariant representations that
+          reduce the visual sim-to-real gap. The Open X-Embodiment collaboration [60] extended
+          this to cross-embodiment transfer, training on data from 22 different robot types, a form of
+          "embodiment randomization" that echoes domain randomization at a much larger scale.
+        </p>
+
+        <h3>6.5 Real-to-Sim-to-Real</h3>
+
+        <p>
+          An emerging paradigm inverts the traditional transfer direction by constructing task-specific
+          simulations from real-world observations. Torne et al. [82] demonstrated that
+          building personalized digital twins from small amounts of real-world scan data, then using
+          reinforcement learning fine-tuning in those digital twins, achieves manipulation robustness
+          exceeding both pure imitation and generic DR. This approach collapses the sim-to-real gap by
+          construction. The simulation <em>is</em> the real world, up to reconstruction accuracy.
+          Industrial digital-twin pipelines [92] generalize this idea to structured factory
+          environments.
+        </p>
+
+        <p>
+          Nai et al. [58] pushed gap avoidance further by bypassing simulation entirely for
+          humanoid manipulation, retargeting human demonstrations directly to robot skills via IMU-based
+          motion capture. Robot See Robot Do [113] demonstrated an analogous pipeline that
+          imitates articulated object manipulation from monocular 4D reconstructions of a human
+          demonstrator. While limited to demonstrable tasks, these approaches eliminate the sim-to-real
+          gap by eliminating the simulation, representing a philosophically distinct alternative to
+          simulation-centric approaches.
+        </p>
+
+        <div class="blog-callout">
+          <p>
+            <strong>Manipulation gap decomposition.</strong> Visual gap reduction (DR, DA, descriptors,
+            point clouds) targets perception. Residual learning and SysID target contact dynamics.
+            Real-to-sim-to-real and human-demo retargeting bypass simulation for the remainder. Ambitious
+            manipulation systems now combine all three axes, and the open question is how to allocate
+            engineering effort across them for a given platform and task.
+          </p>
+        </div>
+
+        <h2>7. Sim-to-Real for Mobile Manipulation</h2>
+
+        <p>
+          Mobile manipulation, tasks requiring coordinated locomotion and manipulation such as
+          navigating to an object and grasping it, represents the frontier of sim-to-real transfer. This
+          domain inherits the gap sources of both navigation (visual appearance, scene diversity) and
+          manipulation (contact dynamics, object variability), and introduces additional challenges from
+          their interaction. Early aerial mobile manipulation work [114] and reactive
+          mobile-manipulation planners [115] anticipated these compounding challenges before the
+          current learning pipelines matured.
+        </p>
+
+        <h3>7.1 The Compounding Gap Problem</h3>
+
+        <p>
+          The fundamental challenge of mobile manipulation sim-to-real is that errors compound across
+          subsystems. A visual navigation error that positions the robot imprecisely leads to an
+          out-of-distribution manipulation scenario; a manipulation failure that changes the robot's
+          payload affects subsequent navigation dynamics. This <em>error compounding</em> means that
+          methods achieving adequate transfer for navigation alone and manipulation alone may fail when
+          composed, because neither subsystem was trained to handle the distribution shifts introduced
+          by the other's real-world imperfections.
+        </p>
+
+        <p>
+          Szot et al. [76] introduced Habitat 2.0 as the first large-scale simulation platform
+          explicitly targeting mobile manipulation, providing a virtual home assistant that must navigate
+          through realistic indoor environments, approach target objects, and manipulate them. This
+          platform revealed that monolithic end-to-end policies for mobile manipulation are extremely
+          difficult to train even in simulation, due to the enormous state-action space and the need to
+          coordinate navigation and manipulation behaviors over long horizons.
+        </p>
+
+        <h3>7.2 Modular Versus End-to-End Architectures</h3>
+
+        <p>
+          The architectural choice between modular and end-to-end approaches has distinct sim-to-real
+          implications. Modular systems decompose the task into navigation, approach, and manipulation
+          stages, each with its own policy or controller, connected through handoff conditions. This
+          decomposition enables each module to be trained, transferred, and debugged independently, and
+          allows mixing simulation-trained learned modules with classical controllers [26].
+          The cost is that interfaces between modules must be carefully designed, and errors at handoff
+          points can cascade.
+        </p>
+
+        <p>
+          Gu et al. [27] demonstrated a multi-skill mobile manipulation framework that uses a
+          skill library of pretrained manipulation and navigation primitives, composed by a higher-level
+          task planner. Each skill is trained with DR in simulation and transferred independently, with
+          composition happening at the symbolic level. Yokoyama et al. [85] evaluated
+          sim-to-real mobile manipulation for home robotics, finding that modular architectures with
+          explicit state machines for mode switching (navigate, orient, grasp, place) achieved more
+          reliable real-world transfer than end-to-end alternatives, though at the cost of reduced
+          behavioral flexibility. Sim-to-real case studies on general-purpose platforms such as TIAGo
+          [116] reinforce the observation that modular decompositions simplify debugging when
+          gap sources are heterogeneous.
+        </p>
+
+        <p>
+          End-to-end approaches avoid the interface design problem but face a harder transfer challenge.
+          Xia et al. [84] benchmarked interactive navigation (navigation requiring physical
+          interaction with the environment, such as opening doors) as a stepping stone toward full
+          mobile manipulation, finding that policies must learn coordinated base and arm motions that
+          are highly sensitive to dynamics parameters. Li et al. [45] introduced BEHAVIOR-1K,
+          a benchmark of 1,000 everyday activities requiring mobile manipulation, highlighting the
+          enormous diversity of scenarios that a general mobile manipulation system must handle, and by
+          extension the diversity of sim-to-real gaps it must bridge.
+        </p>
+
+        <h3>7.3 Learning from Human Demonstrations</h3>
+
+        <p>
+          Demonstration-based approaches have shown particular promise for mobile manipulation, where
+          the reward engineering and curriculum design challenges of reinforcement learning are
+          amplified by the long-horizon, multi-stage nature of the tasks. Fu et al. [25]
+          introduced Mobile ALOHA, a system for bimanual mobile manipulation that learns from human
+          teleoperation demonstrations. While Mobile ALOHA operates primarily in the real world (with
+          co-training on diverse manipulation data for generalization), it highlights a trend toward
+          collecting demonstrations that inherently bridge the reality gap. The data comes from the real
+          robot in the real world, and simulation's role shifts from training substrate to data
+          augmentation and evaluation.
+        </p>
+
+        <p>
+          The intersection of mobile manipulation with large language and vision-language models has
+          opened new transfer pathways. High-level task planning through language models [31, 46]
+          can decompose complex mobile manipulation instructions into sequences of primitive skills,
+          each of which can be individually transferred from simulation. This hierarchical approach
+          effectively limits the scope of sim-to-real transfer to short-horizon skill execution while
+          delegating long-horizon coordination to foundation models that generalize through language
+          rather than through physics.
+        </p>
+
+        <h3>7.4 State of the Art and Open Limits</h3>
+
+        <p>
+          Mobile manipulation sim-to-real remains substantially less mature than its constituent
+          subfields. The literature is characterized by system-level demonstrations [85, 27]
+          rather than systematic ablation studies and theoretical analyses available for locomotion
+          [41] and domain randomization [16]. Most published results use
+          relatively simple manipulation primitives (pick, place, push) rather than the dexterous
+          behaviors achieved in manipulation-only sim-to-real work [4, 1]. The gap
+          between what simulation-trained policies can do when navigation and manipulation are
+          separately optimized versus jointly executed remains large, and principled methods for joint
+          transfer, rather than modular composition, are largely absent. Benchmark suites now emerging
+          in this space [117] offer the first shared evaluation harness.
+        </p>
+
+        <h2>8. Cross-Cutting Analysis</h2>
+
+        <h3>8.1 The Fidelity and Diversity Tradeoff</h3>
+
+        <p>
+          Across all task domains a central tension recurs. Should the sim-to-real gap be closed by
+          increasing simulation <em>fidelity</em>, making simulation more like reality, or by increasing
+          training <em>diversity</em>, making the policy robust to any reality? This is not a binary
+          choice but a continuum, and the optimal operating point varies by task, gap source, and
+          available resources.
+        </p>
+
+        <p>
+          For visual transfer, the diversity principle [79, 69] and the quality-quantity
+          tradeoff [2] bracket this continuum. For dynamics transfer, the parallel is between
+          high-fidelity actuator modeling [77, 32, 6] and broad parameter randomization
+          [61, 43]. The intentionally minimal simulation philosophy [33]
+          occupies an extreme, arguing that less fidelity can improve transfer by preventing overfitting
+          to simulation artifacts.
+        </p>
+
+        <p>
+          A resolution is emerging. <em>Targeted</em> fidelity improvements for specific, known gap
+          sources combine productively with <em>broad</em> robustness training for poorly characterized
+          parameters. Bjelonic et al. [6] model actuator losses precisely while randomizing
+          terrain and payload. Kumar et al. [43] use an adaptation module to handle unmodeled
+          dynamics while training with careful reward design for the modeled components. The field is
+          converging on this hybrid strategy, though principled methods for deciding <em>which</em>
+          parameters to model and which to randomize remain underdeveloped [24, 16, 34].
+        </p>
 
         <div class="blog-table-wrapper">
           <table class="blog-table">
-            <caption>Table 1: Method families and their assumptions</caption>
             <thead>
               <tr>
-                <th>Family</th>
-                <th>Core Assumption</th>
-                <th>Real Data Needed</th>
-                <th>Typical Domain</th>
+                <th>Gap source</th>
+                <th>Primary strategy</th>
+                <th>Representative works</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td><strong>Domain Randomization</strong></td>
-                <td>Real world is one sample from a broad distribution</td>
-                <td>None (zero-shot)</td>
-                <td>Locomotion, manipulation</td>
+                <td>Actuator dynamics</td>
+                <td>High-fidelity SysID, actuator net, energy modeling</td>
+                <td>[77], [32], [6]</td>
               </tr>
               <tr>
-                <td><strong>System Identification</strong></td>
-                <td>Simulator structure is correct; parameters are wrong</td>
-                <td>Small calibration set</td>
-                <td>Any</td>
+                <td>Contact dynamics</td>
+                <td>Residual learning, Factory-style contact simulation</td>
+                <td>[73], [37], [59], [89]</td>
               </tr>
               <tr>
-                <td><strong>Domain Adaptation</strong></td>
-                <td>Sim and real share latent structure mappable by a network</td>
-                <td>Unpaired real images</td>
-                <td>Vision-based tasks</td>
+                <td>Visual appearance</td>
+                <td>Visual DR, GAN adaptation, canonical representations</td>
+                <td>[79], [7], [36], [67]</td>
               </tr>
               <tr>
-                <td><strong>Privileged Learning</strong></td>
-                <td>Sim state is useful even if not available at deployment</td>
-                <td>None (zero-shot)</td>
-                <td>Locomotion, driving</td>
+                <td>Terrain or payload</td>
+                <td>Dynamics DR plus adaptation module</td>
+                <td>[44], [43], [54]</td>
               </tr>
               <tr>
-                <td><strong>Meta-Learning</strong></td>
-                <td>Policy should be optimized for fast adaptation, not robustness</td>
-                <td>Few-shot real data</td>
-                <td>Locomotion, mobile robots</td>
+                <td>Object novelty</td>
+                <td>Point clouds, dense descriptors, 3D diffusion</td>
+                <td>[64], [12], [87]</td>
               </tr>
               <tr>
-                <td><strong>Real-to-Sim-to-Real</strong></td>
-                <td>Build sim from real, then train, then deploy</td>
-                <td>Scene scans</td>
-                <td>Manipulation</td>
+                <td>Action space mismatch</td>
+                <td>Waypoint models, skill decomposition</td>
+                <td>[3], [27], [85]</td>
+              </tr>
+              <tr>
+                <td>Non-stationary deployment</td>
+                <td>Continual adaptation, safe online learning</td>
+                <td>[38], [30], [43]</td>
+              </tr>
+              <tr>
+                <td>Full environment mismatch</td>
+                <td>Real-to-sim-to-real, grounded traversals, human demo retargeting</td>
+                <td>[82], [10], [58], [113]</td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <p>
-          These families are not mutually exclusive. The most successful modern systems combine multiple approaches.
-          For example, [22] use privileged teacher-student distillation with domain
-          randomization and learned actuator models, while [23] combine real-to-sim
-          calibration, domain randomization, and privileged distillation for humanoid dexterous manipulation.
-        </p>
-
-        <h2>3. Timeline and Evolution</h2>
-
-        <h3>The foundations (1995-2016)</h3>
-
-        <p>
-          The story begins with [15], who showed that adding calibrated noise to a
-          Khepera robot simulator significantly improved transfer of evolved controllers. Their "envelope of noise"
-          hypothesis, that a controller robust to realistic noise in simulation will also be robust to the
-          discrepancies between sim and real, planted the seed for what would become domain randomization two decades
-          later.
-        </p>
-
-        <p>
-          [20] reframed the problem as multi-objective optimization, jointly
-          optimizing task fitness and a transferability metric. Their insight that simulation efficiency and real-world
-          transferability are conflicting objectives was prescient, though their evolutionary robotics framing was soon
-          eclipsed by deep RL.
-        </p>
-
-        <h3>The domain randomization era (2017-2019)</h3>
-
-        <p>
-          The field underwent a phase transition in 2017 with two concurrent papers.
-          [31] trained a collision-avoidance policy for indoor quadrotor flight
-          entirely on randomized renderings of 3D CAD models, achieving zero-shot transfer to real environments.
-          [35] formalized and named "domain randomization" (DR), the technique of
-          randomizing visual parameters like textures, lighting, camera poses, and object appearances during training
-          so that the real world appears as just another variation of the simulator. Tobin et al.'s paper became the
-          most-cited work in the sim-to-real literature, with over 3,300 citations.
-        </p>
-
-        <p>
-          The key counterintuitive insight was that deliberately unrealistic, randomly-textured scenes transfer better
-          than carefully crafted realistic ones. The network cannot overfit to any particular visual style and is
-          forced to learn geometry-invariant features. This was soon extended from visual parameters to physics
-          parameters by [26], who randomized masses, friction, damping, and actuator
-          parameters during training, enabling zero-shot transfer of a robotic pushing policy.
-        </p>
-
-        <p>
-          The landmark demonstration of this era was OpenAI's dexterous manipulation work.
-          [3] combined massive-scale domain randomization over 50+ physical and
-          visual parameters with distributed RL to train a Shadow Hand to reorient objects, transferring zero-shot
-          from simulation to a real 24-DoF robot hand. [1] pushed further, solving
-          a Rubik's Cube with the same hand by introducing Automatic Domain Randomization (ADR), which progressively
-          increases environment complexity as the agent improves rather than requiring manual specification of
-          randomization ranges. ADR-trained policies exhibited emergent meta-learning at test time, adapting
-          on-the-fly to real-world physics never seen during training.
-        </p>
-
-        <h3>The privileged learning revolution (2020-2022)</h3>
-
-        <p>
-          While domain randomization was scaling up, a parallel paradigm was emerging.
-          [27] introduced the asymmetric actor-critic, where the critic (the value
-          function network used only during training) receives full simulator state while the actor (the policy
-          deployed on the real robot) receives only camera images. This formalized the idea that training and
-          deployment can use different information.
-        </p>
-
-        <p>
-          [7] crystallized this into the "learning by cheating" framework for
-          autonomous driving in CARLA (an open-source urban driving simulator built on Unreal Engine 4
-          [10]). First, a "cheating" agent is trained with access to ground-truth
-          privileged state like a bird's-eye-view map. Then, a sensorimotor student that operates from raw camera
-          input alone is trained to imitate the cheating teacher via DAgger (Dataset Aggregation, an online imitation
-          learning method where the student collects its own data and queries the expert for corrections). Though
-          demonstrated in simulation only, this two-stage pipeline became the dominant approach for sim-to-real
-          robotics.
-        </p>
-
-        <p>
-          [22] applied this pipeline to quadrupedal locomotion with striking
-          results. A teacher policy trained with access to ground-truth terrain profiles, contact forces, and friction
-          coefficients was distilled into a proprioceptive student using a Temporal Convolutional Network (TCN, a 1D
-          convolutional architecture that processes temporal sequences). The student was deployed zero-shot on an
-          ANYmal quadruped across mud, snow, rubble, and vegetation, and was even used in the DARPA Subterranean
-          Challenge with zero failures across four 60-minute missions. This paper established that training on rigid
-          procedural terrain in simulation can transfer to deformable, cluttered natural environments, a result that
-          challenged assumptions about how faithful a simulator needs to be.
-        </p>
-
-        <p>
-          [21] introduced Rapid Motor Adaptation (RMA), adding an explicit
-          adaptation module. A base policy is trained with privileged access to ground-truth environmental parameters
-          compressed into a low-dimensional latent vector. A separate adaptation module, a lightweight 1D CNN over
-          half a second of proprioceptive history, is trained to predict this latent vector from sensor data alone. At
-          deployment, the adaptation module runs asynchronously from the base policy, enabling real-time adjustment
-          without any environmental knowledge or fine-tuning. RMA achieved near-oracle performance on an A1 quadruped
-          across diverse terrains, adapting in under one second compared to minutes for prior methods.
-        </p>
-
-        <h3>Maturation and diversification (2023-present)</h3>
-
-        <p>
-          The current period is characterized by theoretical deepening, tool consolidation, and the emergence of
-          alternative paradigms.
-        </p>
-
-        <p>
-          On the theory side, [8] provided the first sharp bounds on the sim-to-real
-          gap under domain randomization, proving that transfer can succeed without any real-world samples under mild
-          conditions. Their analysis revealed that history-dependent policies (those with memory, like LSTMs) are
-          provably necessary for domain randomization to work, giving theoretical grounding to the empirical
-          observation that recurrent policies transfer better.
-        </p>
-
-        <p>
-          [6] challenged the dominance of domain randomization by demonstrating
-          that careful system identification of actuator dynamics, requiring only 20 seconds of encoder data per
-          joint, can replace broad randomization entirely. Their PACE framework deployed zero-shot on 13 different
-          legged robot platforms without any dynamics randomization, achieving a 32% reduction in cost of transport on
-          ANYmal. This is a significant result because it suggests that for locomotion at least, the field may have
-          been over-relying on randomization when precise identification is both feasible and superior.
-        </p>
-
-        <p>
-          On the tools side, NVIDIA Isaac Lab and Google DeepMind's MuJoCo Playground have emerged as the two
-          dominant GPU-accelerated frameworks for sim-to-real research, each with comprehensive domain randomization
-          pipelines and deployment workflows (discussed in Section 5).
-        </p>
-
-        <p>
-          The most recent frontier is the integration of foundation models. [9]
-          survey how large language models (LLMs) and vision-language models (VLMs) are being used to bridge specific
-          components of the gap: VLMs as semantic anchors for the observation gap, LLMs for automated reward design to
-          bridge the reward gap, and LLM-enhanced forward models for the dynamics gap.
-          [40] demonstrated that natural language descriptions can serve as a
-          domain-invariant signal to bridge the visual sim-to-real gap, outperforming established methods like CLIP
-          and R3M by 25-40% on manipulation tasks.
-        </p>
-
-        <h2>4. Key Papers and Contributions</h2>
-
-        <h3>4.1 Domain Randomization</h3>
-
-        <p>
-          <strong>The foundational papers.</strong> [35] and
-          [31] independently demonstrated that visual randomization enables
-          zero-shot sim-to-real transfer. Tobin et al. achieved ~1.5 cm localization error and 95% grasping success
-          on a Fetch robot using only non-photorealistic, randomly-textured MuJoCo renderings. Their ablation showed
-          that texture diversity is critical (performance degrades below ~1,000 unique textures) and that distractor
-          objects are essential for cluttered-scene robustness. Sadeghi and Levine showed the principle extends to
-          safety-critical platforms, training collision-avoidance for quadrotors that navigated around furniture,
-          through windows, and up staircases never seen in training.
-        </p>
-
-        <p>
-          [26] extended randomization from visual appearance to physics dynamics,
-          randomizing 95 parameters including link masses, joint damping, friction coefficients, and actuator
-          parameters. The key finding was that an LSTM-based policy naturally learns to infer current dynamics from
-          its observation history, performing implicit online system identification without any explicit estimation
-          module. This implicit identification through memory became a recurring theme in subsequent work.
-        </p>
-
-        <p>
-          <strong>Automatic domain randomization.</strong> Manual DR requires guessing appropriate parameter ranges,
-          which doesn't scale. [1] introduced ADR, which starts from a single
-          calibrated environment and automatically widens randomization ranges whenever the policy's performance
-          exceeds a threshold. For the Rubik's Cube task, ADR achieved 15x better real-world performance than manual
-          DR (26.8 vs. 1.8 mean consecutive successes). The paper showed a clear monotonic relationship between ADR
-          entropy (the breadth of the randomization distribution, measured in nats-per-dimension) and real-world
-          performance, suggesting that broader training distributions are generally better.
-        </p>
-
-        <p>
-          [34] proposed DORAEMON, which formulates DR as constrained entropy
-          maximization: maximize the entropy (a measure of spread or disorder) of the dynamics parameter distribution
-          while maintaining policy success probability above a threshold. Unlike ADR, DORAEMON works with arbitrary
-          distribution families (not just uniform bounds), requires no real-world data, and naturally produces a
-          curriculum where the distribution starts narrow and progressively widens as the policy improves. On a
-          17-dimensional randomization space for box pushing, DORAEMON achieved 60% real-world success versus 0% for
-          fixed DR. The principled formulation is elegant, though the real-world validation remains limited to a
-          single task.
-        </p>
-
-        <p>
-          <strong>Data-driven distribution fitting.</strong> Rather than expanding ranges blindly,
-          [33] proposed DROPO, which fits DR distributions from a small offline
-          dataset of real-world trajectories using a likelihood-based objective. They proved that the L2-based
-          approach used by prior work (DROID) provably collapses distributions to point estimates, losing the variance
-          that makes policies robust. DROPO achieved 2 cm error on a pushing task from a single 13-second
-          demonstration, halving the error of DROID. This represents a middle ground between zero-shot DR and full
-          system identification: use a small amount of real data to calibrate the randomization distribution rather
-          than the simulator itself.
-        </p>
-
-        <p>
-          <strong>Theoretical grounding.</strong> [8] provided the first formal
-          guarantees for domain randomization. Their analysis reveals that the sim-to-real gap under DR scales as
-          \(O(\sqrt{H})\) with the horizon length \(H\) under mild conditions, and this bound is tight. Two results
-          stand out. First, history-dependent policies are provably necessary: without memory, a policy cannot
-          implicitly identify which environment it is in, and the gap can be \(\Omega(H)\) (linear in the horizon,
-          meaning it grows without bound). This validates the widespread empirical practice of using LSTMs or temporal
-          convolutions for sim-to-real. Second, the communicating MDP assumption (that every state is reachable from
-          every other state within a bounded number of steps, quantified by the "diameter" \(D\)) is essential:
-          without it, domain randomization fails completely. This gives practitioners a concrete diagnostic: if your
-          real-world MDP has states that are unreachable from common starting configurations, DR may not help.
-        </p>
-
-        <h3>4.2 System Identification and Sim Calibration</h3>
-
-        <p>
-          The alternative to making the policy robust is making the simulator accurate. Classical system
-          identification (SysID), the process of estimating mathematical model parameters from measured input-output
-          data, has a long history in control theory. Modern approaches automate and extend it.
-        </p>
-
-        <p>
-          [11] introduced the Search Param Model (SPM), which reframes simulator
-          parameter calibration as binary classification rather than regression. Given observation-action sequences
-          from the real robot, the SPM predicts whether each simulator parameter is higher or lower than its current
-          value, then iteratively adjusts. The insight that binary comparison is fundamentally easier than continuous
-          regression from high-dimensional observations is both simple and powerful. SPM achieved 90% success on a
-          cabinet-sliding task where standard DR scored 0%, using only RGB trajectories with no state
-          instrumentation.
-        </p>
-
-        <p>
-          [14] introduced COMPASS, which learns a differentiable causal graph (a
-          directed acyclic graph encoding which simulator parameters causally influence which aspects of the
-          trajectory discrepancy) over simulator parameters and the sim-real gap. The key finding is that most
-          simulator parameters are irrelevant to any given task: causal discovery typically identifies 4-6 out of 20+
-          parameters that actually drive the gap. Optimizing only these causally relevant parameters improved success
-          rates to ~90% while using 45% fewer rollouts than SimOpt (a prior gradient-based simulator parameter
-          optimization method). The causal structure also provides interpretability, letting engineers see exactly
-          which parameters cause failures.
-        </p>
-
-        <p>
-          [6] took system identification to its logical extreme, demonstrating
-          that for legged locomotion, domain randomization is unnecessary if the actuator model is sufficiently
-          accurate. Their PACE framework fits a compact per-joint parameter set (armature inertia, viscous damping,
-          Coulomb friction, position bias, plus one global communication delay) from ~20 seconds of suspended-robot
-          chirp signal data. The first-principles PMSM (Permanent Magnet Synchronous Motor) energy model
-          simultaneously closes the sim-to-real gap and provides a physically meaningful energy reward signal. The
-          results are striking: 32% cost-of-transport reduction on ANYmal, 4,120m range per charge (versus 2,640m
-          prior), and zero-shot deployment on 13 diverse platforms from quadrupeds to humanoids to dexterous hands.
-          This paper is perhaps the strongest argument that for well-characterized actuation systems, precise
-          identification beats broad randomization.
-        </p>
-
-        <h3>4.3 Domain Adaptation</h3>
-
-        <p>
-          Domain adaptation methods learn a mapping between simulated and real observations, typically targeting the
-          visual gap.
-        </p>
-
-        <p>
-          [16] introduced RCAN (Randomized-to-Canonical Adaptation Networks),
-          establishing the "sim-to-sim" paradigm. A generator network is trained entirely in simulation to convert
-          domain-randomized images into their canonical (non-randomized) equivalents. At deployment, real images are
-          fed through this same generator, producing clean simulated representations. The approach nearly doubled the
-          grasping success of DR alone (70% vs. 36% zero-shot) and with just 5,000 real grasps of fine-tuning matched
-          the performance of a system trained on 580,000 real grasps. The elegance of RCAN is that it requires no
-          real data for the adaptation network itself, only for optional fine-tuning.
-        </p>
-
-        <p>
-          [28] identified a critical flaw in naive GAN-based adaptation: CycleGAN
-          (an unpaired image-to-image translation framework that learns bidirectional mappings between two visual
-          domains using cycle-consistency constraints) may alter or remove features that the downstream RL policy
-          depends on, such as deleting graspable objects or shifting the robot arm's apparent position. RL-CycleGAN
-          addresses this by adding an RL-consistency loss that penalizes changes in Q-values (the RL policy's estimate
-          of expected future reward) across translated images. The Q-function automatically encodes which visual
-          features matter for the task, making the adaptation task-aware without manual feature engineering. This
-          achieved 70% grasping success from simulation-only training, versus 61% for vanilla CycleGAN.
-        </p>
-
-        <p>
-          [13] took a different approach with RetinaGAN, using a pretrained object
-          detector (EfficientDet) as the consistency constraint rather than a task-specific RL loss. This decouples
-          the GAN from any particular downstream task, enabling a single trained GAN to transfer across grasping,
-          pushing, and door-opening tasks without retraining. RetinaGAN achieved 80% grasping success and notably
-          generalized to a door-opening task (96.6% success) despite the detector being trained on completely
-          different objects. The trade-off versus RL-CycleGAN is generality versus task-specificity: RetinaGAN
-          transfers across tasks but cannot optimize for task-specific nuances that a general object detector misses.
-        </p>
-
-        <p>
-          More recently, [24] moved beyond GAN-based pixel translation to neural
-          rendering. COV-NeRF (Composable Object Volume Neural Radiance Field) reconstructs individual objects from
-          real images into NeRF representations (neural networks that encode a 3D scene as a continuous volumetric
-          function mapping 3D coordinates to color and density), then composes them into novel scenes using a physics
-          simulator for plausible poses. This produces photorealistic RGB images with automatically consistent depth
-          maps and segmentation masks, all from a single volumetric rendering. On bin-picking grasping, COV-NeRF
-          achieved 92.9% success versus 70% for pure sim-to-real, representing a +22.9 percentage point improvement.
-          The shift from 2D image translation to 3D-aware neural rendering ensures geometric consistency across all
-          output modalities, a property that GAN-based methods cannot guarantee.
-        </p>
-
-        <h3>4.4 Privileged Learning and Teacher-Student Distillation</h3>
-
-        <p>
-          This family of methods exploits the unique advantage of simulation: access to information that is
-          unavailable in the real world.
-        </p>
-
-        <p>
-          [27] established the asymmetric actor-critic, where the critic trains on
-          full simulator state while the actor receives only RGBD images. Combined with domain randomization, this
-          achieved 100% success (5/5) on pick, push, and block-move tasks with a Fetch robot, while all baselines
-          (symmetric RL, behavior cloning, DAgger) scored 0-1/5. The paper demonstrated that separating the training
-          signal (which can use privileged information) from the deployment policy (which cannot) is a powerful
-          principle.
-        </p>
-
-        <p>
-          [7] generalized this into the two-stage "learning by cheating"
-          pipeline. In autonomous driving, a bird's-eye-view privileged agent achieved 100% success on the CARLA
-          benchmark, then a camera-only student trained by imitating this teacher achieved 89% in dense traffic, an 18
-          percentage point improvement over prior state of the art. The critical insight is that the privileged agent
-          acts as a "white box" oracle that can be queried at any state, enabling on-policy DAgger training without a
-          human expert and providing massively more training signal per example than standard imitation learning.
-        </p>
-
-        <p>
-          [22] adapted this pipeline for quadrupedal locomotion with dramatic
-          real-world results. The teacher, trained with TRPO (Trust Region Policy Optimization, a policy gradient
-          method that constrains update step sizes for stability), had access to ground-truth terrain profiles and
-          contact states. The student used a TCN processing 2 seconds of proprioceptive history. Beyond successful
-          transfer to diverse natural terrains, the paper revealed an emergent behavior: a "foot-trapping reflex"
-          where the policy detects collision from proprioceptive history and increases foot clearance on subsequent
-          steps, with no hand-designed reflex logic. The adaptive terrain curriculum, implemented via a particle
-          filter that maintains a distribution over terrains of appropriate difficulty, was also influential.
-        </p>
-
-        <p>
-          [12] identified a fundamental limitation of two-stage distillation: the
-          student encounters states the teacher never saw, causing compounding distribution shift errors. Their
-          Historical Information Bottleneck (HIB) method replaces two-stage distillation with single-stage joint
-          training. Rather than imitating the teacher's actions (which they prove fails when teacher and student have
-          different observation spaces), HIB learns a compressed latent representation of privileged information
-          directly from proprioceptive history via an information bottleneck objective (a regularization principle
-          that retains only task-relevant information while discarding irrelevant details). This achieved 100% success
-          navigating 0.6m-high stairs on a Unitree A1, where the two-stage baseline (DreamWaQ) completely failed.
-        </p>
-
-        <p>
-          [38] addressed another inefficiency: in the standard two-stage pipeline,
-          all teacher experience is discarded during student training. Their L2T (Learn to Teach) framework co-trains
-          teacher and student simultaneously, sharing a replay buffer. The student contributes a scheduled fraction of
-          rollouts, exposing the teacher to states the student actually visits and closing the distribution mismatch.
-          This achieves 50% faster training than two-stage learning while matching final performance, and was
-          validated with zero-shot transfer on a Digit humanoid across 12+ challenging terrains.
-        </p>
-
-        <h3>4.5 Meta-Learning and Online Adaptation</h3>
-
-        <p>
-          Meta-learning (learning to learn) trains policies or models that can rapidly adapt to new conditions from
-          small amounts of data, rather than being robust to all conditions simultaneously.
-        </p>
-
-        <p>
-          [25] introduced meta-learned dynamics models for sim-to-real adaptation.
-          Using MAML (Model-Agnostic Meta-Learning, an algorithm that learns an initialization of neural network
-          parameters from which a few gradient steps produce good performance on new tasks), they trained a dynamics
-          model prior across diverse simulated conditions, then adapted it online from recent experience. The model
-          was 10x more sample-efficient than model-free approaches and was the first meta-RL algorithm deployed on a
-          real robot, with a legged millirobot adapting within seconds to missing legs, novel terrains, and payload
-          changes.
-        </p>
-
-        <p>
-          [5] explicitly framed sim-to-real as a meta-RL problem, pairing
-          MAML-style meta-training across randomized simulator dynamics with a VAE-based trajectory generator (a
-          Variational Autoencoder that encodes trajectories into a low-dimensional latent space, constraining
-          exploration to safe motions). The key finding was that a policy explicitly trained for fast adaptation
-          produces more stable domain adaptation than a domain-randomized policy fine-tuned with the same data. The
-          DR baseline actually <em>deteriorated</em> during adaptation in some conditions, while the meta-learned
-          policy consistently improved.
-        </p>
-
-        <p>
-          [19] identified a limitation of MAML: when deployment situations are
-          highly diverse (e.g., a broken leg versus rocky terrain), no single initialization allows fast adaptation to
-          all of them. FAMLE (Fast Adaptation through Meta-Learning Embeddings) meta-trains multiple initial starting
-          points, each capturing a different region of the dynamics space, then selects the best one for the current
-          situation via likelihood. On a physical Minitaur quadruped, FAMLE walked 4.8m in 60 seconds of interaction
-          versus 1.6m for MAML and 0.3m for non-adaptive baselines.
-        </p>
-
-        <p>
-          [21] with RMA offered perhaps the most practical adaptation
-          architecture. Rather than gradient-based meta-learning (which requires carefully choosing learning rates and
-          numbers of adaptation steps), RMA trains a feedforward adaptation module that directly predicts a latent
-          environment encoding from proprioceptive history. This is conceptually simpler, computationally cheaper, and
-          adapts in under one second. The on-policy training of the adaptation module (feeding its own imperfect
-          predictions back into the base policy during training) prevents the distribution mismatch that plagues
-          two-stage approaches. RMA achieved 73.5% success in simulation versus 62.4% for domain randomization and
-          56.5% for system identification, and handled up to 12 kg payload on a 12 kg robot.
-        </p>
-
-        <p>
-          [18] recently pushed meta-learned adaptation to agile wheeled
-          platforms, coupling MAML-pretrained dynamics models with uncertainty-aware MPPI (Model Predictive Path
-          Integral control, a sampling-based model predictive control method). The ensemble of adapted models provides
-          epistemic uncertainty estimates injected into the control cost function, preventing the controller from
-          exploiting regions where the model has overfit to limited data. This matched domain-specific baselines
-          in-distribution while dramatically outperforming them out-of-distribution (e.g., on plastic tires where the
-          baseline crashed).
-        </p>
-
-        <h3>4.6 Real-to-Sim-to-Real</h3>
-
-        <p>
-          Rather than training in a generic simulator and hoping for transfer, this paradigm reconstructs the real
-          deployment environment in simulation and trains directly in that digital twin.
-        </p>
-
-        <p>
-          [36] introduced RialTo, a practical pipeline for manipulation. From ~15
-          minutes of 3D scanning and ~15 real demonstrations, RialTo constructs a digital twin, collects privileged
-          state trajectories via "inverse distillation" (running a vision-based policy inside simulation to
-          automatically extract privileged state labels), fine-tunes with PPO (Proximal Policy Optimization, a policy
-          gradient algorithm that clips the objective to prevent destructively large updates), and distills back to a
-          point-cloud student. The result is 91% success under pose randomization and 77% with visual distractors,
-          representing a ~67% robustness improvement over behavior cloning with the same demonstrations. A striking
-          finding was that environment-specialized digital twins dramatically outperform diverse procedural scene
-          generation (90% vs. 10% success), suggesting that targeted reconstruction beats broad diversity.
-        </p>
-
-        <p>
-          [23] applied similar principles to humanoid dexterous manipulation,
-          introducing an automated real-to-sim tuning module that calibrates physics parameters in under 4 minutes by
-          minimizing tracking error against real robot motions. Combined with a divide-and-conquer distillation scheme
-          (train single-object specialists, then distill into a generalist Diffusion Policy, a policy architecture
-          that models the action distribution as a denoising diffusion process), they achieved 90% sim-to-real
-          transfer on in-distribution objects and 60-80% on novel objects. This is the first demonstration of robust
-          sim-to-real bimanual manipulation on a humanoid with multi-fingered hands.
-        </p>
-
-        <h3>4.7 Human-in-the-Loop Approaches</h3>
-
-        <p>
-          [17] proposed TRANSIC, where human operators observe and correct a
-          simulation-trained policy during real-world execution, and a gated residual policy learns from these
-          corrections. The residual architecture (learning only the delta from the base policy's actions) avoids
-          catastrophic forgetting while patching real-world failure modes with only 58-489 human corrections per task.
-          This achieved 81% average success across four contact-rich furniture assembly tasks, a domain where pure
-          sim-to-real has historically struggled. The practical insight is that humans implicitly resolve all types of
-          sim-to-real gaps simultaneously through correction, without needing to identify or engineer around any
-          specific gap.
-        </p>
-
-        <h3>4.8 Cotraining: Mixing Sim and Real Data</h3>
-
-        <p>
-          [37] conducted the most systematic study to date of cotraining (training
-          a single policy on a mixture of simulated and real demonstration data). Across 50+ real-world policies and
-          1,000+ real trials of planar pushing, they found that cotraining improves success from 10% to 70% in the
-          low-data regime (10 real demos) and that real data is ~1.8x more valuable per-sample than sim data. The
-          most surprising finding was that some visual gap between sim and real is actually <em>beneficial</em> for
-          cotraining because it lets the policy distinguish which domain it is operating in and thus which physics to
-          expect. Removing the visual gap while a physics gap exists actually hurts performance. This challenges the
-          assumption that minimizing all gaps is always desirable.
-        </p>
-
-        <h2>5. Software, Tools, and Practical Resources</h2>
-
-        <h3>Simulators and Frameworks</h3>
-
-        <p>
-          <strong>NVIDIA Isaac Lab</strong> is currently the most feature-complete GPU-accelerated sim-to-real
-          framework, with 30+ environments, 16+ robot models, RTX-based sensor simulation, and integrations with
-          RSL-RL, SKRL, RL Games, and Stable Baselines. It evolved from the Orbit framework and ETH Zurich's
-          legged_gym. The main trade-off is a heavy proprietary dependency stack: Isaac Sim requires NVIDIA GPUs and
-          the Omniverse platform (~30+ GB install). With ~6,800 stars and active corporate backing, it is the safer
-          choice for production-oriented projects. License: BSD-3 (framework), Apache 2.0 (mimic extension); Isaac
-          Sim itself is proprietary.
-        </p>
+        <h3>8.2 The Teacher-Student-Adaptation Template</h3>
+
+        <p>
+          Perhaps the most impactful methodological development of the review period is the
+          crystallization of the <strong>teacher-student-adaptation</strong> architecture as a
+          near-universal design pattern. The pattern has three components. A privileged teacher is
+          trained with ground-truth simulation state [44, 15]. A sensorimotor student is
+          distilled from the teacher using only deployment-available observations [44, 54].
+          An online adaptation module infers environment parameters from interaction history
+          [43, 16].
+        </p>
+
+        <p>
+          This architecture has been adopted across locomotion [43, 54, 17],
+          navigation [11, 15], and aerial robotics [48, 40]. Its success stems
+          from a clean separation of concerns. The teacher encodes task knowledge without perceptual
+          constraints, the distillation process handles the observation gap, and the adaptation module
+          handles the dynamics gap. This decomposition makes each component independently improvable and
+          diagnosable, a significant advantage over monolithic architectures where the source of
+          transfer failure is difficult to localize.
+        </p>
+
+        <div class="taxonomy-tree">
+          <div class="taxonomy-root"><span class="branch-label">Sim-to-real transfer strategies</span></div>
+          <div class="taxonomy-branch">
+            <div class="branch-id">A</div>
+            <div class="branch-label">Fidelity-oriented (model the gap)</div>
+            <div class="taxonomy-leaves">
+              <div class="leaf-id">A1 System identification [77]</div>
+              <div class="leaf-id">A2 Actuator net [32]</div>
+              <div class="leaf-id">A3 Energy-aware motor modeling [6]</div>
+              <div class="leaf-id">A4 Bayesian SysID [66, 78]</div>
+              <div class="leaf-id">A5 Digital twins [82, 92]</div>
+            </div>
+          </div>
+          <div class="taxonomy-branch">
+            <div class="branch-id">B</div>
+            <div class="branch-label">Diversity-oriented (cover the gap)</div>
+            <div class="taxonomy-leaves">
+              <div class="leaf-id">B1 Visual DR [79, 69]</div>
+              <div class="leaf-id">B2 Dynamics DR [61]</div>
+              <div class="leaf-id">B3 Kinematic DR [24]</div>
+              <div class="leaf-id">B4 Automatic DR [1]</div>
+              <div class="leaf-id">B5 Active DR [53, 91]</div>
+              <div class="leaf-id">B6 Procedural scenes [20]</div>
+            </div>
+          </div>
+          <div class="taxonomy-branch">
+            <div class="branch-id">C</div>
+            <div class="branch-label">Representation-oriented (abstract the gap)</div>
+            <div class="taxonomy-leaves">
+              <div class="leaf-id">C1 Pixel-level GAN adaptation [7, 56]</div>
+              <div class="leaf-id">C2 Canonical representations [36]</div>
+              <div class="leaf-id">C3 Object-aware RL-CycleGAN [67, 93]</div>
+              <div class="leaf-id">C4 Dense descriptors [12, 94]</div>
+              <div class="leaf-id">C5 Point clouds and 3D diffusion [64, 87]</div>
+              <div class="leaf-id">C6 Pretrained visual backbones [96]</div>
+            </div>
+          </div>
+          <div class="taxonomy-branch">
+            <div class="branch-id">D</div>
+            <div class="branch-label">Architecture-oriented (decompose the gap)</div>
+            <div class="taxonomy-leaves">
+              <div class="leaf-id">D1 Teacher-student distillation [44, 15]</div>
+              <div class="leaf-id">D2 Adaptation modules [43, 16]</div>
+              <div class="leaf-id">D3 Residual policies [73, 37, 89]</div>
+              <div class="leaf-id">D4 Modular skill libraries [27, 85]</div>
+            </div>
+          </div>
+          <div class="taxonomy-branch">
+            <div class="branch-id">E</div>
+            <div class="branch-label">Bypass-oriented (avoid the gap)</div>
+            <div class="taxonomy-leaves">
+              <div class="leaf-id">E1 Real-to-sim-to-real [82]</div>
+              <div class="leaf-id">E2 Grounded traversals [10]</div>
+              <div class="leaf-id">E3 Human-demo retargeting [58, 113]</div>
+              <div class="leaf-id">E4 Robot-trains-robot [30, 75]</div>
+            </div>
+          </div>
+        </div>
+
+        <h3>8.3 From Zero-Shot to Continual Adaptation</h3>
+
+        <p>
+          The ambition level of sim-to-real transfer has evolved substantially. Early work focused on
+          zero-shot transfer [79, 69, 61]. The recognition that residual gaps are
+          inevitable led to few-shot adaptation methods using limited real data for calibration
+          [78, 66] or fine-tuning [14]. The frontier has now moved to continual
+          adaptation, meaning ongoing learning during deployment that tracks non-stationary conditions
+          [38, 43, 89, 30].
+        </p>
+
+        <p>
+          This trajectory suggests the field is converging on a view of sim-to-real transfer not as a
+          one-time event but as an ongoing process, with simulation providing initialization and the
+          real world providing continuous refinement. The infrastructure for real-world learning
+          includes safe exploration mechanisms [38], automated reset systems [30, 75],
+          and lightweight adaptation modules [43]. This infrastructure is becoming as important
+          as the simulation itself.
+        </p>
+
+        <h3>8.4 Simulation Infrastructure as a Research Instrument</h3>
 
         <p>
-          <strong>MuJoCo Playground</strong> is the open-source alternative from Google DeepMind, built on MuJoCo's
-          MJX (JAX) and Warp (NVIDIA) backends. It provides 10 robot platforms, comprehensive domain randomization
-          pipelines, and asymmetric actor-critic training, all trainable in minutes on a single GPU. It won the
-          Outstanding Demo Paper Award at RSS 2025. With ~1,800 stars and active maintenance, it is younger but
-          growing rapidly. The main limitation is less mature sim-to-real documentation compared to Isaac Lab, and no
-          published quantitative transfer results from the framework itself. License: Apache-2.0.
+          The role of simulation platforms has evolved from passive training environments to active
+          research tools. The progression from MuJoCo [81] and earlier CPU simulators to
+          GPU-accelerated platforms like Isaac Gym [51] enabled the massively parallel training
+          that made DR at scale computationally feasible [68]. For navigation, the development
+          of Habitat [70], AI2-THOR [42], ProcTHOR [20], and MINOS
+          [99] enabled training in visually rich, diverse environments. For mobile
+          manipulation, Habitat 2.0 [76] and BEHAVIOR-1K [45] provide the first
+          comprehensive benchmarks. Soft-body and soft-robot simulators [118, 119, 120]
+          have extended the infrastructure envelope to deformable manipulation, while vehicle and
+          industrial simulators [121, 100] address domain-specific deployment targets.
         </p>
 
         <p>
-          <strong>legged_gym</strong> from ETH Zurich's Robotic Systems Lab was the reference codebase for quadruped
-          sim-to-real RL research, accompanying [30]. Built on Isaac Gym Preview 3,
-          it provides actuator network modeling, friction/mass randomization, noisy observations, and random pushes.
-          With ~2,800 stars it remains widely used, but it is now officially deprecated in favor of Isaac Lab, and its
-          dependency on older Python (3.6-3.8) and PyTorch (1.10) versions makes it increasingly difficult to
-          maintain.
+          This infrastructure development has a compounding effect. Better simulators reduce the gap,
+          which makes simulation-based methods more effective, which attracts more users, which drives
+          further simulator development. The dual-simulator methodology of Ligot and Birattari
+          [47] uses one simulator as a proxy for reality and provides a reproducible
+          evaluation framework, but the field still lacks standardized physical benchmarks with
+          documented gap characteristics.
         </p>
 
-        <p>
-          <strong>Humanoid-Gym</strong> extends the legged_gym paradigm to humanoid robots, featuring a Denoising
-          World Model Learning (DWL) approach that was an RSS 2024 Best Paper Award Finalist. Its unique three-tier
-          validation pipeline (Isaac Gym training, MuJoCo sim2sim verification, zero-shot hardware deployment)
-          provides an extra sanity check before real-world transfer. With ~1,900 stars it has moderate community
-          adoption, though the 37-commit count suggests a research release rather than an actively maintained product.
-        </p>
-
-        <p>
-          <strong>Walk These Ways</strong> from MIT provides an end-to-end pipeline for the Unitree Go1, implementing
-          the Multiplicity of Behavior (MoB) framework that trains a single policy conditioned on a continuous command
-          space of gait parameters. With ~1,300 stars, it is a good starting point for researchers with Go1 hardware,
-          though its sim-to-real techniques are relatively basic (standard DR without system identification or
-          dynamics adaptation).
-        </p>
-
-        <p>
-          <strong>CARLA</strong> remains the de facto standard for autonomous driving sim-to-real research, with over
-          6,100 citations. Built on Unreal Engine 4, it provides configurable sensors, weather, and traffic for urban
-          driving scenarios. For closing the visual gap, <strong>CARLA2Real</strong> applies the photorealism
-          enhancement technique of [29] to translate CARLA renders toward the style
-          of real-world driving datasets at ~13 FPS.
-        </p>
-
-        <h3>Benchmarks and Evaluation</h3>
-
-        <p>
-          <strong>SimplerEnv</strong> is a simulation-based evaluation framework for generalist manipulation policies,
-          built on SAPIEN. It provides Visual Matching and Variant Aggregation evaluation setups that correlate with
-          real-world performance across 9 manipulation tasks. Its Mean Maximum Rank Violation (MMRV) metric measures
-          policy ranking consistency between sim and real, addressing limitations of simple correlation measures. With
-          ~1,000 stars and support for RT-1, RT-1-X, and Octo policies, it is the best current option for evaluating
-          manipulation policies without physical hardware.
-        </p>
-
-        <h3>Surveys and Reading Lists</h3>
-
-        <p>
-          <strong>AwesomeSim2Real</strong> is the most comprehensive curated list of sim-to-real RL literature,
-          organized by MDP component (observation, action, transition, reward). It accompanies the
-          [9] survey and covers ~100+ papers and resources. The MDP-component
-          taxonomy is a useful organizational framework.
-        </p>
-
-        <p>
-          <strong>Lilian Weng's blog post</strong> "Domain Randomization for Sim2Real Transfer" (2019) remains one of
-          the most accessible introductions to domain randomization, covering uniform DR, guided/automatic DR, and
-          network-driven randomization with clear diagrams and mathematical intuitions.
-        </p>
-
-        <p>
-          The <strong>CMU 10-703 Deep Reinforcement Learning and Control</strong> course (2024) includes dedicated
-          lecture slides on sim-to-real transfer covering domain randomization, system identification, and
-          maximum-entropy RL for robust policies.
-        </p>
-
-        <h3>Getting Started</h3>
-
-        <p>
-          For a researcher entering the field today, the recommended setup depends on the target domain:
-        </p>
+        <h3>8.5 Methodological Limitations</h3>
 
-        <ul>
-          <li><strong>Legged locomotion</strong>: Start with MuJoCo Playground or Isaac Lab. Both provide ready-to-train
-            quadruped environments with DR pipelines. MuJoCo Playground is simpler to install; Isaac Lab offers more
-            robot models and sensor fidelity.</li>
-          <li><strong>Dexterous manipulation</strong>: Isaac Lab is the stronger choice due to its RTX-rendered cameras
-            and broader manipulation environment catalog.</li>
-          <li><strong>Autonomous driving</strong>: CARLA remains the standard. Install CARLA2Real for visual gap
-            reduction.</li>
-          <li><strong>Benchmarking manipulation policies</strong>: SimplerEnv with the ManiSkill3 GPU backend.</li>
-        </ul>
-
-        <h2>6. State of the Art</h2>
-
-        <h3>What works best today</h3>
-
-        <p>
-          For <strong>legged locomotion</strong>, the combination of privileged teacher-student distillation with
-          either domain randomization or precise system identification achieves reliable zero-shot transfer. The
-          evidence from [6] suggests that when accurate actuator models are feasible
-          (requiring ~20 seconds of encoder data per joint), system identification outperforms domain randomization in
-          terms of both transfer quality and energy efficiency. However, domain randomization remains the pragmatic
-          default when actuator modeling effort is not justified or when the robot platform lacks torque-sensing
-          capabilities.
-        </p>
-
-        <p>
-          For <strong>dexterous manipulation</strong>, ADR-style progressive randomization combined with
-          memory-augmented policies (LSTMs or Transformers) represents the current frontier, as demonstrated by
-          [1] and [23]. The divide-and-conquer
-          distillation approach of [23], training single-object specialists then
-          distilling into a generalist Diffusion Policy, appears to significantly outperform monolithic multi-object
-          training (90% vs. 23.3% sim-to-real success).
-        </p>
-
-        <p>
-          For <strong>vision-based manipulation with limited real data</strong>, the real-to-sim-to-real paradigm
-          [36] and cotraining [37] both show
-          strong results. RialTo's environment-specialized digital twins provide 2.5x higher success rates than
-          behavior cloning while using fewer demonstrations. Cotraining can provide 2-7x improvement with as few as
-          10 real demonstrations.
-        </p>
-
-        <p>
-          For <strong>autonomous driving</strong>, privileged teacher-student distillation
-          [7] combined with visual domain adaptation
-          [29] is the dominant paradigm, though the CARLA-to-real-vehicle transfer gap
-          remains larger than in robotics due to the safety-critical nature and the difficulty of testing at scale.
-        </p>
-
-        <h3>Points of consensus</h3>
-
         <p>
-          The field broadly agrees on several principles:
+          Several methodological weaknesses span the surveyed literature. First, <em>ablation
+          studies</em> isolating individual technique contributions are rare. Kim [41] is a
+          notable exception, but most papers evaluate complete pipelines holistically. Second,
+          <em>standardized benchmarks</em> for sim-to-real transfer are lacking. Each paper uses
+          different hardware, simulators, and task definitions, making direct comparison extremely
+          difficult [117, 62]. Third, <em>failure modes</em> are underreported. Negative
+          results would be highly informative but are seldom published. Fourth, the
+          <em>generalization</em> claims of many works are tested on only one or two hardware
+          platforms, making it unclear whether the methods or merely the specific sim-real pairs
+          transfer. Fifth, the emerging foundation-model approaches [9, 60] blur the boundary
+          between sim-to-real transfer and broad generalization, making it increasingly difficult to
+          attribute performance improvements to transfer methods versus model scale.
         </p>
-
-        <ol>
-          <li><strong>Memory matters.</strong> Recurrent or history-conditioned policies transfer better than reactive
-            ones, both empirically [26, 3] and theoretically
-            [8]. The implicit system identification performed by LSTM hidden states
-            is a key mechanism for adaptation.</li>
-          <li><strong>Privileged information during training is a feature, not a limitation.</strong> The asymmetric
-            actor-critic and teacher-student distillation paradigms have become standard practice across locomotion,
-            manipulation, and driving.</li>
-          <li><strong>Diversity beats realism for visual transfer.</strong> Deliberately unrealistic, randomly-textured
-            scenes transfer better than painstakingly crafted photorealistic ones
-            [35, 31]. This is the single most
-            counterintuitive finding in the field.</li>
-          <li><strong>The dynamics gap is harder than the visual gap.</strong> Multiple studies confirm that
-            physics-level mismatches are more damaging than visual mismatches for contact-rich tasks
-            [37, 2].</li>
-        </ol>
-
-        <h3>Points of disagreement</h3>
-
-        <ol>
-          <li><strong>Domain randomization versus system identification.</strong>
-            [6] argue that precise actuator identification makes DR unnecessary for
-            locomotion, while the DR community argues that randomization provides robustness to unmodeled effects that
-            identification misses. The answer likely depends on the quality of the parametric model: if the model
-            structure is correct and parameters are identifiable, ID wins; if important effects are structurally absent
-            from the model, DR provides a safety net.</li>
-          <li><strong>Single-stage versus two-stage privileged learning.</strong>
-            [12] and [38] both argue for
-            single-stage training to avoid distribution shift, but two-stage approaches remain dominant in practice
-            due to their simplicity and the ease of reusing existing teacher policies.</li>
-          <li><strong>How much real data is needed.</strong> Zero-shot methods aim for none; cotraining and
-            meta-learning methods argue for a small amount (10-100 trajectories); some practitioners argue that the
-            field overvalues zero-shot and that a small real-world calibration set is always worth the effort.</li>
-        </ol>
-
-        <h2>7. Open Problems and Future Directions</h2>
 
-        <h3>Deformable and fluid dynamics</h3>
+        <h2>9. Open Problems and Future Directions</h2>
 
-        <p>
-          Virtually all successful sim-to-real transfer has been on rigid or quasi-rigid bodies. Deformable objects
-          (cloth, rope, dough), granular materials (sand, rice), and fluids remain fundamentally challenging because
-          their dynamics are computationally expensive to simulate and highly sensitive to initial conditions.
-          [2] identify this as perhaps the single largest remaining barrier to
-          general-purpose sim-to-real transfer.
-        </p>
-
-        <h3>Contact-rich manipulation at precision</h3>
+        <h3>9.1 Principled Parameter Partitioning</h3>
 
         <p>
-          Despite the OpenAI Rubik's Cube result, fine-grained contact-rich manipulation (assembly, tool use,
-          insertion with tight tolerances) remains difficult. [17] achieve only 45%
-          on their hardest insertion task, and [23] report only 52.5% on bimanual
-          handover. The challenge is that small parameter errors in contact dynamics (friction, stiffness, damping)
-          produce qualitatively different outcomes during tight-tolerance tasks, and current DR ranges cannot cover
-          this sensitivity without making the task intractably difficult to learn.
+          The finding that kinematic randomization outperforms dynamic randomization for some tasks
+          [24], and that targeted actuator modeling outperforms generic robustness for
+          others [6], suggests the need for principled methods to decide which parameters to
+          model precisely and which to randomize. Future work should investigate information-theoretic
+          or sensitivity-analysis-based approaches to automatically partition simulation parameters into
+          "model accurately" and "randomize broadly" categories, conditioned on the specific task and
+          available calibration data. The Bayesian system identification methods [66, 78]
+          provide a starting point, but connecting posterior uncertainty directly to randomization range
+          selection remains an open problem. Recent work on understanding DR [16] and on
+          intentional noise injection [34] offers initial theoretical scaffolding for this
+          partitioning question.
         </p>
 
-        <h3>Unified observation representations for video-to-state-to-control</h3>
+        <h3>9.2 Unified Benchmarks</h3>
 
         <p>
-          A core question highly relevant to the "state is the interface" thesis: what is the right state
-          representation for bridging video-based perception and physics-based control? The field currently uses 6DoF
-          object poses, keypoints, point clouds, and latent embeddings, with no consensus on which is best. The
-          sim-to-real gap compounds this question because the chosen representation must be estimable from real
-          sensors with sufficient accuracy to drive contact-aware control.
+          The absence of standardized sim-to-real benchmarks makes it impossible to rank methods or
+          track field-wide progress. Future work should develop benchmark suites with standardized
+          hardware platforms, precisely characterized gap sources, and established evaluation protocols
+          covering zero-shot, few-shot, and continual adaptation settings. The dual-simulator
+          methodology [47] provides one template, but physical benchmarks with open-source
+          robot configurations, calibrated gap measurements, and shared result databases would be
+          transformative. Recent efforts like the Real Robot Challenge [86] and emerging
+          policy-evaluation benchmarks [117] demonstrate the value of standardized physical
+          evaluation, but broader adoption is needed.
         </p>
 
-        <p>
-          Video generation models that predict future states could serve as planners, but they must predict states
-          that are both physically plausible (satisfying contact constraints) and estimable from real observations. 3D
-          Gaussian Splatting as a state representation is an intriguing direction: it is geometrically rich,
-          differentiable, and can be reconstructed from real images, but its utility for contact prediction and
-          control remains undemonstrated.
-        </p>
+        <h3>9.3 Safe and Sample-Efficient Continual Adaptation</h3>
 
-        <h3>Differentiable simulation</h3>
-
         <p>
-          End-to-end gradient-based optimization through physics simulation (using frameworks like NVIDIA Warp,
-          Taichi, or Brax) could in principle close the sim-to-real gap by directly optimizing simulator parameters to
-          match real-world outcomes. In practice, differentiable simulators struggle with contact discontinuities
-          (where the gradient is undefined or uninformative), and the computational cost of backpropagating through
-          long simulation horizons remains prohibitive. This is an active research frontier with significant
-          potential.
+          The transition from one-time transfer to continual adaptation [38, 30, 43]
+          raises critical safety and efficiency questions. Future work should develop formal safety
+          guarantees that bound worst-case performance during adaptation, investigate catastrophic
+          forgetting prevention mechanisms tailored to non-stationary deployment dynamics, and establish
+          sample-efficiency benchmarks quantifying how quickly and safely different adaptation
+          mechanisms respond to distribution shifts. The integration of safe reinforcement learning with
+          continual learning [38] is a promising direction but remains at an early stage.
         </p>
 
-        <h3>Foundation model integration</h3>
+        <h3>9.4 Foundation Models as Transfer Bridges</h3>
 
         <p>
-          The use of VLMs and LLMs for sim-to-real is in its infancy.
-          [40] showed that natural language can serve as a domain-invariant bridge
-          for visual transfer, and [9] catalog early work on LLM-generated reward
-          functions and LLM-enhanced dynamics models. The promise is that pretrained foundation models encode vast
-          world knowledge that could help specify what aspects of simulation matter and what the real world actually
-          looks like. The risk is hallucination: an LLM generating a physically incorrect reward function could train
-          a dangerous policy. Grounding foundation model outputs in physical constraints remains an open challenge.
+          Large-scale visual and multimodal foundation models present an underexplored opportunity for
+          sim-to-real transfer. Representations pretrained on internet-scale data may serve as
+          domain-invariant bridges between simulation and reality, complementing or replacing
+          task-specific representation learning [50, 12, 64]. Early results from RT-2
+          [9] and related work suggest that vision-language model representations do reduce the
+          visual domain gap, but systematic evaluation of <em>when and why</em> foundation model
+          representations help sim-to-real transfer, and when they introduce their own biases, is
+          needed. Action-free video pretraining [112] and universal manipulation
+          representations [96] point to the same frontier from different angles.
         </p>
 
-        <h3>Scaling to long-horizon tasks</h3>
+        <h3>9.5 Joint Transfer for Mobile Manipulation</h3>
 
         <p>
-          Most sim-to-real successes involve short-horizon skills (grasping, pushing, walking a few steps). Chaining
-          these into long-horizon tasks (cooking a meal, assembling furniture, navigating a building) requires
-          handling error accumulation over many steps, where small per-step sim-to-real discrepancies compound.
-          [17] demonstrate skill chaining for furniture assembly, but success rates
-          degrade multiplicatively. Video generation models as sequence-of-state-goal planners could address this by
-          providing long-horizon guidance, but the sim-to-real gap for video models themselves is an additional
-          complication.
+          The most conspicuous gap in the current literature is the scarcity of principled methods for
+          joint sim-to-real transfer in mobile manipulation. While navigation and manipulation transfer
+          are each well studied, their joint transfer introduces compounding error dynamics, coordinated
+          base-arm control challenges, and changing visual viewpoints that are not addressed by treating
+          the problems independently. Future work should develop integrated transfer pipelines with
+          joint randomization strategies that capture the interaction between locomotion dynamics and
+          manipulation contact, rather than relying on modular composition of independently transferred
+          components.
         </p>
 
-        <h3>Standardized evaluation and metrics</h3>
+        <h3>9.6 Quantifying and Predicting Transferability</h3>
 
         <p>
-          The field lacks standardized metrics for quantifying the sim-to-real gap itself, as opposed to downstream
-          task performance. [2] propose several candidates: Sim-to-Real Correlation
-          Coefficient (SRCC), offline replay error, visual fidelity scores (FID, SSIM), and transfer performance
-          metrics. [4] introduce the Maximum Normalized Cross-Correlation (MNCC) for
-          measuring reality alignment alongside a two-level metric suite. Adoption of such metrics would enable
-          systematic comparison across methods and platforms, which is currently impossible.
+          Most current methods determine transfer success post hoc by deploying on real hardware.
+          Developing <em>predictive</em> measures of transferability, meaning estimating expected
+          real-world performance from simulation-only evaluation, would be transformative. The
+          theoretical analysis of Chen et al. [16] provides initial tools for bounding the DR
+          gap, and sim-to-real predictivity studies [39] show that ordinal predictions are often
+          reliable. Extending these to practical cardinal predictions that account for specific gap
+          sources, policy architectures, and randomization distributions remains open. Emerging
+          benchmark-oriented work [117] offers a concrete evaluation substrate for this
+          question.
         </p>
 
-        <h2>8. Recommended Reading Order</h2>
+        <h3>9.7 Soft Bodies, Compliant Robots, and New Morphologies</h3>
 
         <p>
-          For a researcher entering the sim-to-real field, the following five papers provide a coherent progression
-          from foundational concepts to the current state of the art:
+          Soft robot sim-to-real [118, 119, 120] is an especially unforgiving test bed
+          because continuum mechanics, hyperelastic materials, and pneumatic dynamics are all imperfectly
+          simulated. Analogous challenges arise in compliant mobile manipulation [122] and
+          robotic fish or bioinspired platforms [123]. These domains motivate sim-to-real
+          methods that fuse learned surrogate models with targeted randomization, and broader surveys of
+          contact-rich manipulation [124] suggest that the same toolkit will be needed
+          whenever rigid-body simulators fundamentally misspecify the physics.
         </p>
 
-        <ol>
-          <li><strong>[35] "Domain Randomization for Transferring Deep Neural
-            Networks from Simulation to the Real World."</strong> Start here. This is the most-cited paper in the
-            field, clearly written, and establishes the core principle that diversity beats realism. The ablation
-            studies are exemplary.</li>
-          <li><strong>[26] "Sim-to-Real Transfer of Robotic Control with Dynamics
-            Randomization."</strong> Extends randomization from vision to physics and introduces the critical idea that
-            LSTM memory enables implicit system identification, the mechanism underlying most successful sim-to-real
-            methods.</li>
-          <li><strong>[22] "Learning Quadrupedal Locomotion over Challenging
-            Terrain."</strong> The canonical example of the privileged teacher-student pipeline, with dramatic
-            real-world results. Reading this paper gives you the full modern sim-to-real recipe: terrain curriculum,
-            privileged teacher, temporal student, domain randomization, and zero-shot deployment.</li>
-          <li><strong>[21] "RMA: Rapid Motor Adaptation for Legged Robots."</strong>
-            Introduces the adaptation module paradigm that separates base policy from environmental inference, enabling
-            real-time adaptation. The two-phase training scheme is both simple and effective.</li>
-          <li><strong>[8] "Understanding Domain Randomization for Sim-to-real
-            Transfer."</strong> Provides the theoretical foundations. After reading the empirical papers above, this
-            one explains <em>why</em> they work, what conditions are necessary, and where the limits lie.</li>
-        </ol>
+        <h2>10. Conclusion</h2>
 
         <p>
-          <strong>Tools to install first:</strong>
+          This survey has covered the methods and frameworks proposed between 2018 and 2026 to bridge
+          the simulation-to-reality gap in robotics for locomotion, navigation, manipulation, and mobile
+          manipulation. The field has progressed from ad hoc domain randomization to a sophisticated
+          methodological landscape encompassing principled randomization calibration [78, 66, 1],
+          teacher-student-adaptation architectures [44, 43], representation-based transfer
+          [50, 64], real-to-sim-to-real paradigms [82], and continual adaptation
+          [38]. The most effective approaches combine targeted simulation fidelity for
+          well-understood gap sources with broad robustness training for poorly characterized ones, a
+          hybrid philosophy that has proven remarkably consistent across task domains.
         </p>
-
-        <ul>
-          <li><strong>MuJoCo</strong> (free, open-source, pip-installable) for quick experimentation</li>
-          <li><strong>Isaac Lab</strong> when ready for GPU-accelerated parallel training and sensor-rich
-            environments</li>
-          <li><strong>SimplerEnv</strong> for benchmarking manipulation policies</li>
-        </ul>
 
         <p>
-          For autonomous driving researchers, start with <strong>CARLA</strong> and read
-          [7] in place of papers 3-4 above.
+          The single most important takeaway is that the sim-to-real gap is not a monolithic problem
+          but a <em>composite</em> of distinct, diagnosable sources (dynamics, sensors, visual
+          appearance, actuators, action spaces, computational constraints, unmodeled phenomena), each
+          best addressed by a different methodological tool. The most effective transfer pipelines
+          diagnose the dominant gap sources for their specific task and apply targeted solutions, rather
+          than relying on any single technique as a universal remedy. As simulation infrastructure
+          matures, adaptation architectures improve, and foundation models provide increasingly
+          domain-invariant representations, the field is moving toward a future where the gap is not
+          eliminated but <em>managed</em>, continuously diagnosed, targeted, and adapted to throughout a
+          robot's operational lifetime.
         </p>
 
         </section>
 
+        <div class="citation-section">
+          <h2 class="citation-header">Citation</h2>
+          <p class="citation-text">
+            If you find this survey useful, please cite it as
+          </p>
+          <pre class="citation-pre">
+@misc{sim2real_survey_2026,
+  author    = {Hu Tianrun},
+  title     = {Bridging the Simulation-to-Reality Gap},
+  year      = {2026},
+  publisher = {GitHub},
+  url       = {https://h-tr.github.io/blog/surveys/sim-to-real-gap.html}
+}
+          </pre>
+        </div>
+
         <div class="references-section">
           <h2 class="references-header">References</h2>
           <ol class="references-list">
-            <li id="ref-1">Akkaya, I., Andrychowicz, M., Chociej, M., et al. (2019). "Solving Rubik's Cube with a Robot Hand." <em>arXiv:1910.07113</em>.</li>
-            <li id="ref-2">Aljalbout, E., Xing, J., Romero, A., et al. (2025). "The Reality Gap in Robotics: Challenges, Solutions, and Best Practices." <em>Annual Review of Control, Robotics, and Autonomous Systems</em> (2026).</li>
-            <li id="ref-3">Andrychowicz, M., Baker, B., Chociej, M., et al. (2020). "Learning Dexterous In-Hand Manipulation." <em>International Journal of Robotics Research</em>, 39(1), 3-20.</li>
-            <li id="ref-4">Arango, J.F., Gutierrez-Moreno, R., Revenga, P.A., et al. (2025). "Closing Sim2Real Gaps: A Versatile Development and Validation Platform for Autonomous Driving Stacks." <em>Sensors</em>, 26(4):1338.</li>
-            <li id="ref-5">Arndt, K., Hazara, M., Ghadirzadeh, A., &amp; Kyrki, V. (2020). "Meta Reinforcement Learning for Sim-to-real Domain Adaptation." <em>ICRA 2020</em>.</li>
-            <li id="ref-6">Bjelonic, F., Tischhauser, F., &amp; Hutter, M. (2025). "Towards Bridging the Gap: Systematic Sim-to-Real Transfer for Diverse Legged Robots." <em>arXiv:2509.06342</em>.</li>
-            <li id="ref-7">Chen, D., Zhou, B., Koltun, V., &amp; Krahenbühl, P. (2020). "Learning by Cheating." <em>CoRL 2019</em>.</li>
-            <li id="ref-8">Chen, X., Hu, J., Jin, C., Li, L., &amp; Wang, L. (2022). "Understanding Domain Randomization for Sim-to-real Transfer." <em>ICLR 2022</em> (Spotlight).</li>
-            <li id="ref-9">Da, L., Li, X., Wei, H., et al. (2025). "A Survey of Sim-to-Real Methods in RL: Progress, Prospects and Challenges with Foundation Models." <em>arXiv</em>.</li>
-            <li id="ref-10">Dosovitskiy, A., Ros, G., Codevilla, F., et al. (2017). "CARLA: An Open Urban Driving Simulator." <em>CoRL 2017</em>.</li>
-            <li id="ref-11">Du, Y., Watkins, O., Darrell, T., Abbeel, P., &amp; Pathak, D. (2021). "Auto-Tuned Sim-to-Real Transfer." <em>ICRA 2021</em>.</li>
-            <li id="ref-12">He, H., Bai, C., Lai, H., et al. (2024). "Bridging the Sim-to-Real Gap from the Information Bottleneck Perspective." <em>CoRL 2024</em>.</li>
-            <li id="ref-13">Ho, D., Rao, K., Xu, Z., et al. (2021). "RetinaGAN: An Object-aware Approach to Sim-to-Real Transfer." <em>ICRA 2021</em>.</li>
-            <li id="ref-14">Huang, P., Zhang, X., Cao, Z., et al. (2023). "What Went Wrong? Closing the Sim-to-Real Gap via Differentiable Causal Discovery." <em>CoRL 2023</em>.</li>
-            <li id="ref-15">Jakobi, N., Husbands, P., &amp; Harvey, I. (1995). "Noise and the Reality Gap: The Use of Simulation in Evolutionary Robotics." <em>ECAL 1995</em>, LNCS vol. 929, pp. 702-720.</li>
-            <li id="ref-16">James, S., Wohlhart, P., Kalakrishnan, M., et al. (2019). "Sim-to-Real via Sim-to-Sim: Data-Efficient Robotic Grasping via Randomized-to-Canonical Adaptation Networks." <em>CVPR 2019</em>.</li>
-            <li id="ref-17">Jiang, Y., Wang, C., Zhang, R., Wu, J., &amp; Fei-Fei, L. (2024). "TRANSIC: Sim-to-Real Policy Transfer by Learning from Online Correction." <em>CoRL 2024</em>.</li>
-            <li id="ref-18">Kalaria, D., Xue, H., Xiao, W., Tao, T., Shi, G., &amp; Dolan, J.M. (2025). "Agile Mobility with Rapid Online Adaptation via Meta-learning and Uncertainty-aware MPPI." <em>ICRA 2025</em>.</li>
-            <li id="ref-19">Kaushik, R., Anne, T., &amp; Mouret, J.-B. (2020). "Fast Online Adaptation in Robotics through Meta-Learning Embeddings of Simulated Priors." <em>IROS 2020</em>.</li>
-            <li id="ref-20">Koos, S., Mouret, J.-B., &amp; Doncieux, S. (2013). "The Transferability Approach: Crossing the Reality Gap in Evolutionary Robotics." <em>IEEE Transactions on Evolutionary Computation</em>, 17(1), 122-145.</li>
-            <li id="ref-21">Kumar, A., Fu, Z., Pathak, D., &amp; Malik, J. (2021). "RMA: Rapid Motor Adaptation for Legged Robots." <em>RSS 2021</em>.</li>
-            <li id="ref-22">Lee, J., Hwangbo, J., Wellhausen, L., et al. (2020). "Learning Quadrupedal Locomotion over Challenging Terrain." <em>Science Robotics</em>, 5(47).</li>
-            <li id="ref-23">Lin, T., Sachdev, K., Fan, L., et al. (2025). "Sim-to-Real Reinforcement Learning for Vision-Based Dexterous Manipulation on Humanoids." <em>CoRL 2025</em>.</li>
-            <li id="ref-24">Mishra, N., Sieb, M., Abbeel, P., &amp; Chen, X. (2024). "Closing the Visual Sim-to-Real Gap with Object-Composable NeRFs." <em>ICRA 2024</em>.</li>
-            <li id="ref-25">Nagabandi, A., Clavera, I., Liu, S., et al. (2019). "Learning to Adapt in Dynamic, Real-World Environments Through Meta-Reinforcement Learning." <em>ICLR 2019</em>.</li>
-            <li id="ref-26">Peng, X.B., Andrychowicz, M., Zaremba, W., &amp; Abbeel, P. (2018). "Sim-to-Real Transfer of Robotic Control with Dynamics Randomization." <em>ICRA 2018</em>.</li>
-            <li id="ref-27">Pinto, L., Andrychowicz, M., Welinder, P., et al. (2018). "Asymmetric Actor Critic for Image-Based Robot Learning." <em>RSS 2018</em>.</li>
-            <li id="ref-28">Rao, K., Harris, C., Irpan, A., et al. (2020). "RL-CycleGAN: Reinforcement Learning Aware Simulation-to-Real." <em>CVPR 2020</em>.</li>
-            <li id="ref-29">Richter, S.R., Abu AlHaija, H., &amp; Koltun, V. (2022). "Enhancing Photorealism Enhancement." <em>TPAMI</em>, 44(12).</li>
-            <li id="ref-30">Rudin, N., Hoeller, D., Reist, P., &amp; Hutter, M. (2021). "Learning to Walk in Minutes Using Massively Parallel Deep Reinforcement Learning." <em>CoRL 2021</em>.</li>
-            <li id="ref-31">Sadeghi, F. &amp; Levine, S. (2017). "CAD2RL: Real Single-Image Flight without a Single Real Image." <em>RSS 2017</em>.</li>
-            <li id="ref-32">Salvato, E., Fenu, G., Medvet, E., &amp; Pellegrino, F.A. (2021). "Crossing the Reality Gap: A Survey on Sim-to-Real Transferability of Robot Controllers in Reinforcement Learning." <em>IEEE Access</em>, 9, 153171-153187.</li>
-            <li id="ref-33">Tiboni, G., Arndt, K., &amp; Kyrki, V. (2023). "DROPO: Sim-to-Real Transfer with Offline Domain Randomization." <em>Robotics and Autonomous Systems</em>.</li>
-            <li id="ref-34">Tiboni, G., Klink, P., Peters, J., Tommasi, T., D'Eramo, C., &amp; Chalvatzaki, G. (2024). "Domain Randomization via Entropy Maximization." <em>ICLR 2024</em>.</li>
-            <li id="ref-35">Tobin, J., Fong, R., Ray, A., Schneider, J., Zaremba, W., &amp; Abbeel, P. (2017). "Domain Randomization for Transferring Deep Neural Networks from Simulation to the Real World." <em>IROS 2017</em>.</li>
-            <li id="ref-36">Torne, M., Simeonov, A., Li, Z., et al. (2024). "Reconciling Reality through Simulation: A Real-to-Sim-to-Real Approach for Robust Manipulation." <em>RSS 2024</em>.</li>
-            <li id="ref-37">Wei, A., Agarwal, A., Chen, B., Bosworth, R., Pfaff, N., &amp; Tedrake, R. (2025). "Empirical Analysis of Sim-and-Real Cotraining of Diffusion Policies for Planar Pushing from Pixels." <em>IROS 2025</em>.</li>
-            <li id="ref-38">Wu, F., Nal, X., Jang, J., et al. (2024). "Learn to Teach: Sample-Efficient Privileged Learning for Humanoid Locomotion over Diverse Terrains." <em>IEEE RA-L</em>.</li>
-            <li id="ref-39">Yamada, J., Rigter, M., Collins, J., &amp; Posner, I. (2024). "TWIST: Teacher-Student World Model Distillation for Efficient Sim-to-Real Transfer." <em>ICRA 2024</em>.</li>
-            <li id="ref-40">Yu, A., Foote, A., Mooney, R., &amp; Martin-Martin, R. (2024). "Natural Language Can Help Bridge the Sim2Real Gap." <em>RSS 2024</em>.</li>
-            <li id="ref-41">Zhao, W., Pena Queralta, J., &amp; Westerlund, T. (2020). "Sim-to-Real Transfer in Deep Reinforcement Learning for Robotics: a Survey." <em>IEEE SSCI 2020</em>.</li>
+            <li id="ref-1">Akkaya, I., Andrychowicz, M., Chociej, M., et al. (2019). &ldquo;Solving Rubik's Cube with a Robot Hand.&rdquo; <em>arXiv:1910.07113</em>.</li>
+            <li id="ref-2">Alghonaim, R., &amp; Liarokapis, M. (2020). &ldquo;Benchmarking Domain Randomisation for Visual Sim-to-Real Transfer.&rdquo; <em>arXiv:2011.07112</em>.</li>
+            <li id="ref-3">Anderson, P., Shrivastava, A., Truong, J., et al. (2020). &ldquo;Sim-to-Real Transfer for Vision-and-Language Navigation.&rdquo; <em>Conference on Robot Learning</em>.</li>
+            <li id="ref-4">Andrychowicz, M., Baker, B., Chociej, M., et al. (2019). &ldquo;Learning Dexterous In-Hand Manipulation.&rdquo; <em>The International Journal of Robotics Research</em>, 39(1), 3&ndash;20.</li>
+            <li id="ref-5">Bao, L. (2025). &ldquo;Sim-to-Real Transfer in Deep Reinforcement Learning for Bipedal Locomotion.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-6">Bjelonic, F., Lee, J., Arm, P., et al. (2025). &ldquo;Towards Bridging the Gap. Systematic Sim-to-Real Transfer for Diverse Legged Robots.&rdquo; <em>arXiv:2509.06342</em>.</li>
+            <li id="ref-7">Bousmalis, K., Irpan, A., Wohlhart, P., et al. (2018). &ldquo;Using Simulation and Domain Adaptation to Improve Efficiency of Deep Robotic Grasping.&rdquo; <em>ICRA</em>, 4243&ndash;4250.</li>
+            <li id="ref-8">Brohan, A., Brown, N., Carbajal, J., et al. (2022). &ldquo;RT-1: Robotics Transformer for Real-World Control at Scale.&rdquo; <em>arXiv:2212.06817</em>.</li>
+            <li id="ref-9">Brohan, A., Brown, N., Carbajal, J., et al. (2023). &ldquo;RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control.&rdquo; <em>arXiv:2307.15818</em>.</li>
+            <li id="ref-10">Bruce, J., S&uuml;nderhauf, N., Mirowski, P., et al. (2017). &ldquo;One-Shot Reinforcement Learning for Robot Navigation with Interactive Replay.&rdquo; <em>arXiv:1711.10137</em>.</li>
+            <li id="ref-11">Cai, W. (2025). &ldquo;NavDP. Learning Sim-to-Real Navigation Diffusion Policy with Privileged Information Guidance.&rdquo; <em>arXiv:2505.08712</em>.</li>
+            <li id="ref-12">Cao, H.-G. (2023). &ldquo;Learning Sim-to-Real Dense Object Descriptors for Robotic Manipulation.&rdquo; <em>arXiv:2304.08703</em>.</li>
+            <li id="ref-13">Carpin, S. (2007). &ldquo;Bridging the Gap Between Simulation and Reality in Urban Search and Rescue.&rdquo; <em>Lecture Notes in Computer Science</em>.</li>
+            <li id="ref-14">Chebotar, Y., Handa, A., Makoviychuk, V., et al. (2019). &ldquo;Closing the Sim-to-Real Loop. Adapting Simulation Randomization with Real World Experience.&rdquo; <em>ICRA</em>, 8973&ndash;8979.</li>
+            <li id="ref-15">Chen, C., Gupta, S., Salakhutdinov, R., &amp; Gupta, A. (2020). &ldquo;Learning to Explore using Active Neural SLAM.&rdquo; <em>ICLR</em>.</li>
+            <li id="ref-16">Chen, X., Hu, J., Jin, C., et al. (2021). &ldquo;Understanding Domain Randomization for Sim-to-real Transfer.&rdquo; <em>arXiv:2110.03239</em>.</li>
+            <li id="ref-17">Cheng, X., Shi, K., Agarwal, A., &amp; Pathak, D. (2024). &ldquo;Extreme Parkour with Legged Robots.&rdquo; <em>ICRA</em>.</li>
+            <li id="ref-18">Chi, C., Feng, S., Du, Y., et al. (2023). &ldquo;Diffusion Policy. Visuomotor Policy Learning via Action Diffusion.&rdquo; <em>Robotics: Science and Systems</em>.</li>
+            <li id="ref-19">Deitke, M., Han, W., Herrasti, A., et al. (2020). &ldquo;RoboTHOR. An Open Simulation-to-Real Embodied AI Platform.&rdquo; <em>CVPR</em>, 3164&ndash;3174.</li>
+            <li id="ref-20">Deitke, M., VanderBilt, E., Herrasti, A., et al. (2022). &ldquo;ProcTHOR. Large-Scale Embodied AI Using Procedural Generation.&rdquo; <em>NeurIPS</em>.</li>
+            <li id="ref-21">Ding, Z., Lepora, N. F., &amp; Johns, E. (2020). &ldquo;Sim-to-Real Transfer for Optical Tactile Sensing.&rdquo; <em>arXiv:2004.00136</em>.</li>
+            <li id="ref-22">Dong, H., Chen, H., &amp; Wang, W. (2022). &ldquo;Robotic Manipulations of Cylinders and Ellipsoids by Ellipse Detection With Domain Randomization.&rdquo; <em>IEEE/ASME Transactions on Mechatronics</em>, 27(5), 3467&ndash;3477.</li>
+            <li id="ref-23">Dowdy, J. (2025). &ldquo;Isaac Sim-to-Real. Reinforcement Learning based Locomotion for Quadrupeds.&rdquo; <em>Technical report</em>.</li>
+            <li id="ref-24">Exarchos, I., Jiang, Y., Yu, W., &amp; Liu, C. K. (2020). &ldquo;Policy Transfer via Kinematic Domain Randomization and Adaptation.&rdquo; <em>arXiv:2011.01891</em>.</li>
+            <li id="ref-25">Fu, Z., Zhao, T. Z., &amp; Finn, C. (2024). &ldquo;Mobile ALOHA. Learning Bimanual Mobile Manipulation with Low-Cost Whole-Body Teleoperation.&rdquo; <em>arXiv:2401.02117</em>.</li>
+            <li id="ref-26">Gervet, T., Chintala, S., Batra, D., et al. (2023). &ldquo;Navigating to Objects in the Real World.&rdquo; <em>Science Robotics</em>, 8(79).</li>
+            <li id="ref-27">Gu, J., Kirmani, S., Wohlhart, P., et al. (2023). &ldquo;Multi-Skill Mobile Manipulation for Object Rearrangement.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-28">Handa, A., Allshire, A., Makoviychuk, V., et al. (2023). &ldquo;DeXtreme. Transfer of Agile In-Hand Manipulation from Simulation to Reality.&rdquo; <em>ICRA</em>.</li>
+            <li id="ref-29">H&ouml;fer, S., Bekris, K., Handa, A., et al. (2021). &ldquo;Sim2Real in Robotics and Automation. Applications and Challenges.&rdquo; <em>IEEE Transactions on Automation Science and Engineering</em>, 18(2), 398&ndash;400.</li>
+            <li id="ref-30">Hu, K. (2025). &ldquo;Robot Trains Robot. Automatic Real-World Policy Adaptation and Learning for Humanoids.&rdquo; <em>arXiv:2508.12252</em>.</li>
+            <li id="ref-31">Huang, W., Wang, C., Zhang, R., et al. (2023). &ldquo;VoxPoser. Composable 3D Value Maps for Robotic Manipulation with Language Models.&rdquo; <em>Conference on Robot Learning</em>.</li>
+            <li id="ref-32">Hwangbo, J., Lee, J., Dosovitskiy, A., et al. (2019). &ldquo;Learning Agile and Dynamic Motor Skills for Legged Robots.&rdquo; <em>Science Robotics</em>, 4(26), eaau5872.</li>
+            <li id="ref-33">Jakobi, N. (1998). &ldquo;Running Across the Reality Gap. Octopod Locomotion Evolved in a Minimal Simulation.&rdquo; <em>European Conference on Artificial Life</em>.</li>
+            <li id="ref-34">Jakobi, N. (1995). &ldquo;Noise and the Reality Gap. The Use of Simulation in Evolutionary Robotics.&rdquo; <em>Lecture Notes in Computer Science</em>.</li>
+            <li id="ref-35">James, S., Davison, A., &amp; Johns, E. (2017). &ldquo;Transferring End-to-End Visuomotor Control from Simulation to Real World for a Multi-Stage Task.&rdquo; <em>Conference on Robot Learning</em>.</li>
+            <li id="ref-36">James, S., Wohlhart, P., Kalakrishnan, M., et al. (2019). &ldquo;Sim-to-Real via Sim-to-Sim. Data-Efficient Robotic Grasping via Randomized-to-Canonical Adaptation Networks.&rdquo; <em>CVPR</em>, 12627&ndash;12637.</li>
+            <li id="ref-37">Johannink, T., Bahl, S., Nair, A., et al. (2019). &ldquo;Residual Reinforcement Learning for Robot Control.&rdquo; <em>ICRA</em>, 6023&ndash;6029.</li>
+            <li id="ref-38">Josifovski, J., Urakami, Y., Kerzel, M., &amp; Knoll, A. (2025). &ldquo;Safe Continual Domain Adaptation after Sim2Real Transfer of Reinforcement Learning Policies in Robotics.&rdquo; <em>arXiv:2503.10949</em>.</li>
+            <li id="ref-39">Kadian, A., Truong, J., Gokaslan, A., et al. (2020). &ldquo;Sim2Real Predictivity. Does Evaluation in Simulation Predict Real-World Performance?&rdquo; <em>IEEE Robotics and Automation Letters</em>, 5(4), 6670&ndash;6677.</li>
+            <li id="ref-40">Kaufmann, E., Bauersfeld, L., Loquercio, A., et al. (2023). &ldquo;Champion-level Drone Racing using Deep Reinforcement Learning.&rdquo; <em>Nature</em>, 620, 982&ndash;987.</li>
+            <li id="ref-41">Kim, D. (2024). &ldquo;Bridging the Reality Gap. Analyzing Sim-to-Real Transfer Techniques for Reinforcement Learning in Humanoid Bipedal Locomotion.&rdquo; <em>IEEE Robotics &amp; Automation Magazine</em>.</li>
+            <li id="ref-42">Kolve, E., Mottaghi, R., Han, W., et al. (2017). &ldquo;AI2-THOR. An Interactive 3D Environment for Visual AI.&rdquo; <em>arXiv:1712.05474</em>.</li>
+            <li id="ref-43">Kumar, A., Fu, Z., Pathak, D., &amp; Malik, J. (2021). &ldquo;RMA. Rapid Motor Adaptation for Legged Robots.&rdquo; <em>Robotics: Science and Systems</em>.</li>
+            <li id="ref-44">Lee, J., Hwangbo, J., Wellhausen, L., Koltun, V., &amp; Hutter, M. (2020). &ldquo;Learning Quadrupedal Locomotion over Challenging Terrain.&rdquo; <em>Science Robotics</em>, 5(47), eabc5986.</li>
+            <li id="ref-45">Li, C., Gokmen, C., Srivastava, S., et al. (2023). &ldquo;BEHAVIOR-1K. A Human-Centered, Embodied AI Benchmark with 1,000 Everyday Activities and Realistic Simulation.&rdquo; <em>Conference on Robot Learning</em>.</li>
+            <li id="ref-46">Liang, J., Huang, W., Xia, F., et al. (2023). &ldquo;Code as Policies. Language Model Programs for Embodied Control.&rdquo; <em>ICRA</em>.</li>
+            <li id="ref-47">Ligot, A., &amp; Birattari, M. (2019). &ldquo;Simulation-only Experiments to Mimic the Effects of the Reality Gap in the Automatic Design of Robot Swarms.&rdquo; <em>Swarm Intelligence</em>, 14, 1&ndash;24.</li>
+            <li id="ref-48">Loquercio, A., Kaufmann, E., Ranftl, R., Mueller, M., Koltun, V., &amp; Scaramuzza, D. (2021). &ldquo;Learning High-Speed Flight in the Wild.&rdquo; <em>Science Robotics</em>, 6(59), eabg5810.</li>
+            <li id="ref-49">Lu, J., Richter, F., &amp; Yip, M. C. (2020). &ldquo;Pose Estimation for Robot Manipulators via Keypoint Optimization and Sim-to-Real Transfer.&rdquo; <em>arXiv:2010.08054</em>.</li>
+            <li id="ref-50">Ma, H. (2024). &ldquo;Skill Transfer and Discovery for Sim-to-Real Learning. A Representation-Based Viewpoint.&rdquo; <em>arXiv:2404.05051</em>.</li>
+            <li id="ref-51">Makoviychuk, V., Wawrzyniak, L., Guo, Y., et al. (2021). &ldquo;Isaac Gym. High Performance GPU-Based Physics Simulation for Robot Learning.&rdquo; <em>NeurIPS Datasets and Benchmarks</em>.</li>
+            <li id="ref-52">Matas, J., James, S., &amp; Davison, A. J. (2018). &ldquo;Sim-to-Real Reinforcement Learning for Deformable Object Manipulation.&rdquo; <em>arXiv:1806.07851</em>.</li>
+            <li id="ref-53">Mehta, B., Diaz, M., Golemo, F., Pal, C. J., &amp; Paull, L. (2020). &ldquo;Active Domain Randomization.&rdquo; <em>Conference on Robot Learning</em>.</li>
+            <li id="ref-54">Miki, T., Lee, J., Hwangbo, J., et al. (2022). &ldquo;Learning Robust Perceptive Locomotion for Quadrupedal Robots in the Wild.&rdquo; <em>Science Robotics</em>, 7(62), eabk2822.</li>
+            <li id="ref-55">Moiz, M. J. (2026). &ldquo;Bridging the Sim-to-Real Gap in Robotic Manipulation Using Domain Randomization and Policy Fine-Tuning.&rdquo; <em>Zenodo</em>.</li>
+            <li id="ref-56">M&uuml;ller, M., Dosovitskiy, A., Ghanem, B., &amp; Koltun, V. (2018). &ldquo;Driving Policy Transfer via Modularity and Abstraction.&rdquo; <em>Conference on Robot Learning</em>.</li>
+            <li id="ref-57">Muratore, F., Ramos, F., Turk, G., et al. (2022). &ldquo;Robot Learning from Randomized Simulations. A Review.&rdquo; <em>Frontiers in Robotics and AI</em>, 9, 799893.</li>
+            <li id="ref-58">Nai, R. (2026). &ldquo;Humanoid Manipulation Interface. Humanoid Whole-Body Manipulation from Robot-Free Demonstrations.&rdquo; <em>arXiv:2602.06643</em>.</li>
+            <li id="ref-59">Narang, Y., Sundaralingam, B., Macklin, M., et al. (2022). &ldquo;Factory. Fast Contact for Robotic Assembly.&rdquo; <em>Robotics: Science and Systems</em>.</li>
+            <li id="ref-60">Open X-Embodiment Collaboration. (2024). &ldquo;Open X-Embodiment. Robotic Learning Datasets and RT-X Models.&rdquo; <em>ICRA</em>.</li>
+            <li id="ref-61">Peng, X. B., Andrychowicz, M., Zaremba, W., &amp; Abbeel, P. (2018). &ldquo;Sim-to-Real Transfer of Robotic Control with Dynamics Randomization.&rdquo; <em>ICRA</em>, 3803&ndash;3810.</li>
+            <li id="ref-62">Pitkevich, A. V. (2024). &ldquo;A Survey on Sim-to-Real Transfer Methods for Robotic Manipulation.&rdquo; <em>Technical report</em>.</li>
+            <li id="ref-63">Pylypenko, V. (2025). &ldquo;Reinforcement Learning for Autonomous Navigation of Robotic Platforms Under Uncertainty. Domain Randomization and Sim-to-Real Transfer.&rdquo; <em>Technologies and Engineering</em>.</li>
+            <li id="ref-64">Qin, Y., Huang, B., Yin, Z.-H., Su, H., &amp; Wang, X. (2022). &ldquo;DexPoint. Generalizable Point Cloud Reinforcement Learning for Sim-to-Real Dexterous Manipulation.&rdquo; <em>arXiv:2211.09423</em>.</li>
+            <li id="ref-65">Radosavovic, I., Xiao, T., Zhang, B., Darrell, T., Malik, J., &amp; Sreenath, K. (2024). &ldquo;Real-World Humanoid Locomotion with Reinforcement Learning.&rdquo; <em>Science Robotics</em>, 9(89).</li>
+            <li id="ref-66">Ramos, F., Possas, R. C., &amp; Fox, D. (2019). &ldquo;BayesSim. Adaptive Domain Randomization via Probabilistic Inference for Robotics Simulators.&rdquo; <em>Robotics: Science and Systems</em>.</li>
+            <li id="ref-67">Rao, K., Harris, C., Irpan, A., et al. (2020). &ldquo;RL-CycleGAN. Reinforcement Learning Aware Simulation-to-Real.&rdquo; <em>CVPR</em>, 11157&ndash;11166.</li>
+            <li id="ref-68">Rudin, N., Hoeller, D., Reist, P., &amp; Hutter, M. (2022). &ldquo;Learning to Walk in Minutes Using Massively Parallel Deep Reinforcement Learning.&rdquo; <em>Conference on Robot Learning</em>.</li>
+            <li id="ref-69">Sadeghi, F., &amp; Levine, S. (2017). &ldquo;CAD2RL. Real Single-Image Flight without a Single Real Image.&rdquo; <em>Robotics: Science and Systems</em>.</li>
+            <li id="ref-70">Savva, M., Kadian, A., Maksymets, O., et al. (2019). &ldquo;Habitat. A Platform for Embodied AI Research.&rdquo; <em>ICCV</em>, 9339&ndash;9347.</li>
+            <li id="ref-71">Shah, D., Sridhar, A., Dashora, N., et al. (2023). &ldquo;ViNT. A Foundation Model for Visual Navigation.&rdquo; <em>Conference on Robot Learning</em>.</li>
+            <li id="ref-72">Siekmann, J., Green, K., Warila, J., Fern, A., &amp; Hurst, J. (2021). &ldquo;Sim-to-Real Learning of All Common Bipedal Gaits via Periodic Reward Composition.&rdquo; <em>ICRA</em>, 7309&ndash;7315.</li>
+            <li id="ref-73">Silver, T., Allen, K., Tenenbaum, J., &amp; Kaelbling, L. (2018). &ldquo;Residual Policy Learning.&rdquo; <em>arXiv:1812.06298</em>.</li>
+            <li id="ref-74">Singh, R. (2024). &ldquo;Robust Biped Locomotion Through Sim-to-Real Reinforcement Learning.&rdquo; <em>IRDB</em>.</li>
+            <li id="ref-75">Smith, L., Kostrikov, I., &amp; Levine, S. (2022). &ldquo;A Walk in the Park. Learning to Walk in 20 Minutes With Model-Free Reinforcement Learning.&rdquo; <em>Robotics: Science and Systems</em>.</li>
+            <li id="ref-76">Szot, A., Clegg, A., Undersander, E., et al. (2021). &ldquo;Habitat 2.0. Training Home Assistants to Rearrange their Habitat.&rdquo; <em>NeurIPS</em>.</li>
+            <li id="ref-77">Tan, J., Zhang, T., Coumans, E., et al. (2018). &ldquo;Sim-to-Real. Learning Agile Locomotion For Four-Legged Robots.&rdquo; <em>Robotics: Science and Systems</em>.</li>
+            <li id="ref-78">Tiboni, G., Arndt, K., &amp; Kyrki, V. (2022). &ldquo;DROPO. Sim-to-Real Transfer with Offline Domain Randomization.&rdquo; <em>arXiv:2201.08434</em>.</li>
+            <li id="ref-79">Tobin, J., Fong, R., Ray, A., Schneider, J., Zaremba, W., &amp; Abbeel, P. (2017). &ldquo;Domain Randomization for Transferring Deep Neural Networks from Simulation to the Real World.&rdquo; <em>IROS</em>, 23&ndash;30.</li>
+            <li id="ref-80">Tobin, J., Biewald, L., Duan, R., et al. (2018). &ldquo;Domain Randomization and Generative Models for Robotic Grasping.&rdquo; <em>IROS</em>, 3482&ndash;3489.</li>
+            <li id="ref-81">Todorov, E., Erez, T., &amp; Tassa, Y. (2012). &ldquo;MuJoCo. A Physics Engine for Model-Based Control.&rdquo; <em>IROS</em>, 5026&ndash;5033.</li>
+            <li id="ref-82">Torne, M., Simeonov, A., Li, Z., et al. (2024). &ldquo;Reconciling Reality through Simulation. A Real-to-Sim-to-Real Approach for Robust Manipulation.&rdquo; <em>arXiv:2403.03949</em>.</li>
+            <li id="ref-83">Visser, A., et al. (2012). &ldquo;Closing the Gap Between Simulation and Reality in the Sensor and Motion Models of an Autonomous AR.Drone.&rdquo; <em>UvA-DARE</em>.</li>
+            <li id="ref-84">Xia, F., Li, C., Chen, K., et al. (2020). &ldquo;Interactive Gibson Benchmark. A Benchmark for Interactive Navigation in Cluttered Environments.&rdquo; <em>IEEE Robotics and Automation Letters</em>, 5(2), 713&ndash;720.</li>
+            <li id="ref-85">Yokoyama, N., Ha, S., Batra, D., Wang, J., &amp; Bucher, B. (2024). &ldquo;Adaptive Skill Coordination for Robotic Mobile Manipulation.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-86">Yoneda, T., Sun, C., &amp; Walter, M. R. (2021). &ldquo;Grasp and Motion Planning for Dexterous Manipulation for the Real Robot Challenge.&rdquo; <em>arXiv:2101.02842</em>.</li>
+            <li id="ref-87">Ze, Y., Zhang, G., Zhang, K., et al. (2024). &ldquo;3D Diffusion Policy. Generalizable Visuomotor Policy Learning via Simple 3D Representations.&rdquo; <em>Robotics: Science and Systems</em>.</li>
+            <li id="ref-88">Zhang, L. (2023). &ldquo;Towards Precise Model-free Robotic Grasping with Sim-to-Real Transfer Learning.&rdquo; <em>arXiv:2301.12249</em>.</li>
+            <li id="ref-89">Zhang, X. (2023). &ldquo;Efficient Sim-to-real Transfer of Contact-Rich Manipulation Skills with Online Admittance Residual Learning.&rdquo; <em>arXiv:2310.10509</em>.</li>
+            <li id="ref-90">Zhuang, Z., Fu, Z., Wang, J., Atkeson, C., Schwertfeger, S., Finn, C., &amp; Zhao, H. (2023). &ldquo;Robot Parkour Learning.&rdquo; <em>Conference on Robot Learning</em>.</li>
+            <li id="ref-91">Du, Y., Watkins, O., Darrell, T., Abbeel, P., &amp; Pathak, D. (2021). &ldquo;Auto-Tuned Sim-to-Real Transfer.&rdquo; <em>ICRA</em>.</li>
+            <li id="ref-92">Wang, Y., et al. (2022). &ldquo;A Digital Twin-Based Sim-to-Real Transfer for Deep Reinforcement Learning-Enabled Industrial Robot Grasping.&rdquo; <em>Robotics and Computer-Integrated Manufacturing</em>.</li>
+            <li id="ref-93">Ho, D., Rao, K., Xu, Z., Jang, E., Khansari, M., &amp; Bai, Y. (2021). &ldquo;RetinaGAN. An Object-aware Approach to Sim-to-Real Transfer.&rdquo; <em>ICRA</em>.</li>
+            <li id="ref-94">Florence, P. R., Manuelli, L., &amp; Tedrake, R. (2018). &ldquo;Dense Object Nets. Learning Dense Visual Object Descriptors By and For Robotic Manipulation.&rdquo; <em>Conference on Robot Learning</em>.</li>
+            <li id="ref-95">Yen-Chen, L., Zeng, A., Song, S., Isola, P., &amp; Lin, T.-Y. (2019). &ldquo;Multi-step Pick-and-Place Tasks Using Object-centric Dense Correspondences.&rdquo; <em>IROS</em>.</li>
+            <li id="ref-96">Nair, S., Rajeswaran, A., Kumar, V., Finn, C., &amp; Gupta, A. (2022). &ldquo;R3M. A Universal Visual Representation for Robot Manipulation.&rdquo; <em>arXiv:2203.12601</em>.</li>
+            <li id="ref-97">Prakash, A. (2024). &ldquo;Sim-to-Real Gap in RL. Use Case with TIAGo and Isaac Sim/Gym.&rdquo; <em>arXiv:2403.07091</em>.</li>
+            <li id="ref-98">Eschmann, J., Albani, D., &amp; Loianno, G. (2024). &ldquo;Learning to Fly in Seconds.&rdquo; <em>IEEE Robotics and Automation Letters</em>.</li>
+            <li id="ref-99">Savva, M., Chang, A. X., Dosovitskiy, A., Funkhouser, T., &amp; Koltun, V. (2017). &ldquo;MINOS. Multimodal Indoor Simulator for Navigation in Complex Environments.&rdquo; <em>arXiv:1712.03931</em>.</li>
+            <li id="ref-100">Malinov, M. (2024). &ldquo;Advancing Behavior Generation in Mobile Robotics through High-Fidelity Procedural Simulations.&rdquo; <em>arXiv:2405.16818</em>.</li>
+            <li id="ref-101">Balakirsky, S., &amp; Messina, E. (2006). &ldquo;High Fidelity Tools for Rescue Robotics. Results and Perspectives.&rdquo; <em>Lecture Notes in Computer Science</em>.</li>
+            <li id="ref-102">Puang, E. Y., Tee, K. P., &amp; Jing, W. (2020). &ldquo;KOVIS. Keypoint-based Visual Servoing with Zero-Shot Sim-to-Real Transfer for Robotics Manipulation.&rdquo; <em>IROS</em>.</li>
+            <li id="ref-103">Chen, Y., et al. (2021). &ldquo;Learning Multi-Object Dense Descriptor for Autonomous Goal-Conditioned Grasping.&rdquo; <em>IEEE Robotics and Automation Letters</em>.</li>
+            <li id="ref-104">Hu, H., et al. (2022). &ldquo;Reinforcement Learning for Picking Cluttered General Objects with Dense Object Descriptors.&rdquo; <em>IEEE Transactions on Cognitive and Developmental Systems</em>.</li>
+            <li id="ref-105">Zhang, X., et al. (2020). &ldquo;Self-Supervised Sim-to-Real Adaptation for Visual Robotic Manipulation.&rdquo; <em>ICRA</em>.</li>
+            <li id="ref-106">Dong, S., Yuan, W., &amp; Adelson, E. H. (2017). &ldquo;Improved GelSight Tactile Sensor for Measuring Geometry and Slip.&rdquo; <em>IROS</em>.</li>
+            <li id="ref-107">Fishel, J. A., &amp; Loeb, G. E. (2012). &ldquo;Sensing Tactile Microvibrations with the BioTac. Comparison with Human Sensitivity.&rdquo; <em>BioRob</em>.</li>
+            <li id="ref-108">Yamaguchi, A., &amp; Atkeson, C. G. (2018). &ldquo;FingerVision Tactile Sensor Design and Slip Detection Using Convolutional LSTM Network.&rdquo; <em>arXiv preprint</em>.</li>
+            <li id="ref-109">Narang, Y., et al. (2019). &ldquo;Ground Truth Force Distribution for Learning-Based Tactile Sensing. A Finite Element Approach.&rdquo; <em>IEEE Access</em>.</li>
+            <li id="ref-110">Fang, H.-S., Wang, C., Gou, M., &amp; Lu, C. (2020). &ldquo;GraspNet-1Billion. A Large-Scale Benchmark for General Object Grasping.&rdquo; <em>CVPR</em>.</li>
+            <li id="ref-111">Xiang, Y., et al. (2020). &ldquo;Learning RGB-D Feature Embeddings for Unseen Object Instance Segmentation.&rdquo; <em>Conference on Robot Learning</em>.</li>
+            <li id="ref-112">Liu, Z. (2025). &ldquo;Generalist Robot Manipulation beyond Action Labeled Data.&rdquo; <em>arXiv:2509.19958</em>.</li>
+            <li id="ref-113">Kerr, J., Kim, C. M., Wu, M., et al. (2024). &ldquo;Robot See Robot Do. Imitating Articulated Object Manipulation with Monocular 4D Reconstruction.&rdquo; <em>arXiv:2409.18121</em>.</li>
+            <li id="ref-114">Kim, S., Choi, S., &amp; Kim, H. J. (2020). &ldquo;Aerial Mobile Manipulator System to Enable Dexterous Manipulations with Increased Precision.&rdquo; <em>arXiv:2010.09618</em>.</li>
+            <li id="ref-115">Vasilopoulos, V., et al. (2020). &ldquo;Reactive Planning for Mobile Manipulation Tasks in Unexplored Semantic Environments.&rdquo; <em>arXiv:2011.00642</em>.</li>
+            <li id="ref-116">Prakash, A. (2024). &ldquo;Sim-to-Real Gap in RL. Use Case with TIAGo and Isaac Sim/Gym.&rdquo; <em>arXiv:2403.07091</em>.</li>
+            <li id="ref-117">Jiang, X. (2025). &ldquo;Robot Policy Evaluation for Sim-to-Real Transfer. A Benchmarking Perspective.&rdquo; <em>arXiv:2508.11117</em>.</li>
+            <li id="ref-118">Collins, J., et al. (2020). &ldquo;Scalable Sim-to-Real Transfer of Soft Robot Designs.&rdquo; <em>IEEE International Conference on Soft Robotics</em>.</li>
+            <li id="ref-119">Ranzani, T., et al. (2022). &ldquo;Efficient Jacobian-Based Inverse Kinematics With Sim-to-Real Transfer of Soft Robots by Learning.&rdquo; <em>IEEE/ASME Transactions on Mechatronics</em>.</li>
+            <li id="ref-120">Fang, Z. (2025). &ldquo;Bridging High-Fidelity Simulations and Physics-Based Learning using a Surrogate Model for Soft Robots.&rdquo; <em>Advanced Intelligent Systems</em>.</li>
+            <li id="ref-121">Reway, F., et al. (2020). &ldquo;Test Method for Measuring the Simulation-to-Reality Gap of Camera-based Object Detection Algorithms for Autonomous Driving.&rdquo; <em>IEEE Intelligent Vehicles Symposium</em>.</li>
+            <li id="ref-122">Wang, L. (2025). &ldquo;Leveraging Passive Compliance of Soft Robotics for Physical Human-Robot Collaborative Manipulation.&rdquo; <em>arXiv:2504.08184</em>.</li>
+            <li id="ref-123">Zhang, Y., et al. (2021). &ldquo;Learning for Attitude Holding of a Robotic Fish. An End-to-End Approach With Sim-to-Real Transfer.&rdquo; <em>IEEE Transactions on Robotics</em>.</li>
+            <li id="ref-124">Suomalainen, M., Karayiannidis, Y., &amp; Kyrki, V. (2021). &ldquo;A Survey of Robot Manipulation in Contact.&rdquo; <em>arXiv:2112.01942</em>.</li>
           </ol>
         </div>
       </article>
     </div>
 
-    <!-- Blog styling and spacing script -->
     <script defer src="/js/blog.js"></script>
     <script defer src="/js/katex-init.js"></script>
     <script defer src="/js/references.js"></script>

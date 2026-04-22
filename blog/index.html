@@ -299,6 +299,58 @@
             <div class="blog-content">
               <div class="blog-header">
                 <div class="blog-title">
+                  Fast Whole-Body Planners and Upstream Architecture
+                </div>
+                <div class="blog-date">April 23, 2026</div>
+              </div>
+              <div class="blog-summary">
+                Millisecond-scale whole-body motion planning is not merely a performance milestone.
+                It is an architectural parameter that reorganizes the stack above it. This survey covers
+                fast planners, task decomposition, learned samplers, base-placement and IK
+                pre-configuration, and planning-perception-action feedback loops across 2018 to 2026,
+                arguing that once per-query cost drops to a few milliseconds the planner migrates from
+                periphery to center, serving as a feasibility oracle for task planners, a training-data
+                engine for neural policies, and the inner loop of reactive controllers.
+              </div>
+              <div class="blog-links">
+                <a href="surveys/fast-planner-upstreams.html" class="blog-link">
+                  <i class="fas fa-book-open"></i>Full Text
+                </a>
+                <span class="blog-model-tag">Claude Opus 4.7</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="blog-item">
+            <div class="blog-content">
+              <div class="blog-header">
+                <div class="blog-title">
+                  Robotic Tool Use and Non-Prehensile Manipulation
+                </div>
+                <div class="blog-date">April 23, 2026</div>
+              </div>
+              <div class="blog-summary">
+                Beyond grasping sits a vast space of manipulation strategies that most robots still cannot
+                handle. Pushing, sliding, pivoting, tossing, and wielding tools share a common computational
+                core. Reasoning about contact, friction, and function across chains of interacting bodies.
+                This survey covers four themes (planning and control, affordance learning, learning-based
+                approaches, and integrated tool use with non-prehensile strategies) across 2014 to 2026,
+                arguing that representation, not algorithms or hardware, is the dominant factor shaping
+                progress in robotic tool use.
+              </div>
+              <div class="blog-links">
+                <a href="surveys/robotic-tool-use.html" class="blog-link">
+                  <i class="fas fa-book-open"></i>Full Text
+                </a>
+                <span class="blog-model-tag">Claude Opus 4.7</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="blog-item">
+            <div class="blog-content">
+              <div class="blog-header">
+                <div class="blog-title">
                   Active Perception in Mobile Manipulation
                 </div>
                 <div class="blog-date">April 22, 2026</div>
@@ -351,19 +403,21 @@
                 <div class="blog-title">
                   Bridging the Simulation-to-Reality Gap
                 </div>
-                <div class="blog-date">April 1, 2026</div>
+                <div class="blog-date">April 23, 2026</div>
               </div>
               <div class="blog-summary">
-                Training robot controllers in simulation is fast and safe, but policies that master simulated
-                tasks routinely fail on physical hardware. This survey covers how LLMs and VLMs are being used
-                to bridge specific components of the sim-to-real gap, alongside classical techniques like domain
-                randomization, system identification, and domain adaptation, across the full arc from 1995 to 2026.
+                Policies trained in simulation routinely fail on physical hardware, and the gap is not a
+                single problem but a composite of dynamics, sensor, appearance, actuator, and action-space
+                errors. This survey traces the 2018 to 2026 arc across locomotion, navigation, manipulation,
+                and mobile manipulation, covering domain randomization, system identification,
+                teacher-student adaptation, residual learning, real-to-sim-to-real pipelines, and continual
+                deployment-time adaptation.
               </div>
               <div class="blog-links">
                 <a href="surveys/sim-to-real-gap.html" class="blog-link">
                   <i class="fas fa-book-open"></i>Full Text
                 </a>
-                <span class="blog-model-tag">Claude Opus 4.6</span>
+                <span class="blog-model-tag">Claude Opus 4.7</span>
               </div>
             </div>
           </div>
