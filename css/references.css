@@ -27,8 +27,8 @@
     bottom: 100%;
     left: 50%;
     transform: translateX(-50%) translateY(-8px);
-    background: transparent;
-    color: #1a1a1a;
+    background: #fafaf7;
+    color: #2c2c2e;
     padding: 0.75rem 1rem;
     border-radius: 6px;
     font-size: 0.85rem;
@@ -41,8 +41,8 @@
     transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     pointer-events: none;
     z-index: 1000;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-    border: 1px solid #444;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e0e0e0;
     font-weight: normal;
     vertical-align: baseline;
 }
@@ -54,7 +54,17 @@
     left: 50%;
     transform: translateX(-50%);
     border: 6px solid transparent;
-    border-top-color: transparent;
+    border-top-color: #e0e0e0;
+}
+
+.cite-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-1px);
+    border: 5px solid transparent;
+    border-top-color: #fafaf7;
 }
 
 .cite:hover .cite-tooltip {
@@ -69,7 +79,8 @@
     transform: translateX(0) translateY(-8px);
 }
 
-.cite-tooltip.tooltip-left::before {
+.cite-tooltip.tooltip-left::before,
+.cite-tooltip.tooltip-left::after {
     left: 20px;
 }
 
