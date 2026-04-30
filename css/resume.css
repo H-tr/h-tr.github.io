@@ -200,6 +200,29 @@ h2.resume-name {
   gap: 0.5rem;
 }
 
+.award-item-with-logo {
+  display: grid;
+  grid-template-columns: 1fr 96px;
+  align-items: center;
+  gap: 1rem;
+}
+
+.award-item-with-logo img {
+  width: 96px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.award-item-with-logo a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(44, 44, 46, 0.22);
+}
+
+.award-item-with-logo a:hover {
+  border-bottom-color: currentColor;
+}
+
 .award-item strong {
   font-weight: 500;
   color: #2c2c2e;
@@ -260,5 +283,13 @@ h2.resume-name {
 
   .award-item {
     text-align: center;
+  }
+
+  .award-item-with-logo {
+    grid-template-columns: 1fr;
+  }
+
+  .award-item-with-logo img {
+    margin: 0 auto;
   }
 }
