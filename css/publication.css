@@ -147,6 +147,11 @@ nav a:active {
   font-weight: 300;
 }
 
+.publication-status-accepted {
+  background-color: #e7ece1;
+  color: #4f6b3a;
+}
+
 .publication-authors {
   font-size: 1rem;
   font-style: italic;
