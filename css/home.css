@@ -47,6 +47,17 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 0.85em;
 }
 
+.header-content .header-note {
+  margin-top: 1.35rem;
+  max-width: 26rem;
+  color: rgba(70, 70, 70, 0.72);
+  font-family: "Noteworthy", "Bradley Hand", "Segoe Print", cursive;
+  font-size: 0.96rem;
+  font-weight: 300;
+  letter-spacing: 0.015em;
+  line-height: 1.45;
+}
+
 /* Navigation */
 nav {
   margin: 2rem 0;
