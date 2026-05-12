@@ -122,8 +122,9 @@
           target="_blank"
           rel="noopener noreferrer"
           >Dr. Hanbo Zhang</a
-        > while at NUS. My research focuses on mobile manipulation, object-centric skill
-        learning, and generalizable robot systems. Previously, I
+        > while at NUS. My research focuses on mobile manipulation in the real
+        world, particularly the coupling between perception and action.
+        Previously, I
         was an undergraduate in Computer Engineering at the
         <a
           href="https://www.ntu.edu.sg/computing"
@@ -155,48 +156,31 @@
 
       <h2>Research Interests</h2>
       <p>
-        My long-term research goal is to build <strong>generalizable robot
-        skills efficiently with minimal human prior</strong>. Generalizing across
-        objects, embodiments, viewpoints, and tasks remains hard because most
-        learning approaches couple factors that are structurally independent.
-        I am interested in representations and algorithms that make this
-        structure explicit, so that compositional generalization and data
-        efficiency arise from the representation rather than from scale.
+        My long-term research goal is to build <strong>mobile manipulators
+        that act robustly in the unstructured real world</strong>. In the
+        real world, <strong>perception and action shape each other</strong>.
+        What the robot sees decides how it acts, and how it acts decides
+        what it gets to see. Treating them in isolation breaks down the
+        moment the environment stops cooperating. I am interested in
+        <strong>jointly reasoning about perception and action</strong>,
+        building principled frameworks that scale this kind of reasoning to
+        the complexity of real environments.
       </p>
 
       <details class="research-panel">
         <summary>
-          <span class="panel-title">Compositional Generalization in Manipulation <span class="panel-chevron">›</span></span>
-          <span class="panel-desc">How can skill representations and scene models support transfer across objects, embodiments, viewpoints, and tasks?</span>
+          <span class="panel-title">Joint Reasoning over Perception and Action <span class="panel-chevron">›</span></span>
+          <span class="panel-desc">Can we reason about where to look and how to act under one unified objective, instead of treating perception and action as two separate pipelines?</span>
         </summary>
         <div class="panel-body">
           <div class="panel-group">
-            <div class="panel-group-title">Object-Centric Skill Representations</div>
             <div class="panel-item">
-              [<a href="https://chain-of-action.github.io/" target="_blank" rel="noopener noreferrer">Chain-of-Action</a>] <em>NeurIPS 2025</em>
-              — Trajectory autoregressive modeling around key object states; better generalization than predicting raw actions
+              [<a href="https://arxiv.org/abs/2605.02487" target="_blank" rel="noopener noreferrer">Visibility-Aware Mobile Grasping</a>] <em>preprint</em>.
+              Joint gaze and base-motion planning under limited directional sensing to grasp objects in dynamic environments.
             </div>
             <div class="panel-item">
-              [<a href="https://sites.google.com/view/functo" target="_blank" rel="noopener noreferrer">MimicFunc</a>] <em>CoRL 2025</em>
-              — Tool-use transfer from a single video via functional correspondence; separates affordance prediction from motion generation
-            </div>
-            <div class="panel-item">
-              [<a href="publication/">Object-Centric Policy</a>] <em>ongoing</em>
-              — Contact points and spatial vectors in object coordinates, transferring across embodiments and viewpoints
-            </div>
-          </div>
-          <div class="panel-group">
-            <div class="panel-group-title">Contact Synthesis and Foundation Models</div>
-            <div class="panel-item">
-              [<a href="https://manifoundationmodel.github.io/" target="_blank" rel="noopener noreferrer">ManiFoundation</a>] <em>IROS 2024</em>
-              — Foundation model for contact synthesis generalizing across arbitrary objects and robot embodiments
-            </div>
-          </div>
-          <div class="panel-group">
-            <div class="panel-group-title">Compositional Scene Representations</div>
-            <div class="panel-item">
-              [Dynamic Scene Graph] <em>ongoing</em>
-              — Object state tracking via relational structure for long-horizon planning under partial observation
+              [Unified Seeing, Avoiding, Grasping] <em>ongoing</em>.
+              A probabilistic formulation that casts the three operations as expected overlap between future probability fields, with gaze maximizing collision risk to expose it and motion minimizing execution risk.
             </div>
           </div>
         </div>
@@ -204,29 +188,53 @@
 
       <details class="research-panel">
         <summary>
-          <span class="panel-title">Household Robot Assistants <span class="panel-chevron">›</span></span>
-          <span class="panel-desc">How do these representations come together in real-world mobile manipulation and human-robot interaction?</span>
+          <span class="panel-title">Scene Understanding for Action <span class="panel-chevron">›</span></span>
+          <span class="panel-desc">Scene representations and grounding are often evaluated as pure vision tasks and then adapted to action. I want representations that are designed for action from the start, so the loop closes from the perception side as well.</span>
         </summary>
         <div class="panel-body">
           <div class="panel-group">
-            <div class="panel-group-title">Mobile Manipulation</div>
+            <div class="panel-group-title">Action-Oriented Object Representations</div>
             <div class="panel-item">
-              [<a href="publication/">Visibility-Aware Mobile Grasping</a>] <em>RSS 2026, in submission</em>
-              — Jointly optimizes gaze and base motion under limited directional sensing to grasp objects outside the arm workspace
+              [<a href="https://sites.google.com/view/functo" target="_blank" rel="noopener noreferrer">MimicFunc</a>] <em>CoRL 2025</em>.
+              Functional correspondence as a perception representation built for tool use, transferring from a single human video.
+            </div>
+            <div class="panel-item">
+              [<a href="https://chain-of-action.github.io/" target="_blank" rel="noopener noreferrer">Chain-of-Action</a>] <em>NeurIPS 2025</em>.
+              Trajectory autoregressive modeling anchored on key object states, tying the state representation directly to action.
+            </div>
+            <div class="panel-item">
+              [<a href="publication/">Object-Centric Policy</a>] <em>ongoing</em>.
+              Contact points and spatial vectors in object coordinates, transferring across embodiments and viewpoints.
             </div>
           </div>
           <div class="panel-group">
-            <div class="panel-group-title">Human-Robot Interaction</div>
+            <div class="panel-group-title">Scene Representations and Grounding</div>
             <div class="panel-item">
-              [<a href="https://robibutler.github.io/" target="_blank" rel="noopener noreferrer">Robi Butler</a>] <em>ICRA 2025</em>
-              — Remote multimodal interaction with a household robot assistant via language, gesture, and demonstration
+              [Dynamic Scene Graph] <em>ongoing</em>.
+              Relational scene structure that tracks object states under partial observation to support long-horizon planning.
+            </div>
+            <div class="panel-item">
+              [<a href="publication/">Uncertainty Estimation for Visual Grounding in the Open World</a>] <em>in submission</em>.
+              Calibrated uncertainty over open-world grounding so that downstream planning can reason about what the perception system does and does not know.
             </div>
           </div>
+        </div>
+      </details>
+
+      <details class="research-panel">
+        <summary>
+          <span class="panel-title">Reasoning for Complex Real-World Tasks <span class="panel-chevron">›</span></span>
+          <span class="panel-desc">Extending joint reasoning from single-skill mobile grasping to open-world, multi-step tasks that a robot has to handle in homes and public spaces.</span>
+        </summary>
+        <div class="panel-body">
           <div class="panel-group">
-            <div class="panel-group-title">Imitation Learning Infrastructure</div>
             <div class="panel-item">
-              [<a href="https://github.com/AdaCompNUS/RobotIL" target="_blank" rel="noopener noreferrer">RobotIL</a>]
-              Multi-platform system supporting GELLO, VR controllers, joysticks, and hand tracking across Fetch, Kinova, and Franka; underpins several works above
+              [<a href="publication/">Hypothesis-driven Model Expansion under Uncertainty</a>] <em>RSS 2026</em>.
+              Reasoning over hypotheses about an open-world environment and expanding the planning model on demand.
+            </div>
+            <div class="panel-item">
+              [<a href="https://robibutler.github.io/" target="_blank" rel="noopener noreferrer">Robi Butler</a>] <em>ICRA 2025</em>.
+              Remote multimodal interaction with a household robot assistant via language, gesture, and demonstration.
             </div>
           </div>
         </div>
