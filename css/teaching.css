@@ -69,115 +69,101 @@ nav a:active {
   text-decoration: none;
 }
 
-/* Teaching List */
-.teaching-list {
-  margin: 2rem 0;
+/* Service List */
+.service-list {
+  margin: 3rem 0;
 }
 
-.semester-section {
-  margin-bottom: 3rem;
+.service-section {
+  margin-bottom: 3.5rem;
 }
 
-.semester-header {
-  font-size: 1.4rem;
-  font-weight: 500;
-  color: #1a1a1a;
-  margin-bottom: 1.5rem;
-  padding-bottom: 0.5rem;
+.service-section:last-child {
+  margin-bottom: 0;
+}
+
+.service-section h2 {
+  font-size: 1.5rem;
+  margin: 0 0 0.5rem;
+  color: #2c2c2e;
   border-bottom: 2px solid #eee;
+  padding-bottom: 0.5rem;
 }
 
-.course-item {
-  margin-bottom: 2rem;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid #eee;
+.service-item {
+  display: grid;
+  grid-template-columns: 132px 1fr;
+  gap: 2.25rem;
+  padding: 0.9rem 0;
 }
 
-.course-item:last-child {
-  border-bottom: none;
-}
-
-.course-header {
+/* Left meta column */
+.service-meta {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 0.8rem;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding-top: 0.2rem;
+  text-align: right;
 }
 
-.course-title {
-  font-size: 1.2rem;
+.service-year {
+  font-size: 1.05rem;
+  color: #a9a59a;
+  font-weight: 400;
+}
+
+.service-role {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-weight: 600;
+  color: #4682B4;
+}
+
+/* Right content column */
+.service-title {
+  font-size: 1.18rem;
   font-weight: 500;
   color: #1a1a1a;
+  line-height: 1.45;
+  margin-bottom: 0.4rem;
 }
 
-.course-code {
-  font-weight: normal;
-  color: #666;
-  margin-right: 0.5rem;
-}
-
-.course-role {
-  display: inline-block;
-  padding: 0.15rem 0.5rem;
-  border-radius: 3px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.role-lecturer {
-  background-color: #e3f2fd;
-  color: #1976d2;
-}
-
-.role-ta {
-  background-color: #f3e5f5;
-  color: #7b1fa2;
-}
-
-.course-details {
-  margin-top: 0.8rem;
-}
-
-.course-description {
-  font-size: 1rem;
-  color: var(--text-color);
-  margin-bottom: 1rem;
+.service-description {
+  font-size: 0.95rem;
+  color: #797468;
   font-weight: 300;
+  line-height: 1.6;
+  max-width: 46rem;
 }
 
-.course-links {
+.service-links {
+  margin-top: 0.75rem;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.8rem;
+  gap: 1.4rem;
 }
 
-.course-link {
+.service-links a {
   display: inline-flex;
   align-items: center;
-  color: #2c3e50;
+  color: #4682B4;
   text-decoration: none;
-  font-size: 0.9rem;
-  padding: 0.4rem 0.8rem;
-  border: 1px solid #e0dcd0;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-  background: transparent;
+  font-size: 0.85rem;
+  transition: color 0.2s ease;
 }
 
-.course-link:hover {
-  background: rgba(44, 62, 80, 0.04);
-  border-color: #c0bbb0;
-  transform: translateY(-1px);
+.service-links a:hover {
+  color: #3A6A97;
 }
 
-.course-link i {
+.service-links i {
   margin-right: 0.4rem;
+  font-size: 0.9em;
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (max-width: 700px) {
   body {
     padding: 1rem;
   }
@@ -197,16 +183,21 @@ nav a:active {
     margin: 0 0.75rem;
   }
 
-  .course-header {
-    flex-direction: column;
+  .service-item {
+    grid-template-columns: 1fr;
     gap: 0.5rem;
+    padding: 1.25rem 0;
   }
 
-  .course-role {
-    align-self: flex-start;
+  .service-meta {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 0.75rem;
+    text-align: left;
+    padding-top: 0;
   }
 
-  .semester-header {
-    font-size: 1.2rem;
+  .service-section h2 {
+    font-size: 1.3rem;
   }
 }
