@@ -1,6 +1,6 @@
 # [h-tr.github.io](https://h-tr.github.io)
 
-Personal academic website of **Hu Tianrun** — Research Engineer at the Smart System Institute, National University of Singapore.
+Personal academic website of **Hu Tianrun** — PhD student at SoC, NUS.
 
 ---
 
