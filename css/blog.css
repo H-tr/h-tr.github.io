@@ -474,6 +474,7 @@ nav a:active {
 
 .blog-tabs-track {
   display: flex;
+  align-items: flex-start;
   width: 200%;
   transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform;
