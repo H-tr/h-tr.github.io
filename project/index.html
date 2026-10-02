@@ -12,6 +12,7 @@
     <link href="../css/transitions.css" rel="stylesheet" />
     <link href="../css/project.css" rel="stylesheet" />
     <script src="../js/page-transition.js" defer></script>
+    <script src="../js/lazy-video.js" defer></script>
   </head>
   <body>
     <header class="header">
@@ -30,10 +31,9 @@
     <section class="project">
       <div class="project-item">
         <div class="project-media">
-          <img
-            src="../media/images/project/autolife-planning.gif"
-            alt="Motion Planning Libraries"
-          />
+          <video autoplay loop muted playsinline preload="metadata" poster="../media/images/project/autolife-planning_poster.jpg">
+            <source src="../media/videos/project/autolife-planning.mp4" type="video/mp4" />
+          </video>
         </div>
         <div class="project-content">
           <div class="project-header">
@@ -41,28 +41,63 @@
             <div class="project-status status-ongoing">Ongoing</div>
           </div>
           <div class="project-description">
-            Motion planning stacks across multiple robot systems. The flagship Autolife-Planning
-            targets millisecond-level CPU planning with
-            <a href="https://ompl.kavrakilab.org/" target="_blank" rel="noopener noreferrer">OMPL</a> +
-            <a href="https://github.com/KavrakiLab/vamp" target="_blank" rel="noopener noreferrer">VAMP</a>,
-            covering ASAP, subgroup, whole-body, and constrained planning to push past GPU-heavy baselines like cuRobo.
-            Earlier system-specific stacks cover sub-100ms whole-body planning on the Fetch, bimanual Franka, and Fetch.
+            CPU motion planning in milliseconds, built on
+            <a href="https://ompl.kavrakilab.org/" target="_blank" rel="noopener noreferrer">OMPL</a> and
+            <a href="https://github.com/KavrakiLab/vamp" target="_blank" rel="noopener noreferrer">VAMP</a>.
+            Each robot gets its own pip-installable stack with one shared Python API for IK, subgroup,
+            whole-body, and constrained planning. Stacks marked FLASK add
+            <a href="https://www.kavrakilab.org/flask/" target="_blank" rel="noopener noreferrer">kinodynamic planning</a>
+            under velocity, acceleration, and nonholonomic base limits.
+          </div>
+          <div class="library-grid">
+            <div class="library" title="Autolife mobile manipulator">
+              <div class="library-head">
+                <span class="library-name">Autolife</span>
+                <span class="library-links">
+                  <a href="https://github.com/AdaCompNUS/Autolife-Planning" target="_blank" rel="noopener noreferrer" title="Autolife Code" aria-label="Autolife Code"><i class="fab fa-github"></i></a>
+                  <a href="https://adacompnus.github.io/Autolife-Planning/" target="_blank" rel="noopener noreferrer" title="Autolife Docs" aria-label="Autolife Docs"><i class="fas fa-book"></i></a>
+                  <a href="https://pypi.org/project/autolife-planning/" target="_blank" rel="noopener noreferrer" title="Autolife PyPI" aria-label="Autolife PyPI"><i class="fab fa-python"></i></a>
+                </span>
+              </div>
+              <code class="library-install">pip install autolife-planning</code>
+            </div>
+            <div class="library" title="Fetch mobile manipulator, differential-drive base">
+              <div class="library-head">
+                <span class="library-name">Fetch</span>
+                <span class="library-tag" title="Kinodynamic planning with FLASK">FLASK</span>
+                <span class="library-links">
+                  <a href="https://github.com/H-tr/Fetch-Planning" target="_blank" rel="noopener noreferrer" title="Fetch Code" aria-label="Fetch Code"><i class="fab fa-github"></i></a>
+                  <a href="https://h-tr.github.io/Fetch-Planning/" target="_blank" rel="noopener noreferrer" title="Fetch Docs" aria-label="Fetch Docs"><i class="fas fa-book"></i></a>
+                  <a href="https://pypi.org/project/fetch-planning/" target="_blank" rel="noopener noreferrer" title="Fetch PyPI" aria-label="Fetch PyPI"><i class="fab fa-python"></i></a>
+                </span>
+              </div>
+              <code class="library-install">pip install fetch-planning</code>
+            </div>
+            <div class="library" title="Wheelchair-mounted xArm7">
+              <div class="library-head">
+                <span class="library-name">Wheelchair</span>
+                <span class="library-tag" title="Kinodynamic planning with FLASK">FLASK</span>
+                <span class="library-links">
+                  <a href="https://github.com/H-tr/Wheel-Chair-Planning" target="_blank" rel="noopener noreferrer" title="Wheelchair Code" aria-label="Wheelchair Code"><i class="fab fa-github"></i></a>
+                  <a href="https://h-tr.github.io/Wheel-Chair-Planning/" target="_blank" rel="noopener noreferrer" title="Wheelchair Docs" aria-label="Wheelchair Docs"><i class="fas fa-book"></i></a>
+                  <a href="https://pypi.org/project/wheelchair-planning/" target="_blank" rel="noopener noreferrer" title="Wheelchair PyPI" aria-label="Wheelchair PyPI"><i class="fab fa-python"></i></a>
+                </span>
+              </div>
+              <code class="library-install">pip install wheelchair-planning</code>
+            </div>
+            <div class="library" title="Dual Franka FR3 arms">
+              <div class="library-head">
+                <span class="library-name">Bimanual Franka</span>
+                <span class="library-links">
+                  <a href="https://github.com/H-tr/Bimanual-Franka-Planning" target="_blank" rel="noopener noreferrer" title="Bimanual Franka Code" aria-label="Bimanual Franka Code"><i class="fab fa-github"></i></a>
+                </span>
+              </div>
+              <span class="library-install library-source">Install from source</span>
+            </div>
           </div>
           <div class="project-links">
-            <a href="https://h-tr.github.io/Autolife-Planning/" target="_blank" rel="noopener noreferrer">
-              <i class="fas fa-book"></i>Docs
-            </a>
-            <a href="https://github.com/H-tr/Autolife-Planning" target="_blank" rel="noopener noreferrer">
-              <i class="fab fa-github"></i>Autolife
-            </a>
-            <a href="https://github.com/H-tr/Bimanual-Franka-Planning" target="_blank" rel="noopener noreferrer">
-              <i class="fab fa-github"></i>Bimanual Franka
-            </a>
-            <a href="https://github.com/H-tr/Fetch-Planning" target="_blank" rel="noopener noreferrer">
-              <i class="fab fa-github"></i>Fetch
-            </a>
             <a href="https://github.com/AdaCompNUS/vamp" target="_blank" rel="noopener noreferrer">
-              <i class="fab fa-github"></i>Whole-Body MP
+              <i class="fab fa-github"></i>Whole-Body VAMP
             </a>
           </div>
         </div>
@@ -70,10 +105,9 @@
 
       <div class="project-item">
         <div class="project-media">
-          <img
-            src="/media/images/project/behavior-cloning.gif"
-            alt="Robot Imitation Learning Framework"
-          />
+          <video loop muted playsinline preload="none" data-lazy poster="../media/images/project/behavior-cloning_poster.jpg">
+            <source src="../media/videos/project/behavior-cloning.mp4" type="video/mp4" />
+          </video>
         </div>
         <div class="project-content">
           <div class="project-header">
@@ -139,6 +173,7 @@
         </div>
       </div>
 
+      <!-- Hidden: Final Year Project
       <div class="project-item">
         <div class="project-media">
           <img
@@ -173,6 +208,7 @@
           </div>
         </div>
       </div>
+      -->
     </section>
   </body>
 </html>

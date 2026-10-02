@@ -12,6 +12,7 @@
     <link href="../css/transitions.css" rel="stylesheet" />
     <link href="../css/publication.css" rel="stylesheet" />
     <script src="../js/page-transition.js" defer></script>
+    <script src="../js/lazy-video.js" defer></script>
   </head>
   <body>
     <header class="header">
@@ -49,8 +50,8 @@
             <a href="https://agentics-robotics.github.io/APPL/" target="_blank"
               ><i class="fas fa-globe"></i>Website</a
             >
-            <a href="#" target="_blank"
-              ><i class="fab fa-github"></i>Code (Coming Soon)</a
+            <a href="https://github.com/Agentics-robotics/Agent-Priors-guided-Policy-Learning" target="_blank"
+              ><i class="fab fa-github"></i>Code</a
             >
           </div>
         </div>
@@ -58,7 +59,7 @@
 
       <div class="publication-item">
         <div class="publication-media">
-          <video autoplay loop muted playsinline preload="metadata" poster="../media/images/receding-horizon-pushing/receding-horizon-pushing_poster.jpg">
+          <video loop muted playsinline preload="none" data-lazy poster="../media/images/receding-horizon-pushing/receding-horizon-pushing_poster.jpg">
             <source src="../media/videos/receding-horizon-pushing/receding-horizon-pushing.mp4" type="video/mp4" />
           </video>
         </div>
@@ -86,7 +87,7 @@
 
       <div class="publication-item">
         <div class="publication-media">
-          <video autoplay loop muted playsinline preload="metadata" poster="../media/images/visibility-mobile-grasping/visibility-mobile-grasping_poster.jpg">
+          <video loop muted playsinline preload="none" data-lazy poster="../media/images/visibility-mobile-grasping/visibility-mobile-grasping_poster.jpg">
             <source src="../media/videos/visibility-mobile-grasping/visibility-mobile-grasping.mp4" type="video/mp4" />
           </video>
         </div>
@@ -117,11 +118,9 @@
 
       <div class="publication-item">
         <div class="publication-media">
-          <img
-            loading="lazy"
-            src="../media/images/uncertainty-calibration/uncertainty-calibration_thumb.png"
-            alt="Uncertainty Estimation for Visual Grounding"
-          />
+          <video loop muted playsinline preload="none" data-lazy poster="../media/images/uncertainty-calibration/uncertainty-calibration_poster.jpg">
+            <source src="../media/videos/uncertainty-calibration/uncertainty-calibration.mp4" type="video/mp4" />
+          </video>
         </div>
         <div class="publication-content">
           <div class="publication-title">
@@ -147,11 +146,9 @@
 
       <div class="publication-item">
         <div class="publication-media">
-          <img
-            loading="lazy"
-            src="../media/images/hypothesis-driven/hypothesis-driven_thumb.png"
-            alt="Hypothesis-driven Model Expansion"
-          />
+          <video loop muted playsinline preload="none" data-lazy poster="../media/images/hypothesis-driven/hypothesis-driven_poster.jpg">
+            <source src="../media/videos/hypothesis-driven/hypothesis-driven.mp4" type="video/mp4" />
+          </video>
         </div>
         <div class="publication-content">
           <div class="publication-title">
@@ -182,11 +179,9 @@
 
       <div class="publication-item">
         <div class="publication-media">
-          <img
-            loading="lazy"
-            src="../media/images/coa/chain_of_action.png"
-            alt="Chain-of-Action System"
-          />
+          <video loop muted playsinline preload="none" data-lazy poster="../media/images/coa/coa_poster.jpg">
+            <source src="../media/videos/coa/coa.mp4" type="video/mp4" />
+          </video>
         </div>
         <div class="publication-content">
           <div class="publication-title">
@@ -217,7 +212,9 @@
 
       <div class="publication-item">
         <div class="publication-media">
-          <img src="../media/images/functo/functo_thumb.png" alt="FUNCTO System" />
+          <video loop muted playsinline preload="none" data-lazy poster="../media/images/functo/functo_poster.jpg">
+            <source src="../media/videos/functo/functo.mp4" type="video/mp4" />
+          </video>
         </div>
         <div class="publication-content">
           <div class="publication-title">
@@ -251,7 +248,7 @@
 
       <div class="publication-item">
         <div class="publication-media">
-          <img src="../media/images/robi/robi.png" alt="Robi Butler System" />
+          <img loading="lazy" src="../media/images/robi/robi.png" alt="Robi Butler System" />
         </div>
         <div class="publication-content">
           <div class="publication-title">

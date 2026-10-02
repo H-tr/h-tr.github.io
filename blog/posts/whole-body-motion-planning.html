@@ -46,15 +46,15 @@
             <figure class="blog-figure" style="margin-left: 0; margin-right: 0;">
                 <video controls muted playsinline preload="metadata"
                     style="width: 100%; max-width: 100%; border-radius: 6px; display: block;">
-                    <source src="https://h-tr.github.io/Autolife-Planning/assets/rls_pick_place.mp4"
+                    <source src="https://adacompnus.github.io/Autolife-Planning/assets/rls_pick_place.mp4"
                         type="video/mp4">
                     Your browser does not support embedded video. See the
-                    <a href="https://h-tr.github.io/Autolife-Planning/" target="_blank">Autolife-Planning docs</a>.
+                    <a href="https://adacompnus.github.io/Autolife-Planning/" target="_blank">Autolife-Planning docs</a>.
                 </video>
                 <figcaption>
                     Autolife (24 DoF) performing a pick-and-place under whole-body planning (5&times; preview).
                     Full documentation and benchmarks on the
-                    <a href="https://h-tr.github.io/Autolife-Planning/" target="_blank">Autolife-Planning docs</a>.
+                    <a href="https://adacompnus.github.io/Autolife-Planning/" target="_blank">Autolife-Planning docs</a>.
                 </figcaption>
             </figure>
 
@@ -71,7 +71,7 @@
                 <p>
                     The problem is structurally hard for two reasons. A modest platform like Fetch already
                     lives in \(\mathbb{R}^{11}\); a bimanual platform like
-                    <a href="https://github.com/H-tr/Autolife-Planning" target="_blank">Autolife</a> reaches
+                    <a href="https://github.com/AdaCompNUS/Autolife-Planning" target="_blank">Autolife</a> reaches
                     24 DoF with head and torso, and in that regime sampling-based planners are dominated by
                     collision-check cost. On top of the dimensionality, the subspaces are
                     <em>heterogeneous</em>: the arm is a holonomic Euclidean space, but a non-holonomic base
@@ -87,7 +87,7 @@
                     where the bottleneck actually sits, and the architecture we settled on: OMPL [1]
                     as the front end, VAMP [2] as a vectorized FK and collision backend, with extensions for
                     subgroup, manifold, cost-space, and non-holonomic planning. The same stack runs on
-                    <a href="https://github.com/H-tr/Autolife-Planning" target="_blank"><strong>Autolife
+                    <a href="https://github.com/AdaCompNUS/Autolife-Planning" target="_blank"><strong>Autolife
                     (24 DoF)</strong></a> and <strong>Fetch (11 DoF)</strong> at millisecond-level query
                     times that, to our knowledge, are faster than any other whole-body planner in the
                     literature.
@@ -478,7 +478,7 @@ path = planner.plan(start, goal, pointcloud=pc)
                         <video controls muted playsinline preload="metadata" loop
                             style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
                             <source
-                                src="https://h-tr.github.io/Autolife-Planning/assets/subgroup_planning.mp4"
+                                src="https://adacompnus.github.io/Autolife-Planning/assets/subgroup_planning.mp4"
                                 type="video/mp4">
                         </video>
                     </div>
@@ -526,7 +526,7 @@ path = planner.plan(start, goal, pointcloud=pc)
                 <figure class="manifold-case">
                     <div class="manifold-case__video">
                         <video controls muted playsinline preload="metadata" loop>
-                            <source src="https://h-tr.github.io/Autolife-Planning/assets/constrained_plane.mp4"
+                            <source src="https://adacompnus.github.io/Autolife-Planning/assets/constrained_plane.mp4"
                                 type="video/mp4">
                         </video>
                     </div>
@@ -550,7 +550,7 @@ path = planner.plan(start, goal, pointcloud=pc)
                     <div class="manifold-case__video">
                         <video controls muted playsinline preload="metadata" loop>
                             <source
-                                src="https://h-tr.github.io/Autolife-Planning/assets/constrained_plane_obstacle.mp4"
+                                src="https://adacompnus.github.io/Autolife-Planning/assets/constrained_plane_obstacle.mp4"
                                 type="video/mp4">
                         </video>
                     </div>
@@ -574,7 +574,7 @@ path = planner.plan(start, goal, pointcloud=pc)
                     <div class="manifold-case__video">
                         <video controls muted playsinline preload="metadata" loop>
                             <source
-                                src="https://h-tr.github.io/Autolife-Planning/assets/constrained_orientation_lock.mp4"
+                                src="https://adacompnus.github.io/Autolife-Planning/assets/constrained_orientation_lock.mp4"
                                 type="video/mp4">
                         </video>
                     </div>
@@ -603,7 +603,7 @@ path = planner.plan(start, goal, pointcloud=pc)
                     <div class="manifold-case__video">
                         <video controls muted playsinline preload="metadata" loop>
                             <source
-                                src="https://h-tr.github.io/Autolife-Planning/assets/constrained_line_horizontal.mp4"
+                                src="https://adacompnus.github.io/Autolife-Planning/assets/constrained_line_horizontal.mp4"
                                 type="video/mp4">
                         </video>
                     </div>
@@ -634,7 +634,7 @@ path = planner.plan(start, goal, pointcloud=pc)
                     <div class="manifold-case__video">
                         <video controls muted playsinline preload="metadata" loop>
                             <source
-                                src="https://h-tr.github.io/Autolife-Planning/assets/constrained_line_vertical.mp4"
+                                src="https://adacompnus.github.io/Autolife-Planning/assets/constrained_line_vertical.mp4"
                                 type="video/mp4">
                         </video>
                     </div>
@@ -685,7 +685,7 @@ path = planner.plan(start, goal, pointcloud=pc)
                 <figure class="manifold-case">
                     <div class="manifold-case__video">
                         <video controls muted playsinline preload="metadata" loop>
-                            <source src="https://h-tr.github.io/Autolife-Planning/assets/cost_plane.mp4"
+                            <source src="https://adacompnus.github.io/Autolife-Planning/assets/cost_plane.mp4"
                                 type="video/mp4">
                         </video>
                     </div>
@@ -709,7 +709,7 @@ path = planner.plan(start, goal, pointcloud=pc)
                     <div class="manifold-case__video">
                         <video controls muted playsinline preload="metadata" loop>
                             <source
-                                src="https://h-tr.github.io/Autolife-Planning/assets/cost_orientation_lock.mp4"
+                                src="https://adacompnus.github.io/Autolife-Planning/assets/cost_orientation_lock.mp4"
                                 type="video/mp4">
                         </video>
                     </div>
@@ -738,7 +738,7 @@ path = planner.plan(start, goal, pointcloud=pc)
                     <div class="manifold-case__video">
                         <video controls muted playsinline preload="metadata" loop>
                             <source
-                                src="https://h-tr.github.io/Autolife-Planning/assets/cost_line_horizontal.mp4"
+                                src="https://adacompnus.github.io/Autolife-Planning/assets/cost_line_horizontal.mp4"
                                 type="video/mp4">
                         </video>
                     </div>
@@ -769,7 +769,7 @@ path = planner.plan(start, goal, pointcloud=pc)
                     <div class="manifold-case__video">
                         <video controls muted playsinline preload="metadata" loop>
                             <source
-                                src="https://h-tr.github.io/Autolife-Planning/assets/cost_line_vertical.mp4"
+                                src="https://adacompnus.github.io/Autolife-Planning/assets/cost_line_vertical.mp4"
                                 type="video/mp4">
                         </video>
                     </div>
@@ -950,7 +950,7 @@ path = planner.plan(start, goal)   # 11-DoF whole-body path</code></pre>
                 </ul>
                 <p>
                     We release both stacks as reference implementations:
-                    <a href="https://github.com/H-tr/Autolife-Planning" target="_blank">Autolife-Planning</a> for
+                    <a href="https://github.com/AdaCompNUS/Autolife-Planning" target="_blank">Autolife-Planning</a> for
                     the 24-DoF bimanual platform, and our VAMP fork in
                     <a href="https://github.com/AdaCompNUS/vamp" target="_blank">AdaCompNUS/vamp</a> with the
                     <a href="https://github.com/AdaCompNUS/rls-digital-twin" target="_blank">rls-digital-twin</a>

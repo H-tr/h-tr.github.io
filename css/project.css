@@ -81,7 +81,7 @@ nav a:active {
   margin-bottom: 3rem;
   padding-bottom: 2rem;
   border-bottom: 1px solid #eee;
-  align-items: center;
+  align-items: start;
 }
 
 .project-item:last-child {
@@ -111,6 +111,13 @@ nav a:active {
   max-height: 100%;
   width: auto;
   height: auto;
+  object-fit: contain;
+}
+
+.project-media video {
+  display: block;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
 }
 
@@ -194,6 +201,103 @@ nav a:active {
   margin-right: 0.4rem;
 }
 
+.project-description a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid #c0bbb0;
+  transition: border-color 0.2s ease;
+}
+
+.project-description a:hover {
+  border-color: #2c3e50;
+}
+
+/* Library grid (Motion Planning Libraries) */
+.library-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+}
+
+.library {
+  padding: 0.55rem 0.75rem 0.6rem;
+  border: 1px solid #e0dcd0;
+  border-radius: 4px;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.library:hover {
+  border-color: #c0bbb0;
+  background: rgba(44, 62, 80, 0.02);
+}
+
+.library-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.library-name {
+  font-size: 0.98rem;
+  font-weight: 500;
+  color: #1a1a1a;
+  white-space: nowrap;
+}
+
+.library-tag {
+  font-family: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  padding: 0.05rem 0.35rem;
+  border-radius: 3px;
+  color: #1976d2;
+  background-color: #e3f2fd;
+}
+
+.library-links {
+  display: inline-flex;
+  gap: 0.15rem;
+  margin-left: auto;
+}
+
+.library-links a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 3px;
+  font-size: 0.85rem;
+  color: #8a867a;
+  text-decoration: none;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.library-links a:hover {
+  color: #2c3e50;
+  background: rgba(44, 62, 80, 0.06);
+}
+
+.library-install {
+  display: block;
+  margin-top: 0.2rem;
+  font-family: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 0.72rem;
+  color: #6b6b63;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: all;
+}
+
+.library-source {
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-style: italic;
+  user-select: auto;
+}
+
 /* Responsive Design */
 @media (max-width: 900px) {
   .project-item {
@@ -234,5 +338,9 @@ nav a:active {
 
   .project-status {
     align-self: flex-start;
+  }
+
+  .library-grid {
+    grid-template-columns: 1fr;
   }
 }
