@@ -106,7 +106,8 @@ nav a {
     bottom: -0.4em;
     height: 1.5px;
     border-radius: 1px;
-    background: #2c2c2e;
+    background: var(--indicator, #2c2c2e);
+    box-shadow: var(--indicator-glow, none);
     transform-origin: 0 50%;
     pointer-events: none;
     view-transition-name: nav-indicator;

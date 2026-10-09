@@ -44,7 +44,7 @@ pre[class*="language-"] {
   font-size: 0.85em;
   padding: 0.2em 0.4em;
   background: rgba(130, 150, 170, 0.18);
-  color: #24292f;
+  color: var(--inline-code-text, #24292f);
   border-radius: 6px;
 }
 
@@ -180,8 +180,8 @@ div.code-toolbar:hover > .toolbar {
 div.code-toolbar > .toolbar button {
   font-size: 0.72em;
   padding: 0.25rem 0.4rem;
-  background: rgba(255, 255, 255, 0.75);
-  color: #6b7685;
+  background: var(--toolbar-bg, rgba(255, 255, 255, 0.75));
+  color: var(--toolbar-text, #6b7685);
   border: 1px solid var(--code-border);
   border-radius: 4px;
   cursor: pointer;
@@ -197,14 +197,14 @@ div.code-toolbar > .toolbar button i {
 
 div.code-toolbar > .toolbar button:hover,
 div.code-toolbar > .toolbar button:focus {
-  background: #fff;
-  border-color: #c9c0a3;
+  background: var(--toolbar-bg-hover, #fff);
+  border-color: var(--toolbar-border, #c9c0a3);
   color: var(--code-text);
 }
 
 div.code-toolbar > .toolbar button.copy-success {
-  background: #fff;
-  border-color: #c9c0a3;
+  background: var(--toolbar-bg-hover, #fff);
+  border-color: var(--toolbar-border, #c9c0a3);
   color: var(--code-string);
 }
 

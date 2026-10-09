@@ -1,0 +1,243 @@
+/* ============================================
+   SITE THEME: light (cream paper) and dark (candle-lit night paper)
+
+   Every page styles itself through these color tokens. The dark palette
+   applies when the visitor's system prefers dark and they haven't chosen
+   light, or when they pick dark with the theme switch (html[data-theme]).
+   Section pages link this file; blog.css imports it for posts and surveys.
+   ============================================ */
+
+:root {
+  --bg: #fffff8;
+  --panel: #f4f2e8;
+  --text-color: #111;
+  --ink: #111;
+  --text-soft: #333;
+  --muted: #555;
+  --faint: #8a877e;
+  --rule: #e4e2d8;
+  --rule-strong: #bdb9ad;
+  --gray: #a9a59a;
+  --ink-soft: rgba(17, 17, 17, 0.05);
+  --link-underline: rgba(17, 17, 17, 0.35);
+  --nav-text: #555;
+  --nav-active: #2c2c2e;
+  --nav-border: #eee;
+  --note: rgba(70, 70, 70, 0.72);
+  --indicator: #2c2c2e;
+  --indicator-glow: none;
+  --bg-glow: none;
+  --media-filter: none;
+  --selection: rgba(17, 17, 17, 0.12);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121211;
+    --panel: #1c1b19;
+    --text-color: #e6e3db;
+    --ink: #f2efe7;
+    --text-soft: #cdc9bf;
+    --muted: #a19d93;
+    --faint: #7c786f;
+    --rule: #2a2925;
+    --rule-strong: #454239;
+    --gray: #67645c;
+    --ink-soft: rgba(242, 239, 231, 0.06);
+    --link-underline: rgba(242, 239, 231, 0.35);
+    --nav-text: #a19d93;
+    --nav-active: #f2efe7;
+    --nav-border: #24231f;
+    --note: rgba(230, 226, 216, 0.55);
+    --indicator: #e3cf9f;
+    --indicator-glow: 0 0 10px rgba(227, 207, 159, 0.55);
+    --bg-glow: radial-gradient(ellipse 1100px 560px at 50% -160px, rgba(227, 207, 159, 0.075), transparent 70%);
+    --media-filter: brightness(0.92);
+    --selection: rgba(227, 207, 159, 0.28);
+    --code-border: #34322d;
+    --code-text: #e6e3db;
+    --code-comment: #8a857a;
+    --code-punctuation: #9aa4b1;
+    --code-operator: #e38ab0;
+    --code-keyword: #e38ab0;
+    --code-string: #7cc49b;
+    --code-number: #e8a06a;
+    --code-function: #7fb0e6;
+    --code-property: #e6e3db;
+    --code-class: #7fb0e6;
+    --code-builtin: #b59af0;
+    --inline-code-text: #e6e3db;
+    --toolbar-bg: rgba(28, 27, 25, 0.85);
+    --toolbar-bg-hover: #24231f;
+    --toolbar-border: #454239;
+    --toolbar-text: #a19d93;
+    --diagram-box: #1a1917;
+    --diagram-line: #9c988e;
+    --diagram-rule: #2e2d28;
+    --line-art-filter: invert(0.86);
+    --logo-filter: invert(0.88) hue-rotate(180deg);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #121211;
+  --panel: #1c1b19;
+  --text-color: #e6e3db;
+  --ink: #f2efe7;
+  --text-soft: #cdc9bf;
+  --muted: #a19d93;
+  --faint: #7c786f;
+  --rule: #2a2925;
+  --rule-strong: #454239;
+  --gray: #67645c;
+  --ink-soft: rgba(242, 239, 231, 0.06);
+  --link-underline: rgba(242, 239, 231, 0.35);
+  --nav-text: #a19d93;
+  --nav-active: #f2efe7;
+  --nav-border: #24231f;
+  --note: rgba(230, 226, 216, 0.55);
+  --indicator: #e3cf9f;
+  --indicator-glow: 0 0 10px rgba(227, 207, 159, 0.55);
+  --bg-glow: radial-gradient(ellipse 1100px 560px at 50% -160px, rgba(227, 207, 159, 0.075), transparent 70%);
+  --media-filter: brightness(0.92);
+  --selection: rgba(227, 207, 159, 0.28);
+  --code-border: #34322d;
+  --code-text: #e6e3db;
+  --code-comment: #8a857a;
+  --code-punctuation: #9aa4b1;
+  --code-operator: #e38ab0;
+  --code-keyword: #e38ab0;
+  --code-string: #7cc49b;
+  --code-number: #e8a06a;
+  --code-function: #7fb0e6;
+  --code-property: #e6e3db;
+  --code-class: #7fb0e6;
+  --code-builtin: #b59af0;
+  --inline-code-text: #e6e3db;
+  --toolbar-bg: rgba(28, 27, 25, 0.85);
+  --toolbar-bg-hover: #24231f;
+  --toolbar-border: #454239;
+  --toolbar-text: #a19d93;
+  --diagram-box: #1a1917;
+  --diagram-line: #9c988e;
+  --diagram-rule: #2e2d28;
+  --line-art-filter: invert(0.86);
+  --logo-filter: invert(0.88) hue-rotate(180deg);
+  color-scheme: dark;
+}
+
+/* ---------- Night details (inert in light mode) ---------- */
+
+/* A faint warm glow at the top of the page, like a desk lamp */
+html body {
+  background-image: var(--bg-glow);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+::selection {
+  background: var(--selection);
+}
+
+/* Photos and videos with white backgrounds glare on dark paper */
+html img:not(.profile-image),
+html video {
+  filter: var(--media-filter);
+}
+
+/* ---------- Theme switch (section pages) ---------- */
+
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.theme-toggle {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease, transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.theme-toggle[hidden] {
+  display: none;
+}
+
+/* On phones the nav wraps and centers, so the switch joins the row */
+@media (max-width: 700px) {
+  .theme-toggle {
+    margin-left: 0;
+  }
+}
+
+.theme-toggle:hover {
+  color: var(--ink);
+  border-color: var(--rule-strong);
+  transform: rotate(-25deg);
+}
+
+.theme-toggle:focus-visible {
+  outline: 1px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.theme-toggle svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.theme-toggle .icon-sun,
+.theme-toggle.is-dark .icon-moon {
+  display: none;
+}
+
+.theme-toggle.is-dark .icon-sun {
+  display: block;
+}
+
+/* While switching themes, reveal the new theme as a circle from the switch
+   (animated in js/theme.js) instead of the page-to-page transition. */
+html.theme-switching nav,
+html.theme-switching .header h1,
+html.theme-switching .nav-indicator {
+  view-transition-name: none;
+}
+
+/* Swap every color at once so the circle reveals the finished theme */
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition: none !important;
+}
+
+html.theme-switching::view-transition-old(root),
+html.theme-switching::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+html.theme-switching::view-transition-new(root) {
+  z-index: 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle {
+    transition: none;
+  }
+
+  .theme-toggle:hover {
+    transform: none;
+  }
+}

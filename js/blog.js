@@ -1,6 +1,14 @@
 /**
  * Blog post enhancements
  */
+// Apply a saved light/dark choice made with the switch on the section pages.
+try {
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'dark' || savedTheme === 'light') document.documentElement.dataset.theme = savedTheme;
+} catch (e) {
+  // Storage unavailable: follow the system setting.
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   initTextTOC();
 });

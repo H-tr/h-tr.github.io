@@ -337,7 +337,7 @@
                             </marker>
                             <marker id="arch-arrow-dark" viewBox="0 0 10 10" refX="9" refY="5"
                                 markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-                                <path d="M0,0 L10,5 L0,10 z" fill="#2c3e50" />
+                                <path d="M0,0 L10,5 L0,10 z" class="arch-ink-fill" />
                             </marker>
                         </defs>
 
@@ -360,11 +360,11 @@
                         <!-- OMPL front end (left) -->
                         <g>
                             <rect x="40" y="80" width="240" height="180" rx="6"
-                                fill="#fffff8" stroke="#2c3e50" stroke-width="1.5" />
+                                class="arch-box" stroke-width="1.5" />
                             <text x="60" y="108" class="arch-title">Front end</text>
                             <text x="60" y="130" class="arch-sub-label">OMPL</text>
                             <line x1="60" y1="142" x2="260" y2="142"
-                                stroke="#ece8d4" stroke-width="1" />
+                                class="arch-divider" stroke-width="1" />
                             <text x="60" y="165" class="arch-sub">RRT-Connect · BIT*</text>
                             <text x="60" y="187" class="arch-sub">PRM · AIT*</text>
                             <text x="60" y="215" class="arch-sub">CompoundStateSpace</text>
@@ -374,11 +374,11 @@
                         <!-- VAMP backend (right) -->
                         <g>
                             <rect x="480" y="80" width="240" height="180" rx="6"
-                                fill="#fffff8" stroke="#2c3e50" stroke-width="1.5" />
+                                class="arch-box" stroke-width="1.5" />
                             <text x="500" y="108" class="arch-title">Backend</text>
                             <text x="500" y="130" class="arch-sub-label">VAMP</text>
                             <line x1="500" y1="142" x2="700" y2="142"
-                                stroke="#ece8d4" stroke-width="1" />
+                                class="arch-divider" stroke-width="1" />
                             <text x="500" y="165" class="arch-sub">SIMD forward kinematics</text>
                             <text x="500" y="187" class="arch-sub">vectorized collision</text>
                             <text x="500" y="215" class="arch-sub">CAPT point-cloud</text>
@@ -394,13 +394,13 @@
                         <g>
                             <!-- OMPL -> VAMP: q -->
                             <line x1="280" y1="175" x2="478" y2="175"
-                                stroke="#2c3e50" stroke-width="1.4"
+                                class="arch-link" stroke-width="1.4"
                                 marker-end="url(#arch-arrow-dark)" />
                             <text x="380" y="170" class="arch-flow-label" text-anchor="middle">q</text>
 
                             <!-- VAMP -> OMPL: valid? -->
                             <line x1="480" y1="215" x2="282" y2="215"
-                                stroke="#2c3e50" stroke-width="1.4"
+                                class="arch-link" stroke-width="1.4"
                                 marker-end="url(#arch-arrow-dark)" />
                             <text x="380" y="232" class="arch-flow-label" text-anchor="middle">valid?</text>
                         </g>

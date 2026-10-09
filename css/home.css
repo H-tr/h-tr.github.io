@@ -8,6 +8,15 @@
   --faint: #8a877e;
   --rule: #e4e2d8;
   --link-underline: rgba(17, 17, 17, 0.35);
+  --bg: #fffff8;
+  --panel: #f4f2e8;
+  --text-soft: #333;
+  --nav-text: #555;
+  --nav-active: #2c2c2e;
+  --nav-border: #eee;
+  --rule-strong: #bdb9ad;
+  --note: rgba(70, 70, 70, 0.72);
+  --ink-soft: rgba(17, 17, 17, 0.05);
 }
 
 body {
@@ -18,7 +27,7 @@ body {
   margin: 0 auto;
   padding: 2rem 2rem 4rem;
   color: var(--text-color);
-  background: #fffff8;
+  background: var(--bg);
   font-weight: 400;
 }
 
@@ -70,7 +79,7 @@ h1, h2, h3, h4, h5, h6 {
 .header-content .header-note {
   margin-top: 0.9rem;
   max-width: 26rem;
-  color: rgba(70, 70, 70, 0.72);
+  color: var(--note);
   font-family: "Noteworthy", "Bradley Hand", "Segoe Print", cursive;
   font-size: 0.96rem;
   font-weight: 300;
@@ -84,7 +93,7 @@ h1, h2, h3, h4, h5, h6 {
   font-style: italic;
   font-size: 1.15rem;
   line-height: 1.5;
-  color: #333;
+  color: var(--text-soft);
   text-wrap: pretty;
 }
 
@@ -114,12 +123,12 @@ h1, h2, h3, h4, h5, h6 {
 nav {
   margin: 2rem 0;
   padding: 1rem 0;
-  border-top: 1px solid #eee;
-  border-bottom: 1px solid #eee;
+  border-top: 1px solid var(--nav-border);
+  border-bottom: 1px solid var(--nav-border);
 }
 
 nav a {
-  color: #555;
+  color: var(--nav-text);
   text-decoration: none;
   margin-right: 1.5rem;
   font-weight: 400;
@@ -129,23 +138,23 @@ nav a {
 }
 
 nav a:hover {
-  color: #2c2c2e;
+  color: var(--nav-active);
   text-decoration: none;
 }
 
 nav a.active {
-  color: #2c2c2e;
+  color: var(--nav-active);
   font-weight: 600;
   text-decoration: none;
 }
 
 nav a:visited {
-  color: #555;
+  color: var(--nav-text);
   text-decoration: none;
 }
 
 nav a:active {
-  color: #2c2c2e;
+  color: var(--nav-active);
   text-decoration: none;
 }
 
@@ -271,7 +280,7 @@ a:focus-visible {
 
 .panel-item {
   font-size: 0.88em;
-  color: #333;
+  color: var(--text-soft);
   padding: 0.25em 0 0.25em 0.8em;
   border-left: 1px solid var(--rule);
   margin-bottom: 0.2em;

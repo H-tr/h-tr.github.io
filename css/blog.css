@@ -1,3 +1,5 @@
+@import url("theme.css");
+
 :root {
   --content-width: 1000px;
   --text-color: #111;
@@ -13,6 +15,11 @@
   --ink-soft: rgba(17, 17, 17, 0.05);
   --gray: #a9a59a;
   --serif: et-book, Palatino, "Palatino Linotype", "Palatino LT STD", "Book Antiqua", Georgia, serif;
+  --text-soft: #333;
+  --nav-text: #555;
+  --nav-active: #2c2c2e;
+  --nav-border: #eee;
+  --link-underline: rgba(17, 17, 17, 0.35);
 }
 
 body {
@@ -44,19 +51,19 @@ h6 {
 .header h1 {
   font-size: 2.5rem;
   margin: 0 0 0.5rem;
-  color: #2c2c2e;
+  color: var(--ink);
 }
 
 /* Navigation */
 nav {
   margin: 2rem 0;
   padding: 1rem 0;
-  border-top: 1px solid #eee;
-  border-bottom: 1px solid #eee;
+  border-top: 1px solid var(--nav-border);
+  border-bottom: 1px solid var(--nav-border);
 }
 
 nav a {
-  color: #555;
+  color: var(--nav-text);
   text-decoration: none;
   margin-right: 1.5rem;
   font-weight: 400;
@@ -66,23 +73,23 @@ nav a {
 }
 
 nav a:hover {
-  color: #2c2c2e;
+  color: var(--nav-active);
   text-decoration: none;
 }
 
 nav a.active {
-  color: #2c2c2e;
+  color: var(--nav-active);
   font-weight: 600;
   text-decoration: none;
 }
 
 nav a:visited {
-  color: #555;
+  color: var(--nav-text);
   text-decoration: none;
 }
 
 nav a:active {
-  color: #2c2c2e;
+  color: var(--nav-active);
   text-decoration: none;
 }
 
@@ -168,7 +175,7 @@ nav a:active {
   letter-spacing: 0.06em;
   text-decoration: underline;
   text-decoration-thickness: 1px;
-  text-decoration-color: rgba(17, 17, 17, 0.35);
+  text-decoration-color: var(--link-underline);
   text-underline-offset: 3px;
   padding: 0;
   border: none;
@@ -304,7 +311,7 @@ nav a:active {
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   font-size: 0.85em;
   background-color: rgba(130, 150, 170, 0.18);
-  color: #24292f;
+  color: var(--ink);
   padding: 0.2em 0.4em;
   border-radius: 6px;
 }
@@ -408,10 +415,10 @@ nav a:active {
 .toc-link {
   display: block;
   font-size: 0.8rem;
-  color: #999;
+  color: var(--faint);
   text-decoration: none;
   padding: 0.2rem 0 0.2rem 0.8rem;
-  border-left: 2px solid #eee;
+  border-left: 2px solid var(--rule);
   transition: all 0.2s ease;
   line-height: 1.4;
 }
@@ -423,12 +430,12 @@ nav a:active {
 .toc-link.toc-h3 {
   font-size: 0.75rem;
   padding-left: 1.2rem;
-  color: #aaa;
+  color: var(--faint);
 }
 
 .toc-link:hover {
-  color: #555;
-  border-left-color: #ccc;
+  color: var(--muted);
+  border-left-color: var(--rule-strong);
 }
 
 .toc-link.active {
@@ -437,8 +444,8 @@ nav a:active {
 }
 
 .toc-link.toc-h3.active {
-  color: #333;
-  border-left-color: rgba(17, 17, 17, 0.45);
+  color: var(--text-soft);
+  border-left-color: var(--link-underline);
 }
 
 @media (max-width: 1200px) {
@@ -530,7 +537,7 @@ nav a:active {
   font-family: var(--serif);
   font-variant-caps: all-small-caps;
   font-size: 1rem;
-  color: #b5b1a6;
+  color: var(--gray);
   cursor: pointer;
   transition: color 0.2s ease, border-color 0.2s ease;
   letter-spacing: 0.1em;
@@ -547,11 +554,11 @@ nav a:active {
 }
 
 .subnav-tab:hover:not(.active) {
-  color: #888;
+  color: var(--faint);
 }
 
 .subnav-divider {
-  color: #ddd;
+  color: var(--rule);
   font-size: 0.7rem;
   user-select: none;
 }
@@ -578,7 +585,7 @@ nav a:active {
 .blog-empty-state {
   padding: 5rem 0 4rem;
   text-align: center;
-  color: #bbb;
+  color: var(--faint);
   font-style: italic;
   font-size: 0.95rem;
 }
@@ -592,9 +599,9 @@ nav a:active {
   transform: translateY(-50%);
   width: 170px;
   padding-right: 1.2rem;
-  border-right: 1px solid #eee;
+  border-right: 1px solid var(--rule);
   font-size: 0.75rem;
-  color: #bbb;
+  color: var(--faint);
   line-height: 1.6;
   font-style: italic;
 }
@@ -646,10 +653,10 @@ nav a:active {
 .taxonomy-root {
   font-size: 1.05rem;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--ink);
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--rule);
   letter-spacing: 0.01em;
 }
 
@@ -670,7 +677,7 @@ nav a:active {
 
 .taxonomy-branch {
   font-weight: 500;
-  color: #2c3e50;
+  color: var(--ink);
   font-size: 0.95rem;
   display: flex;
   align-items: baseline;
@@ -681,8 +688,8 @@ nav a:active {
   font-family: "JetBrains Mono", "Fira Code", monospace;
   font-size: 0.8rem;
   font-weight: 600;
-  color: #fff;
-  background: #2c3e50;
+  color: var(--bg);
+  background: var(--ink);
   width: 1.4rem;
   height: 1.4rem;
   display: inline-flex;
@@ -701,12 +708,12 @@ nav a:active {
 .taxonomy-leaves {
   margin: 0.35rem 0 0 1.2rem;
   padding-left: 1.4rem;
-  border-left: 2px solid #e8e6e0;
+  border-left: 2px solid var(--rule);
 }
 
 .taxonomy-leaves li {
   font-size: 0.88rem;
-  color: #555;
+  color: var(--muted);
   padding: 0.2rem 0;
   line-height: 1.5;
 }
@@ -714,7 +721,7 @@ nav a:active {
 .taxonomy-leaves .leaf-id {
   font-family: "JetBrains Mono", "Fira Code", monospace;
   font-size: 0.75rem;
-  color: #999;
+  color: var(--faint);
   margin-right: 0.35rem;
 }
 
@@ -733,7 +740,7 @@ nav a:active {
 .blog-post-content a {
   color: var(--ink);
   text-decoration: underline;
-  text-decoration-color: rgba(17, 17, 17, 0.35);
+  text-decoration-color: var(--link-underline);
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
   transition: text-decoration-color 0.2s ease;
@@ -776,16 +783,16 @@ nav a:active {
 
 .citation-text {
   font-size: 0.9rem;
-  color: #555;
+  color: var(--muted);
   margin-bottom: 0.75rem;
   font-style: italic;
 }
 
 .citation-pre {
   background-color: transparent;
-  color: #2c2c2e;
+  color: var(--ink);
   padding: 1.25rem;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--rule);
   border-radius: 4px;
   font-family: "Fira Code", "JetBrains Mono", monospace;
   font-size: 0.8rem;
@@ -797,7 +804,7 @@ nav a:active {
 
 .references-list {
   font-size: 0.95rem;
-  color: #444;
+  color: var(--text-soft);
   padding-left: 0;
   margin: 0;
   list-style: none;
@@ -814,7 +821,7 @@ nav a:active {
 }
 
 .references-list li:hover {
-  border-left-color: #ccc;
+  border-left-color: var(--rule-strong);
   padding-left: 2.6rem;
 }
 
@@ -843,7 +850,7 @@ nav a:active {
 .blog-post-content .references-list a {
   color: var(--text-color);
   text-decoration: none;
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid var(--rule-strong);
   transition: border-color 0.2s ease;
 }
 
@@ -901,12 +908,12 @@ nav a:active {
   background: #111;
   border-radius: 10px;
   overflow: hidden;
-  border: 1px solid #ece8d4;
+  border: 1px solid var(--rule);
   transition: border-color 0.25s ease;
 }
 
 .video-embed:hover {
-  border-color: #d9d2b8;
+  border-color: var(--rule-strong);
 }
 
 .video-embed iframe {
@@ -922,7 +929,7 @@ nav a:active {
 .video-embed-caption {
   margin-top: 0.75rem;
   font-size: 0.85rem;
-  color: #555;
+  color: var(--muted);
   text-align: center;
   font-style: italic;
 }
@@ -953,9 +960,14 @@ nav a:active {
   margin-bottom: 1rem;
 }
 
+/* Dark line art on a transparent background turns light at night */
+.hero-figure .hero-svg {
+  filter: var(--line-art-filter, none);
+}
+
 .hero-figure figcaption {
   font-size: 1rem;
-  color: #555;
+  color: var(--muted);
   font-style: italic;
   margin: 0;
   letter-spacing: 0.02em;
@@ -993,7 +1005,7 @@ nav a:active {
   padding: 0.6rem 1rem 0.6rem 0;
   vertical-align: top;
   border-bottom: 1px solid var(--rule);
-  color: #333;
+  color: var(--text-soft);
 }
 
 .blog-table tbody tr:last-child td {
@@ -1001,7 +1013,7 @@ nav a:active {
 }
 
 .blog-table tbody tr:hover {
-  background: rgba(44, 62, 80, 0.03);
+  background: var(--ink-soft);
 }
 
 .blog-table .num {
@@ -1012,14 +1024,14 @@ nav a:active {
 
 .blog-table .highlight-row td {
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--ink);
 }
 
 .blog-table caption {
   caption-side: bottom;
   text-align: left;
   font-size: 0.85rem;
-  color: #666;
+  color: var(--muted);
   font-style: italic;
   padding-top: 0.6rem;
 }
@@ -1034,7 +1046,7 @@ nav a:active {
   border-left: 2px solid var(--rule-strong);
   background: transparent;
   font-size: 0.92rem;
-  color: #555;
+  color: var(--muted);
   line-height: 1.7;
 }
 
@@ -1065,7 +1077,7 @@ nav a:active {
 .bar-chart-title {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #555;
+  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-bottom: 1rem;
@@ -1081,7 +1093,7 @@ nav a:active {
   width: 140px;
   flex-shrink: 0;
   font-size: 0.9rem;
-  color: #333;
+  color: var(--text-soft);
   text-align: right;
   padding-right: 1rem;
 }
@@ -1089,7 +1101,7 @@ nav a:active {
 .bar-track {
   flex: 1;
   height: 24px;
-  background: #f0efea;
+  background: var(--panel);
   border-radius: 3px;
   overflow: hidden;
   position: relative;
@@ -1102,7 +1114,7 @@ nav a:active {
 }
 
 .bar-fill-primary {
-  background: #2c3e50;
+  background: var(--ink);
 }
 
 .bar-fill-secondary {
@@ -1122,7 +1134,7 @@ nav a:active {
   flex-shrink: 0;
   font-family: "JetBrains Mono", "Fira Code", monospace;
   font-size: 0.85rem;
-  color: #555;
+  color: var(--muted);
   text-align: right;
   padding-left: 0.6rem;
 }
@@ -1132,7 +1144,7 @@ nav a:active {
   display: flex;
   flex: 1;
   height: 24px;
-  background: #f0efea;
+  background: var(--panel);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -1149,7 +1161,7 @@ nav a:active {
   gap: 1rem;
   margin-top: 0.8rem;
   font-size: 0.8rem;
-  color: #666;
+  color: var(--muted);
 }
 
 .bar-legend-item {
@@ -1177,7 +1189,7 @@ nav a:active {
   max-width: 100%;
   height: auto;
   border-radius: 6px;
-  border: 1px solid #ece8d4;
+  border: 1px solid var(--rule);
 }
 
 .blog-figure figcaption {
@@ -1206,7 +1218,7 @@ nav a:active {
   margin: 1.5rem 0;
   padding: 1rem 1.25rem;
   border-left: 2px solid var(--rule-strong);
-  background: rgba(17, 17, 17, 0.025);
+  background: var(--ink-soft);
   font-size: 0.95rem;
 }
 
@@ -1283,16 +1295,33 @@ nav a:active {
   font-family: et-book, Palatino, "Palatino Linotype", Georgia, serif;
 }
 
+.arch-svg .arch-box {
+  fill: var(--diagram-box, #fffff8);
+  stroke: var(--diagram-line, #2c3e50);
+}
+
+.arch-svg .arch-divider {
+  stroke: var(--diagram-rule, #ece8d4);
+}
+
+.arch-svg .arch-link {
+  stroke: var(--diagram-line, #2c3e50);
+}
+
+.arch-svg .arch-ink-fill {
+  fill: var(--diagram-line, #2c3e50);
+}
+
 .arch-svg .arch-title {
   font-size: 17px;
   font-weight: 500;
   font-style: italic;
-  fill: #2c3e50;
+  fill: var(--ink);
 }
 
 .arch-svg .arch-sub-label {
   font-size: 11px;
-  fill: #9a9486;
+  fill: var(--faint);
   font-family: "JetBrains Mono", "Fira Code", monospace;
   font-weight: 600;
   letter-spacing: 0.14em;
@@ -1300,28 +1329,28 @@ nav a:active {
 
 .arch-svg .arch-sub {
   font-size: 12.5px;
-  fill: #555;
+  fill: var(--muted);
   font-family: "JetBrains Mono", "Fira Code", monospace;
 }
 
 .arch-svg .arch-bridge-label {
   font-size: 13px;
   font-style: italic;
-  fill: #2c3e50;
+  fill: var(--ink);
   text-anchor: middle;
   font-weight: 500;
 }
 
 .arch-svg .arch-bridge-sub {
   font-size: 11px;
-  fill: #888;
+  fill: var(--faint);
   font-family: "JetBrains Mono", "Fira Code", monospace;
   text-anchor: middle;
 }
 
 .arch-svg .arch-io-label {
   font-size: 11.5px;
-  fill: #9a9486;
+  fill: var(--faint);
   font-family: "JetBrains Mono", "Fira Code", monospace;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -1338,7 +1367,7 @@ nav a:active {
 
 .arch-svg .arch-flow-label {
   font-size: 11px;
-  fill: #888;
+  fill: var(--faint);
   font-family: "JetBrains Mono", "Fira Code", monospace;
   font-style: italic;
 }
@@ -1372,7 +1401,7 @@ nav a:active {
   right: 12%;
   top: -1.5rem;
   height: 1px;
-  background: linear-gradient(to right, transparent, #d9d2b8 30%, #d9d2b8 70%, transparent);
+  background: linear-gradient(to right, transparent, var(--rule-strong) 30%, var(--rule-strong) 70%, transparent);
   pointer-events: none;
 }
 
@@ -1389,7 +1418,7 @@ nav a:active {
   top: 8%;
   bottom: 8%;
   width: 1px;
-  background: linear-gradient(to bottom, transparent, #e5dfc4 25%, #e5dfc4 75%, transparent);
+  background: linear-gradient(to bottom, transparent, var(--rule) 25%, var(--rule) 75%, transparent);
   pointer-events: none;
 }
 
@@ -1416,7 +1445,7 @@ nav a:active {
   background: #111;
   border-radius: 6px;
   overflow: hidden;
-  border: 1px solid #ece8d4;
+  border: 1px solid var(--rule);
 }
 
 .manifold-case__video video {
@@ -1428,7 +1457,7 @@ nav a:active {
 
 .manifold-case__caption {
   font-size: 0.88rem;
-  color: #666;
+  color: var(--muted);
   font-style: italic;
   text-align: center;
   margin: 0.75rem 0 1.25rem;
@@ -1445,7 +1474,7 @@ nav a:active {
   font-family: "JetBrains Mono", "Fira Code", monospace;
   font-size: 0.66rem;
   font-weight: 600;
-  color: #9a9486;
+  color: var(--faint);
   text-transform: uppercase;
   letter-spacing: 0.14em;
   margin-bottom: 0.3rem;
@@ -1470,7 +1499,7 @@ nav a:active {
 /* Compact, light code blocks inside the gallery tiles */
 .manifold-case__compare div.code-toolbar {
   margin: 0;
-  border: 1px solid #ece8d4;
+  border: 1px solid var(--rule);
   border-radius: 6px;
   background: transparent;
 }
@@ -1485,7 +1514,7 @@ nav a:active {
 .manifold-case__compare code[class*="language-"] {
   font-size: 0.78em;
   line-height: 1.35;
-  color: #2c3e50;
+  color: var(--ink);
   text-shadow: none;
 }
 
@@ -1494,7 +1523,7 @@ nav a:active {
 .manifold-case__compare .token.prolog,
 .manifold-case__compare .token.doctype,
 .manifold-case__compare .token.cdata {
-  color: #9a9486;
+  color: var(--faint);
 }
 
 .manifold-case__compare .token.punctuation,
@@ -1527,7 +1556,7 @@ nav a:active {
 .manifold-case__compare .token.property,
 .manifold-case__compare .token.variable,
 .manifold-case__compare .token.parameter {
-  color: #2c3e50;
+  color: var(--ink);
 }
 
 /* Smaller, lighter copy button for gallery code blocks */
@@ -1541,7 +1570,7 @@ nav a:active {
   padding: 0.2rem 0.35rem;
   background: rgba(255, 255, 255, 0.6);
   color: #6b7685;
-  border: 1px solid #ece8d4;
+  border: 1px solid var(--rule);
   box-shadow: none;
   border-radius: 4px;
   backdrop-filter: none;
@@ -1550,15 +1579,15 @@ nav a:active {
 .manifold-case__compare div.code-toolbar > .toolbar button:hover,
 .manifold-case__compare div.code-toolbar > .toolbar button:focus {
   background: rgba(255, 255, 255, 0.9);
-  border-color: #d9d2b8;
-  color: #2c3e50;
+  border-color: var(--rule-strong);
+  color: var(--ink);
   transform: none;
   box-shadow: none;
 }
 
 .manifold-case__compare div.code-toolbar > .toolbar button.copy-success {
   background: rgba(255, 255, 255, 0.9);
-  border-color: #d9d2b8;
+  border-color: var(--rule-strong);
 }
 
 .manifold-case__compare div.code-toolbar > .toolbar button.copy-success:before {
@@ -1577,7 +1606,7 @@ nav a:active {
   width: 200px;
   line-height: 1.3;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--ink);
 }
 
 .compare-chart .bar-sub {
@@ -1585,7 +1614,7 @@ nav a:active {
   font-weight: 400;
   font-size: 0.72rem;
   font-style: italic;
-  color: #9a9486;
+  color: var(--faint);
   margin-top: 0.15rem;
 }
 
@@ -1604,8 +1633,8 @@ nav a:active {
 }
 
 .hw-badge--cpu {
-  color: #2c3e50;
-  background: rgba(44, 62, 80, 0.08);
+  color: var(--ink);
+  background: var(--ink-soft);
   border-color: rgba(44, 62, 80, 0.25);
 }
 
@@ -1747,7 +1776,7 @@ nav a:active {
 .dg .dg-curve { stroke: var(--ink); stroke-width: 1.6; fill: none; stroke-linejoin: round; stroke-linecap: round; }
 .dg .dg-dot { fill: var(--ink); stroke: var(--bg); stroke-width: 2; }
 .dg .dg-dot-acc { fill: var(--bg); stroke: var(--ink); stroke-width: 1.8; }
-.dg .dg-dot-faint { fill: #c4c0b5; stroke: var(--bg); stroke-width: 2; }
+.dg .dg-dot-faint { fill: var(--gray); stroke: var(--bg); stroke-width: 2; }
 .dg .dg-conn { stroke: var(--rule-strong); stroke-width: 1.2; }
 .dg .dg-mk-real { fill: var(--gray); stroke: var(--ink); stroke-width: 1.2; }
 
