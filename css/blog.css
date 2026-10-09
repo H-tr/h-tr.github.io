@@ -20,6 +20,11 @@
   --nav-active: #2c2c2e;
   --nav-border: #eee;
   --link-underline: rgba(17, 17, 17, 0.35);
+  /* Title sizes and leading, shared with the post-opening transition */
+  --list-title-size: 1.5rem;
+  --list-title-leading: 1.25;
+  --post-title-size: clamp(2.1rem, 5vw, 3rem);
+  --post-title-leading: 1.12;
 }
 
 body {
@@ -128,10 +133,10 @@ nav a:active {
 
 .blog-title {
   grid-area: title;
-  font-size: 1.5rem;
+  font-size: var(--list-title-size);
   font-weight: 400;
   color: var(--ink);
-  line-height: 1.25;
+  line-height: var(--list-title-leading);
   margin: 0 0 0.6rem;
   text-wrap: balance;
 }
@@ -142,7 +147,7 @@ nav a:active {
   font-size: 1rem;
   color: var(--muted);
   white-space: nowrap;
-  padding-top: 0.3rem;
+  margin-top: 0.3rem;
 }
 
 .blog-summary {
@@ -223,8 +228,8 @@ nav a:active {
 }
 
 .blog-post-title {
-  font-size: clamp(2.1rem, 5vw, 3rem);
-  line-height: 1.12;
+  font-size: var(--post-title-size);
+  line-height: var(--post-title-leading);
   margin: 0;
   font-weight: 400;
   color: var(--ink);
@@ -245,6 +250,171 @@ nav a:active {
   font-style: italic;
   font-size: 1rem;
   color: var(--muted);
+}
+
+/* ============================================
+   OPENING A POST
+   The clicked entry's title rises out of the list and grows into the
+   headline, the date slides in beneath it, and the article fades up.
+   Going back plays it in reverse. The list side names the entry in
+   js/post-transition.js; the post names its headline here.
+   ============================================ */
+
+@view-transition {
+  navigation: auto;
+}
+
+.blog-post-title {
+  view-transition-name: post-title;
+}
+
+.blog-post-date {
+  view-transition-name: post-date;
+}
+
+/* Each title is scaled to the other's size, and nudged by the difference
+   in leading, so mid-flight both line up glyph for glyph and the crossfade
+   reads as one title growing. */
+:root {
+  --post-title-scale: 2;
+  --title-leading-gap: calc((var(--list-title-leading) - var(--post-title-leading)) / 2);
+  --list-at-headline: scale(var(--post-title-scale))
+    translateY(calc(-1 * var(--title-leading-gap) * var(--list-title-size)));
+  --headline-at-list: scale(calc(1 / var(--post-title-scale)))
+    translateY(calc(var(--title-leading-gap) * var(--post-title-size)));
+}
+
+@media (max-width: 768px) {
+  :root {
+    --post-title-scale: 1.54;
+  }
+}
+
+@supports (scale: calc(2rem / 1rem)) {
+  :root {
+    --post-title-scale: calc(var(--post-title-size) / var(--list-title-size));
+  }
+}
+
+::view-transition-group(post-title),
+::view-transition-group(post-date) {
+  animation-duration: 640ms;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+::view-transition-old(post-title),
+::view-transition-new(post-title),
+::view-transition-old(post-date),
+::view-transition-new(post-date) {
+  width: auto;
+  height: auto;
+  inset: 0 auto auto 0;
+  transform-origin: 0 0;
+}
+
+/* List to post (styled by the post, the new page) */
+:root:has(.blog-post)::view-transition-old(post-title) {
+  animation: post-title-grow 640ms cubic-bezier(0.2, 0.8, 0.2, 1) both,
+    post-fade-out 640ms linear both;
+}
+
+:root:has(.blog-post)::view-transition-new(post-title) {
+  animation: post-title-grown 640ms cubic-bezier(0.2, 0.8, 0.2, 1) both,
+    post-fade-in 640ms linear both;
+}
+
+:root:has(.blog-post)::view-transition-old(root) {
+  animation: post-page-out 200ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+:root:has(.blog-post)::view-transition-new(root) {
+  animation: post-page-in 560ms cubic-bezier(0.2, 0.8, 0.2, 1) 140ms both;
+}
+
+/* Post back to list (styled by the list; the page itself uses the
+   section transition in css/transitions.css) */
+:root:has(.blog-list)::view-transition-old(post-title) {
+  animation: post-title-shrink 640ms cubic-bezier(0.2, 0.8, 0.2, 1) both,
+    post-fade-out 640ms linear both;
+}
+
+:root:has(.blog-list)::view-transition-new(post-title) {
+  animation: post-title-shrunk 640ms cubic-bezier(0.2, 0.8, 0.2, 1) both,
+    post-fade-in 640ms linear both;
+}
+
+@keyframes post-title-grow {
+  from {
+    transform: scale(1) translateY(0);
+  }
+  to {
+    transform: var(--list-at-headline);
+  }
+}
+
+@keyframes post-title-grown {
+  from {
+    transform: var(--headline-at-list);
+  }
+  to {
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes post-title-shrink {
+  from {
+    transform: scale(1) translateY(0);
+  }
+  to {
+    transform: var(--headline-at-list);
+  }
+}
+
+@keyframes post-title-shrunk {
+  from {
+    transform: var(--list-at-headline);
+  }
+  to {
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes post-fade-out {
+  40%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes post-fade-in {
+  0%,
+  20% {
+    opacity: 0;
+  }
+  60%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes post-page-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes post-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+    filter: blur(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @view-transition {
+    navigation: none;
+  }
 }
 
 .blog-post-content {
@@ -495,17 +665,14 @@ nav a:active {
       "links";
   }
 
+  :root {
+    --list-title-size: 1.3rem;
+    --post-title-size: 2rem;
+  }
+
   .blog-date {
-    padding-top: 0;
+    margin-top: 0;
     margin-bottom: 0.4rem;
-  }
-
-  .blog-title {
-    font-size: 1.3rem;
-  }
-
-  .blog-post-title {
-    font-size: 2rem;
   }
 
   .blog-post-dek {

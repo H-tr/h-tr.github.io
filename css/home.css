@@ -60,10 +60,10 @@ h1, h2, h3, h4, h5, h6 {
 
 .name-zh {
   margin-left: 0.35em;
-  font-family: "Noto Serif SC", "Songti SC", "Source Han Serif SC", "STSong", "SimSun", serif;
-  font-size: 0.6em;
-  letter-spacing: 0.08em;
-  color: var(--muted);
+  font-family: "LXGW WenKai TC", "Kaiti SC", "STKaiti", "KaiTi", serif;
+  font-size: 0.62em;
+  letter-spacing: 0.04em;
+  color: var(--text-soft);
   white-space: nowrap;
 }
 
