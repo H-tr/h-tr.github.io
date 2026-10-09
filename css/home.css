@@ -90,14 +90,24 @@ h1, h2, h3, h4, h5, h6 {
 
 .header-content .header-links {
   margin-top: 1.1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1.25rem;
   font-variant-caps: all-small-caps;
   letter-spacing: 0.06em;
   font-size: 1.05rem;
 }
 
-.header-links .sep {
-  color: var(--faint);
-  margin: 0 0.55em;
+/* Link icons: small and gray beside the small-caps label, ink on hover */
+.header-links i {
+  margin-right: 0.38em;
+  font-size: 0.82em;
+  color: var(--muted);
+  transition: color 0.2s ease;
+}
+
+.header-links a:hover i {
+  color: var(--ink);
 }
 
 /* ---------- Navigation (shared with the other section pages) ---------- */
@@ -302,6 +312,19 @@ a:focus-visible {
   margin: 0 0 0.7rem;
 }
 
+.site-footer .footer-contact {
+  display: grid;
+  grid-template-columns: 1.1em minmax(0, 1fr);
+  column-gap: 0.5rem;
+  align-items: baseline;
+}
+
+.footer-contact i {
+  font-size: 0.85em;
+  color: var(--faint);
+  text-align: center;
+}
+
 .site-footer a {
   color: var(--muted);
 }
@@ -343,6 +366,10 @@ a:focus-visible {
   .header-content .header-statement {
     margin-left: auto;
     margin-right: auto;
+  }
+
+  .header-content .header-links {
+    justify-content: center;
   }
 
   nav {
