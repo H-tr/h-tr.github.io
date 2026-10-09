@@ -1,6 +1,14 @@
+/* Service page, Tufte classic: cream paper, black ink, warm grays. Entries
+   follow the blog index: an italic year column on the left, the entry on the
+   right, small-caps text links. */
 :root {
   --content-width: 1000px;
-  --text-color: #2c3e50;
+  --text-color: #111;
+  --ink: #111;
+  --muted: #555;
+  --faint: #8a877e;
+  --rule: #e4e2d8;
+  --link-underline: rgba(17, 17, 17, 0.35);
 }
 
 body {
@@ -14,9 +22,8 @@ body {
   background: #fffff8;
 }
 
-/* Set default header weight */
 h1, h2, h3, h4, h5, h6 {
-  font-weight: 500;
+  font-weight: 400;
 }
 
 /* Header */
@@ -27,10 +34,10 @@ h1, h2, h3, h4, h5, h6 {
 .header h1 {
   font-size: 2.5rem;
   margin: 0 0 0.5rem;
-  color: #2c2c2e;
+  color: var(--ink);
 }
 
-/* Navigation */
+/* Navigation (shared with the other section pages) */
 nav {
   margin: 2rem 0;
   padding: 1rem 0;
@@ -69,13 +76,13 @@ nav a:active {
   text-decoration: none;
 }
 
-/* Service List */
+/* Service list */
 .service-list {
-  margin: 3rem 0;
+  margin: 2.5rem 0;
 }
 
 .service-section {
-  margin-bottom: 3.5rem;
+  margin-bottom: 3.2rem;
 }
 
 .service-section:last-child {
@@ -83,83 +90,93 @@ nav a:active {
 }
 
 .service-section h2 {
-  font-size: 1.5rem;
-  margin: 0 0 0.5rem;
-  color: #2c2c2e;
-  border-bottom: 2px solid #eee;
-  padding-bottom: 0.5rem;
+  font-size: 1.6rem;
+  font-style: italic;
+  line-height: 1.25;
+  margin: 0 0 0.4rem;
+  color: var(--ink);
 }
 
 .service-item {
   display: grid;
-  grid-template-columns: 132px 1fr;
-  gap: 2.25rem;
-  padding: 0.9rem 0;
+  grid-template-columns: 8.5rem minmax(0, 1fr);
+  column-gap: 2rem;
+  padding: 1.1rem 0 1.2rem;
+  border-bottom: 1px solid var(--rule);
 }
 
-/* Left meta column */
+.service-item:last-child {
+  border-bottom: none;
+}
+
+/* Left column: year, then role */
 .service-meta {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
-  padding-top: 0.2rem;
-  text-align: right;
+  gap: 0.1rem;
+  padding-top: 0.15rem;
 }
 
 .service-year {
-  font-size: 1.05rem;
-  color: #a9a59a;
-  font-weight: 400;
+  font-style: italic;
+  font-size: 1rem;
+  color: var(--muted);
 }
 
 .service-role {
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-  font-weight: 600;
-  color: #4682B4;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.06em;
+  font-size: 0.95rem;
+  color: var(--faint);
 }
 
-/* Right content column */
+/* Right column: the entry */
+.service-body {
+  min-width: 0;
+}
+
 .service-title {
-  font-size: 1.18rem;
-  font-weight: 500;
-  color: #1a1a1a;
-  line-height: 1.45;
-  margin-bottom: 0.4rem;
+  font-size: 1.25rem;
+  color: var(--ink);
+  line-height: 1.35;
+  margin-bottom: 0.35rem;
+  text-wrap: balance;
 }
 
 .service-description {
-  font-size: 0.95rem;
-  color: #797468;
-  font-weight: 300;
+  font-size: 1rem;
+  color: #333;
   line-height: 1.6;
   max-width: 46rem;
+  text-wrap: pretty;
 }
 
 .service-links {
-  margin-top: 0.75rem;
+  margin-top: 0.7rem;
   display: flex;
   flex-wrap: wrap;
-  gap: 1.4rem;
+  gap: 0.4rem 1.4rem;
 }
 
 .service-links a {
-  display: inline-flex;
-  align-items: center;
-  color: #4682B4;
-  text-decoration: none;
-  font-size: 0.85rem;
-  transition: color 0.2s ease;
+  color: var(--ink);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.06em;
+  font-size: 1.05rem;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--link-underline);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.2s ease;
 }
 
 .service-links a:hover {
-  color: #3A6A97;
+  text-decoration-color: var(--ink);
 }
 
-.service-links i {
-  margin-right: 0.4rem;
-  font-size: 0.9em;
+.service-links a:focus-visible {
+  outline: 1px solid var(--ink);
+  outline-offset: 3px;
 }
 
 /* Responsive Design */
@@ -184,20 +201,18 @@ nav a:active {
   }
 
   .service-item {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
-    padding: 1.25rem 0;
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 0.4rem;
   }
 
   .service-meta {
     flex-direction: row;
     align-items: baseline;
     gap: 0.75rem;
-    text-align: left;
     padding-top: 0;
   }
 
   .service-section h2 {
-    font-size: 1.3rem;
+    font-size: 1.4rem;
   }
 }
