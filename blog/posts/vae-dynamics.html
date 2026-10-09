@@ -4,55 +4,29 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Understanding the Dynamic Balance in Variational Autoencoders</title>
+    <meta name="description" content="How encoder variance and decoder quality pull against each other while a VAE trains, forming an automatic curriculum, with derivations and visualizations." />
+    <link rel="canonical" href="https://h-tr.github.io/blog/posts/vae-dynamics.html" />
 
-    <!-- Fonts -->
+    <!-- Fonts (JetBrains Mono for code and labels, Fira Code for citation blocks) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-      rel="stylesheet"
-    />
-
-    <!-- KaTeX Math Support -->
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css"
+      href="https://fonts.googleapis.com/css2?family=Fira+Code&family=JetBrains+Mono:wght@400;700&display=swap"
       rel="stylesheet"
     />
 
     <!-- Site Assets -->
-    <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg" />
-    <link href="../../css/blog.css" rel="stylesheet" />
+    <link rel="icon" type="image/svg+xml" href="/media/images/icon.svg" />
+    <link href="/css/theme.css" rel="stylesheet" />
+    <link href="/css/blog.css" rel="stylesheet" />
 
-    <!-- KaTeX Scripts -->
-    <script
-      defer
-      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"
-    ></script>
-    <script
-      defer
-      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"
-    ></script>
-
-    <!-- Custom Scripts -->
+    <!-- Applies the saved light or dark theme before the first paint -->
+    <script src="/js/theme.js"></script>
   </head>
   <body>
     <div class="blog-post">
       <a href="../" class="back-button">
-        <i class="fas fa-arrow-left"></i>Back to Blog
+        <svg class="icon" viewBox="0 0 448 512" aria-hidden="true"><use href="/media/icons.svg#arrow-left"></use></svg>Back to Blog
       </a>
 
       <header class="blog-post-header">
@@ -258,7 +232,7 @@
           <div class="code-header">
             <h3>Implementation</h3>
             <div class="code-buttons">
-              <button class="toggle-btn" onclick="toggleGist()">
+              <button class="toggle-btn" data-toggle="gistContainer">
                 Show Code
               </button>
               <a
@@ -266,7 +240,7 @@
                 target="_blank"
                 class="github-link"
               >
-                <i class="fab fa-github"></i> View on GitHub
+                <svg class="icon" viewBox="0 0 496 512" aria-hidden="true"><use href="/media/icons.svg#github"></use></svg> View on GitHub
               </a>
             </div>
           </div>
@@ -274,17 +248,6 @@
             <script src="https://gist.github.com/H-tr/ccd920b8e8c853cd605712dd75326a9b.js"></script>
           </div>
         </div>
-
-        <script>
-          function toggleGist() {
-            const gistContainer = document.getElementById("gistContainer");
-            const button = document.querySelector(".toggle-btn");
-            const isVisible = gistContainer.classList.contains("visible");
-
-            gistContainer.classList.toggle("visible");
-            button.textContent = isVisible ? "Show Code" : "Hide Code";
-          }
-        </script>
 
         <h3>4.1 Experiment Setup</h3>
         <p>
@@ -353,7 +316,11 @@
 
         <div class="result-figure">
           <img
-            src="/media/images/blog/vae-dynamics/vae_training_comparison.png"
+            src="/media/images/blog/vae-dynamics/vae_training_comparison.webp"
+            width="1995"
+            height="1490"
+            loading="lazy"
+            decoding="async"
             alt="Training loss curves showing reconstruction loss and KL divergence"
           />
           <p class="caption">
@@ -396,6 +363,10 @@
             <div class="figure-half">
               <img
                 src="/media/images/blog/vae-dynamics/gen_beta_0.0.png"
+                width="1569"
+                height="182"
+                loading="lazy"
+                decoding="async"
                 alt="Generated samples with beta=0"
               />
               <p class="caption">
@@ -406,6 +377,10 @@
             <div class="figure-half">
               <img
                 src="/media/images/blog/vae-dynamics/gen_beta_1.0.png"
+                width="1569"
+                height="182"
+                loading="lazy"
+                decoding="async"
                 alt="Generated samples with beta=1"
               />
               <p class="caption">
@@ -426,7 +401,11 @@
           <div class="side-by-side">
             <div class="figure-half">
               <img
-                src="/media/images/blog/vae-dynamics/latent_space_0.png"
+                src="/media/images/blog/vae-dynamics/latent_space_0.webp"
+                width="908"
+                height="820"
+                loading="lazy"
+                decoding="async"
                 alt="Latent space visualization beta=0"
               />
               <p class="caption">
@@ -436,7 +415,11 @@
             </div>
             <div class="figure-half">
               <img
-                src="/media/images/blog/vae-dynamics/latent_space_1.png"
+                src="/media/images/blog/vae-dynamics/latent_space_1.webp"
+                width="895"
+                height="816"
+                loading="lazy"
+                decoding="async"
                 alt="Latent space visualization beta=1"
               />
               <p class="caption">
@@ -573,7 +556,7 @@
       </article>
     </div>
 
+    <!-- Table of contents, plus Prism, KaTeX and page views on demand -->
     <script defer src="/js/blog.js"></script>
-    <script defer src="/js/katex-init.js"></script>
   </body>
 </html>

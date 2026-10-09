@@ -4,56 +4,29 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>How Much of Today Did You Spend Replaying Yesterday?</title>
+    <meta name="description" content="Why does time seem to speed up with age? A thought experiment linking logarithmic time perception and memory replay, with a POMDP sketch of what to review." />
+    <link rel="canonical" href="https://h-tr.github.io/blog/posts/review-budget-time-model.html" />
 
-    <!-- Fonts -->
+    <!-- Fonts (JetBrains Mono for code and labels, Fira Code for citation blocks) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-      rel="stylesheet"
-    />
-
-    <!-- Prism.js initialization - single script that loads everything -->
-    <script src="/js/prism-init.js"></script>
-
-    <!-- KaTeX Math Support -->
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css"
+      href="https://fonts.googleapis.com/css2?family=Fira+Code&family=JetBrains+Mono:wght@400;700&display=swap"
       rel="stylesheet"
     />
 
     <!-- Site Assets -->
-    <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg" />
-    <link href="../../css/blog.css" rel="stylesheet" />
+    <link rel="icon" type="image/svg+xml" href="/media/images/icon.svg" />
+    <link href="/css/theme.css" rel="stylesheet" />
+    <link href="/css/blog.css" rel="stylesheet" />
 
-    <!-- KaTeX Scripts -->
-    <script
-      defer
-      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"
-    ></script>
-    <script
-      defer
-      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"
-    ></script>
+    <!-- Applies the saved light or dark theme before the first paint -->
+    <script src="/js/theme.js"></script>
   </head>
   <body>
     <div class="blog-post">
       <a href="../" class="back-button">
-        <i class="fas fa-arrow-left"></i>Back to Blog
+        <svg class="icon" viewBox="0 0 448 512" aria-hidden="true"><use href="/media/icons.svg#arrow-left"></use></svg>Back to Blog
       </a>
 
       <header class="blog-post-header">
@@ -65,7 +38,7 @@
 
       <article class="blog-post-content">
         <figure class="hero-figure">
-          <img src="../../media/images/blog/review-budget/life-midpoint.svg" alt="A timeline showing that subjectively, age 18 is the midpoint of life between 4 and 80" class="hero-svg" />
+          <img src="/media/images/blog/review-budget/life-midpoint.svg" alt="A timeline showing that subjectively, age 18 is the midpoint of life between 4 and 80" class="hero-svg" />
           <figcaption>Subjectively, half your life is over by 18.</figcaption>
         </figure>
         <h2>Your Life's midpoint is 18</h2>
@@ -135,7 +108,7 @@
         </p>
 
         <figure class="inline-figure">
-          <img src="/media/images/blog/review-budget/long-tail-distribution.svg" alt="Log-log plot comparing power law and normal distributions" class="distribution-svg" />
+          <img src="/media/images/blog/review-budget/long-tail-distribution.svg" loading="lazy" decoding="async" alt="Log-log plot comparing power law and normal distributions" class="distribution-svg" />
           <figcaption>In log-log scale, power law appears as a straight line while normal drops sharply. The shaded region shows the "long tail" where power law persists.</figcaption>
         </figure>
 
@@ -260,8 +233,8 @@
       </article>
     </div>
 
+    <!-- Table of contents, plus Prism, KaTeX and page views on demand -->
     <script defer src="/js/blog.js"></script>
-    <script defer src="/js/katex-init.js"></script>
   </body>
 </html>
 

@@ -1,0 +1,343 @@
+/* ============================================
+   SECTION PAGE SHELL
+   Shared by Home, Publication, Project, Blog, Service and Resume: base type,
+   the page title, the nav with its underline and theme switch, page
+   transitions, and the small-caps link rows. Color tokens live in theme.css;
+   each page file keeps only its own layout. css/blog.css repeats the body,
+   --content-width and @view-transition for posts and surveys, which do not
+   load this file, so change both together.
+   ============================================ */
+
+:root {
+  --content-width: 1000px;
+}
+
+body {
+  font-family: et-book, Palatino, "Palatino Linotype", "Palatino LT STD", "Book Antiqua", Georgia, serif;
+  font-size: 1.1rem;
+  line-height: 1.7;
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: 2rem;
+  color: var(--text-color);
+  background: var(--bg);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 400;
+}
+
+.header {
+  margin-bottom: 2rem;
+}
+
+.header h1 {
+  font-size: 2.5rem;
+  margin: 0 0 0.5rem;
+  color: var(--ink);
+  view-transition-name: page-title;
+}
+
+/* ---------- Navigation ---------- */
+
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 2rem 0;
+  padding: 1rem 0;
+  border-top: 1px solid var(--nav-border);
+  border-bottom: 1px solid var(--nav-border);
+  view-transition-name: site-nav;
+}
+
+nav a {
+  position: relative;
+  color: var(--nav-text);
+  text-decoration: none;
+  margin-right: 1.5rem;
+  font-weight: 400;
+  transition: color 0.2s ease, font-weight 0.2s ease;
+}
+
+nav a:hover {
+  color: var(--nav-active);
+}
+
+nav a.active {
+  color: var(--nav-active);
+  font-weight: 600;
+}
+
+nav a:visited {
+  color: var(--nav-text);
+}
+
+nav a:active {
+  color: var(--nav-active);
+}
+
+/* A thin ink line under the current section. It follows the pointer across
+   the nav (js/site.js), returns to the current section on leave, and morphs
+   to the new section during a page transition. */
+.nav-indicator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.4em;
+  height: 1.5px;
+  border-radius: 1px;
+  background: var(--indicator);
+  box-shadow: var(--indicator-glow);
+  transform-origin: 0 50%;
+  pointer-events: none;
+  view-transition-name: nav-indicator;
+  transition: transform 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Light and dark switch at the end of the nav (js/theme.js) */
+.theme-toggle {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease, transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.theme-toggle[hidden] {
+  display: none;
+}
+
+.theme-toggle:hover {
+  color: var(--ink);
+  border-color: var(--rule-strong);
+  transform: rotate(-25deg);
+}
+
+.theme-toggle:focus-visible {
+  outline: 1px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.theme-toggle svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.theme-toggle .icon-sun,
+.theme-toggle.is-dark .icon-moon {
+  display: none;
+}
+
+.theme-toggle.is-dark .icon-sun {
+  display: block;
+}
+
+/* ---------- Small-caps link rows and TL;DR labels (publication, project, service) ---------- */
+
+.publication-links a,
+.project-links a,
+.service-links a {
+  color: var(--ink);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.06em;
+  font-size: 1.05rem;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--link-underline);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.2s ease;
+}
+
+.publication-links a:hover,
+.project-links a:hover,
+.service-links a:hover {
+  text-decoration-color: var(--ink);
+}
+
+.publication-links a:focus-visible,
+.project-links a:focus-visible,
+.service-links a:focus-visible {
+  outline: 1px solid var(--ink);
+  outline-offset: 3px;
+}
+
+/* Small gray icons, ink on hover */
+.publication-links .icon,
+.project-links .icon,
+.service-links .icon {
+  margin-right: calc(0.35em + 0.064rem); /* + the link letter-spacing the font glyph carried */
+  font-size: 0.8em;
+  color: var(--muted);
+  transition: color 0.2s ease;
+}
+
+.publication-links a:hover .icon,
+.project-links a:hover .icon,
+.service-links a:hover .icon {
+  color: var(--ink);
+}
+
+/* The TL;DR lead-in of publication and project summaries */
+.tldr-label {
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+  margin-right: 0.3em;
+}
+
+/* ---------- Responsive ---------- */
+
+/* On phones the nav wraps and centers, so the switch joins the row */
+@media (max-width: 700px) {
+  body {
+    padding: 1rem;
+  }
+
+  nav {
+    justify-content: center;
+    gap: 1rem;
+  }
+
+  nav a {
+    margin: 0 0.75rem;
+  }
+
+  .theme-toggle {
+    margin-left: 0;
+  }
+}
+
+/* ============================================
+   PAGE TRANSITIONS
+   Browsers with cross-document View Transitions (Chrome, Edge, Safari 18.2+)
+   keep the nav still, glide the active underline to the new section, slide
+   the page title, and let the content fade up. Other browsers get the
+   html.pt-fallback fade below, driven by js/site.js.
+   ============================================ */
+
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-group(*) {
+  animation-duration: 460ms;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Content: the old page drifts up and fades quickly, the new one rises in
+   from slightly below and comes into focus. */
+::view-transition-old(root) {
+  animation: pt-content-out 180ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+::view-transition-new(root) {
+  animation: pt-content-in 460ms cubic-bezier(0.2, 0.8, 0.2, 1) 70ms both;
+}
+
+/* Title: one word slides out upward while the next slides in from below.
+   Natural size keeps the text from stretching between titles of different width. */
+::view-transition-old(page-title),
+::view-transition-new(page-title) {
+  width: auto;
+  height: auto;
+  inset: 0 auto auto 0;
+}
+
+::view-transition-old(page-title) {
+  animation: pt-title-out 220ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+::view-transition-new(page-title) {
+  animation: pt-title-in 520ms cubic-bezier(0.2, 0.8, 0.2, 1) 90ms both;
+}
+
+/* Nav: only the bold weight of the active link changes, so a short crossfade. */
+::view-transition-old(site-nav),
+::view-transition-new(site-nav) {
+  width: auto;
+  height: auto;
+  inset: 0 auto auto 0;
+  animation-duration: 260ms;
+}
+
+@keyframes pt-content-out {
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes pt-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+    filter: blur(4px);
+  }
+}
+
+@keyframes pt-title-out {
+  to {
+    opacity: 0;
+    transform: translateY(-45%);
+  }
+}
+
+@keyframes pt-title-in {
+  from {
+    opacity: 0;
+    transform: translateY(45%);
+  }
+}
+
+/* Fallback fade (no cross-document View Transitions) */
+html.pt-fallback body {
+  transition: opacity 340ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 340ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+html.pt-fallback.pt-enter body {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+html.pt-fallback.pt-exit body {
+  opacity: 0;
+  transform: translateY(-8px);
+  transition-duration: 180ms;
+}
+
+/* Gentle color easing everywhere unless a rule sets its own transition */
+a {
+  transition: color 200ms ease;
+}
+
+*, *::before, *::after {
+  transition-property: background-color, border-color, color, opacity, transform;
+  transition-duration: 100ms;
+  transition-timing-function: ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @view-transition {
+    navigation: none;
+  }
+
+  .nav-indicator,
+  .theme-toggle,
+  html.pt-fallback body {
+    transition: none;
+  }
+
+  .theme-toggle:hover {
+    transform: none;
+  }
+}

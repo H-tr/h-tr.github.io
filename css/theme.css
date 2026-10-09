@@ -1,10 +1,10 @@
 /* ============================================
    SITE THEME: light (cream paper) and dark (candle-lit night paper)
 
-   Every page styles itself through these color tokens. The dark palette
-   applies when the visitor's system prefers dark and they haven't chosen
-   light, or when they pick dark with the theme switch (html[data-theme]).
-   Section pages link this file; blog.css imports it for posts and surveys.
+   Every page links this file and styles itself through these color tokens.
+   The dark palette applies when the visitor's system prefers dark and they
+   haven't chosen light, or when they pick dark with the theme switch
+   (html[data-theme], set by js/theme.js).
    ============================================ */
 
 :root {
@@ -29,6 +29,19 @@
   --bg-glow: none;
   --media-filter: none;
   --selection: rgba(17, 17, 17, 0.12);
+  --code-bg: transparent;
+  --code-border: #e5dfc4;
+  --code-text: #2c3e50;
+  --code-comment: #a39e8c;
+  --code-punctuation: #5a6776;
+  --code-operator: #b5396a;
+  --code-keyword: #b5396a;
+  --code-string: #2f7a57;
+  --code-number: #b55a1f;
+  --code-function: #2b6cb0;
+  --code-property: #2c3e50;
+  --code-class: #2b6cb0;
+  --code-builtin: #7a3fbf;
   color-scheme: light;
 }
 
@@ -147,65 +160,19 @@ html video {
   filter: var(--media-filter);
 }
 
-/* ---------- Theme switch (section pages) ---------- */
+/* ---------- Icons ---------- */
 
-nav {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+/* Icons from the /media/icons.svg sprite (Font Awesome Free). Each is 1em
+   tall at its symbol's width and sits on the baseline like the icon font did. */
+.icon {
+  display: inline-block;
+  height: 1em;
+  overflow: visible;
+  vertical-align: -0.125em;
+  fill: currentColor;
 }
 
-.theme-toggle {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  padding: 0;
-  border: 1px solid var(--rule);
-  border-radius: 50%;
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-  transition: color 0.2s ease, border-color 0.2s ease, transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.theme-toggle[hidden] {
-  display: none;
-}
-
-/* On phones the nav wraps and centers, so the switch joins the row */
-@media (max-width: 700px) {
-  .theme-toggle {
-    margin-left: 0;
-  }
-}
-
-.theme-toggle:hover {
-  color: var(--ink);
-  border-color: var(--rule-strong);
-  transform: rotate(-25deg);
-}
-
-.theme-toggle:focus-visible {
-  outline: 1px solid var(--ink);
-  outline-offset: 3px;
-}
-
-.theme-toggle svg {
-  width: 1rem;
-  height: 1rem;
-}
-
-.theme-toggle .icon-sun,
-.theme-toggle.is-dark .icon-moon {
-  display: none;
-}
-
-.theme-toggle.is-dark .icon-sun {
-  display: block;
-}
+/* ---------- Theme switch ---------- */
 
 /* While switching themes, reveal the new theme as a circle from the switch
    (animated in js/theme.js) instead of the page-to-page transition. */
@@ -230,14 +197,4 @@ html.theme-switching::view-transition-new(root) {
 
 html.theme-switching::view-transition-new(root) {
   z-index: 2;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .theme-toggle {
-    transition: none;
-  }
-
-  .theme-toggle:hover {
-    transform: none;
-  }
 }

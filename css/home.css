@@ -2,42 +2,14 @@
    small caps for hierarchy, whitespace instead of rules between sections. */
 :root {
   --content-width: 800px;
-  --text-color: #111;
-  --ink: #111;
-  --muted: #555;
-  --faint: #8a877e;
-  --rule: #e4e2d8;
-  --link-underline: rgba(17, 17, 17, 0.35);
-  --bg: #fffff8;
-  --panel: #f4f2e8;
-  --text-soft: #333;
-  --nav-text: #555;
-  --nav-active: #2c2c2e;
-  --nav-border: #eee;
-  --rule-strong: #bdb9ad;
-  --note: rgba(70, 70, 70, 0.72);
-  --ink-soft: rgba(17, 17, 17, 0.05);
 }
 
 body {
-  font-family: et-book, Palatino, "Palatino Linotype", "Palatino LT STD", "Book Antiqua", Georgia, serif;
-  font-size: 1.1rem;
-  line-height: 1.7;
-  max-width: var(--content-width);
-  margin: 0 auto;
   padding: 2rem 2rem 4rem;
-  color: var(--text-color);
-  background: var(--bg);
-  font-weight: 400;
-}
-
-h1, h2, h3, h4, h5, h6 {
-  font-weight: 400;
 }
 
 /* ---------- Header ---------- */
 .header {
-  margin-bottom: 2rem;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 2.5rem;
@@ -108,54 +80,15 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Link icons: small and gray beside the small-caps label, ink on hover */
-.header-links i {
-  margin-right: 0.38em;
+.header-links .icon {
+  margin-right: calc(0.38em + 0.064rem); /* + the link letter-spacing the font glyph carried */
   font-size: 0.82em;
   color: var(--muted);
   transition: color 0.2s ease;
 }
 
-.header-links a:hover i {
+.header-links a:hover .icon {
   color: var(--ink);
-}
-
-/* ---------- Navigation (shared with the other section pages) ---------- */
-nav {
-  margin: 2rem 0;
-  padding: 1rem 0;
-  border-top: 1px solid var(--nav-border);
-  border-bottom: 1px solid var(--nav-border);
-}
-
-nav a {
-  color: var(--nav-text);
-  text-decoration: none;
-  margin-right: 1.5rem;
-  font-weight: 400;
-  padding-bottom: 0;
-  border-bottom: none;
-  transition: color 0.2s ease, font-weight 0.2s ease;
-}
-
-nav a:hover {
-  color: var(--nav-active);
-  text-decoration: none;
-}
-
-nav a.active {
-  color: var(--nav-active);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-nav a:visited {
-  color: var(--nav-text);
-  text-decoration: none;
-}
-
-nav a:active {
-  color: var(--nav-active);
-  text-decoration: none;
 }
 
 /* ---------- Links: ink with a faint underline ---------- */
@@ -328,10 +261,12 @@ a:focus-visible {
   align-items: baseline;
 }
 
-.footer-contact i {
+.footer-contact .icon {
+  position: relative;
+  top: 0.125em; /* grid baseline alignment puts the svg bottom edge on the baseline */
+  justify-self: center;
   font-size: 0.85em;
   color: var(--faint);
-  text-align: center;
 }
 
 .site-footer a {
@@ -367,10 +302,6 @@ a:focus-visible {
     margin: 0 auto;
   }
 
-  h1 {
-    font-size: 2rem;
-  }
-
   .header-content .header-note,
   .header-content .header-statement {
     margin-left: auto;
@@ -379,17 +310,6 @@ a:focus-visible {
 
   .header-content .header-links {
     justify-content: center;
-  }
-
-  nav {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 1rem;
-  }
-
-  nav a {
-    margin: 0 0.75rem;
   }
 
   .site-footer {

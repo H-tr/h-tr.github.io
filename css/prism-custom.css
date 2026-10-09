@@ -1,32 +1,16 @@
 /* Prism.js custom styling — Light, elegant theme
    Matches the personal-page aesthetic: cream paper, steel-blue accents,
-   muted naturalistic tokens. No yellow. Echoes the gallery code tiles. */
+   muted naturalistic tokens. No yellow. Echoes the gallery code tiles.
+   The code colors (--code-*) live in theme.css with the other tokens. */
 :root {
   --prism-font-size: 0.82em;
-
-  /* Surface */
-  --code-bg: transparent;      /* blends into the cream page */
-  --code-border: #e5dfc4;
-  --code-text: #2c3e50;
-
-  /* Tokens — saturated but tasteful. No yellow. */
-  --code-comment:     #a39e8c;  /* warm grey, italic */
-  --code-punctuation: #5a6776;  /* slate */
-  --code-operator:    #b5396a;  /* pink-magenta for +/-/=/etc. */
-  --code-keyword:     #b5396a;  /* vivid magenta-rose */
-  --code-string:      #2f7a57;  /* emerald green */
-  --code-number:      #b55a1f;  /* warm orange (not yellow) */
-  --code-function:    #2b6cb0;  /* steel blue — matches links */
-  --code-property:    #2c3e50;  /* body slate */
-  --code-class:       #2b6cb0;  /* steel blue */
-  --code-builtin:     #7a3fbf;  /* vivid purple */
 }
 
 /* Base typography for all Prism-rendered code */
 code[class*="language-"],
 pre[class*="language-"] {
-  font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular,
-               Menlo, Consolas, "Liberation Mono", monospace;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo,
+               Consolas, "Liberation Mono", monospace;
   font-size: var(--prism-font-size);
   line-height: 1.55;
   text-shadow: none;
@@ -163,7 +147,7 @@ pre[class*="language-"] {
   font-style: italic;
 }
 
-/* Copy button — minimal, only visible on hover */
+/* Copy button, minimal and only visible on hover or keyboard focus */
 div.code-toolbar > .toolbar {
   position: absolute;
   top: 0.35rem;
@@ -173,7 +157,8 @@ div.code-toolbar > .toolbar {
   z-index: 10;
 }
 
-div.code-toolbar:hover > .toolbar {
+div.code-toolbar:hover > .toolbar,
+div.code-toolbar:focus-within > .toolbar {
   opacity: 1;
 }
 
@@ -185,14 +170,14 @@ div.code-toolbar > .toolbar button {
   border: 1px solid var(--code-border);
   border-radius: 4px;
   cursor: pointer;
-  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
   transition: all 0.15s ease;
   box-shadow: none;
 }
 
-div.code-toolbar > .toolbar button i {
-  font-size: 1em;
-  line-height: 1;
+/* Sits where the icon font's glyph did */
+div.code-toolbar > .toolbar button .icon {
+  vertical-align: -0.2em;
 }
 
 div.code-toolbar > .toolbar button:hover,
@@ -205,10 +190,6 @@ div.code-toolbar > .toolbar button:focus {
 div.code-toolbar > .toolbar button.copy-success {
   background: var(--toolbar-bg-hover, #fff);
   border-color: var(--toolbar-border, #c9c0a3);
-  color: var(--code-string);
-}
-
-div.code-toolbar > .toolbar button.copy-success i {
   color: var(--code-string);
 }
 

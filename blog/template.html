@@ -4,52 +4,31 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>[BLOG_TITLE]</title>
+    <meta name="description" content="[DESCRIPTION]" />
+    <link rel="canonical" href="https://h-tr.github.io/blog/[posts|surveys]/[SLUG].html" />
 
-    <!-- Fonts -->
+    <!-- Fonts (JetBrains Mono for code and labels, Fira Code for citation blocks) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-      rel="stylesheet"
-    />
-
-    <!-- Prism.js initialization - single script that loads everything -->
-    <script src="/js/prism-init.js"></script>
-    
-    <!-- KaTeX Math Support -->
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css"
+      href="https://fonts.googleapis.com/css2?family=Fira+Code&family=JetBrains+Mono:wght@400;700&display=swap"
       rel="stylesheet"
     />
 
     <!-- Site Assets -->
-    <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/media/images/icon.svg" />
+    <link href="/css/theme.css" rel="stylesheet" />
     <link href="/css/blog.css" rel="stylesheet" />
+    <!-- Only on pages with [n] citations (see js/references.js) -->
+    <link href="/css/references.css" rel="stylesheet" />
 
-    <!-- KaTeX Scripts -->
-    <script
-      defer
-      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"
-    ></script>
-    <script
-      defer
-      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"
-    ></script>
+    <!-- Applies the saved light or dark theme before the first paint -->
+    <script src="/js/theme.js"></script>
   </head>
   <body>
     <div class="blog-post">
       <a href="../" class="back-button">
-        <i class="fas fa-arrow-left"></i>Back to Blog
+        <svg class="icon" viewBox="0 0 448 512" aria-hidden="true"><use href="/media/icons.svg#arrow-left"></use></svg>Back to Blog
       </a>
 
       <header class="blog-post-header">
@@ -61,7 +40,8 @@
         <!-- YOUR CONTENT HERE -->
         
         <!-- 
-        Code block examples with Prism.js:
+        Code blocks with Prism.js. js/blog.js loads Prism only on pages that
+        have a code element with a language-* class.
         
         1. Simple code block with language:
         <pre><code class="language-python">
@@ -78,24 +58,28 @@ def hello_world():
         
         3. Inline code: <code class="language-python">print("Hello")</code>
         
-        Supported languages included by default:
+        Highlighted languages
         - python (language-python)
         - javascript (language-javascript)
         - css (language-css)
         - bash/shell (language-bash)
         - yaml (language-yaml)
         - json (language-json)
+        - lisp (language-lisp)
         
-        For additional languages, add them to the languages array in prism-init.js
+        For other languages, add them to the languages array in prism-init.js
         -->
         
         <!-- 
-        Math Expressions with KaTeX:
+        Math Expressions with KaTeX. js/blog.js loads KaTeX only on pages
+        whose text contains math delimiters.
         
         1. Block math (displayed equation):
         <div class="math-block">
           $E = mc^2$
         </div>
+        Block math can also be written as \[ ... \]. A single $...$ always
+        renders as a displayed equation, never inline.
         
         2. Inline math (within paragraphs):
         Use the format: (\(\int \mathbf{v}_{\text{cmd}}(\tau) d\tau\))
@@ -154,8 +138,9 @@ def hello_world():
       </article>
     </div>
 
-    <!-- Blog styling and spacing script -->
+    <!-- Table of contents, plus Prism, KaTeX and page views on demand -->
     <script defer src="/js/blog.js"></script>
-    <script defer src="/js/katex-init.js"></script>
+    <!-- Only on pages with [n] citations, which it turns into links with previews -->
+    <script defer src="/js/references.js"></script>
   </body>
 </html> 

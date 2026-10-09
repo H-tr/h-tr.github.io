@@ -1,10 +1,11 @@
 /**
  * Light and dark themes.
  *
- * Loaded without `defer` so a saved choice lands on <html> before the first
- * paint. Without a saved choice the page follows the system setting through
- * css/theme.css. The switch reveals the new theme as a circle growing from
- * the button, using a same-document View Transition where supported.
+ * Loaded in <head> on every page without `defer`, so a saved choice lands on
+ * <html> before the first paint. Without a saved choice the page follows the
+ * system setting through css/theme.css. Where the page has a .theme-toggle,
+ * the switch reveals the new theme as a circle growing from the button,
+ * using a same-document View Transition where supported.
  */
 (() => {
     const KEY = 'theme';

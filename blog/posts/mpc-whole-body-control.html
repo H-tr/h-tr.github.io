@@ -4,56 +4,29 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Making Robots Move Naturally: Our Whole-Body Controller for Mobile Manipulators</title>
+    <meta name="description" content="A whole-body MPC controller that tracks trajectories with the arm and mobile base in one optimization, using control barrier functions to avoid obstacles." />
+    <link rel="canonical" href="https://h-tr.github.io/blog/posts/mpc-whole-body-control.html" />
 
-    <!-- Fonts -->
+    <!-- Fonts (JetBrains Mono for code and labels, Fira Code for citation blocks) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-      rel="stylesheet"
-    />
-
-    <!-- Prism.js initialization - single script that loads everything -->
-    <script src="/js/prism-init.js"></script>
-
-    <!-- KaTeX Math Support -->
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css"
+      href="https://fonts.googleapis.com/css2?family=Fira+Code&family=JetBrains+Mono:wght@400;700&display=swap"
       rel="stylesheet"
     />
 
     <!-- Site Assets -->
-    <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg" />
-    <link href="../../css/blog.css" rel="stylesheet" />
+    <link rel="icon" type="image/svg+xml" href="/media/images/icon.svg" />
+    <link href="/css/theme.css" rel="stylesheet" />
+    <link href="/css/blog.css" rel="stylesheet" />
 
-    <!-- KaTeX Scripts -->
-    <script
-      defer
-      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"
-    ></script>
-    <script
-      defer
-      src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"
-    ></script>
+    <!-- Applies the saved light or dark theme before the first paint -->
+    <script src="/js/theme.js"></script>
   </head>
   <body>
     <div class="blog-post">
       <a href="../" class="back-button">
-        <i class="fas fa-arrow-left"></i>Back to Blog
+        <svg class="icon" viewBox="0 0 448 512" aria-hidden="true"><use href="/media/icons.svg#arrow-left"></use></svg>Back to Blog
       </a>
 
       <header class="blog-post-header">
@@ -482,11 +455,19 @@ self.opti.solver('ipopt', opts)</code></pre>
         </p>
 
         <div class="result-figure" style="text-align: center; margin: 2rem auto;">
-          <img
-            src="/media/images/blog/mpc-controller/mpc_controller_fast.gif"
-            alt="Whole-body MPC controller demonstration"
-            style="max-width: 80%; margin: 0 auto;"
-          />
+          <video
+            src="/media/videos/blog/mpc-controller/mpc_controller_fast.mp4"
+            poster="/media/images/blog/mpc-controller/mpc_controller_fast_poster.jpg"
+            width="640"
+            height="360"
+            loop
+            muted
+            playsinline
+            preload="none"
+            data-lazy
+            aria-label="Whole-body MPC controller demonstration"
+            style="max-width: 80%; height: auto; margin: 0 auto;"
+          ></video>
           <p class="caption" style="margin-top: 1rem; font-style: italic; color: var(--muted);">
             Figure 1: Real-time demonstration of our whole-body MPC controller (8x playback speed). The robot performs coordinated base and arm motions while maintaining safe distances from obstacles, represented by red circles (voxel centroids). Note how the controller smoothly adjusts the robot's trajectory to maintain safety margins around detected obstacles.
           </p>
@@ -535,8 +516,7 @@ self.opti.solver('ipopt', opts)</code></pre>
       </article>
     </div>
 
-    <!-- Blog styling and spacing script -->
+    <!-- Table of contents, plus Prism, KaTeX and page views on demand -->
     <script defer src="/js/blog.js"></script>
-    <script defer src="/js/katex-init.js"></script>
   </body>
 </html>

@@ -1,88 +1,6 @@
 /* Service page, Tufte classic: cream paper, black ink, warm grays. Entries
    follow the blog index: an italic year column on the left, the entry on the
-   right, small-caps text links. */
-:root {
-  --content-width: 1000px;
-  --text-color: #111;
-  --ink: #111;
-  --muted: #555;
-  --faint: #8a877e;
-  --rule: #e4e2d8;
-  --link-underline: rgba(17, 17, 17, 0.35);
-  --bg: #fffff8;
-  --panel: #f4f2e8;
-  --text-soft: #333;
-  --nav-text: #555;
-  --nav-active: #2c2c2e;
-  --nav-border: #eee;
-  --rule-strong: #bdb9ad;
-  --ink-soft: rgba(17, 17, 17, 0.05);
-}
-
-body {
-  font-family: et-book, Palatino, "Palatino Linotype", "Palatino LT STD", "Book Antiqua", Georgia, serif;
-  font-size: 1.1rem;
-  line-height: 1.7;
-  max-width: var(--content-width);
-  margin: 0 auto;
-  padding: 2rem;
-  color: var(--text-color);
-  background: var(--bg);
-}
-
-h1, h2, h3, h4, h5, h6 {
-  font-weight: 400;
-}
-
-/* Header */
-.header {
-  margin-bottom: 2rem;
-}
-
-.header h1 {
-  font-size: 2.5rem;
-  margin: 0 0 0.5rem;
-  color: var(--ink);
-}
-
-/* Navigation (shared with the other section pages) */
-nav {
-  margin: 2rem 0;
-  padding: 1rem 0;
-  border-top: 1px solid var(--nav-border);
-  border-bottom: 1px solid var(--nav-border);
-}
-
-nav a {
-  color: var(--nav-text);
-  text-decoration: none;
-  margin-right: 1.5rem;
-  font-weight: 400;
-  padding-bottom: 0;
-  border-bottom: none;
-  transition: color 0.2s ease, font-weight 0.2s ease;
-}
-
-nav a:hover {
-  color: var(--nav-active);
-  text-decoration: none;
-}
-
-nav a.active {
-  color: var(--nav-active);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-nav a:visited {
-  color: var(--nav-text);
-  text-decoration: none;
-}
-
-nav a:active {
-  color: var(--nav-active);
-  text-decoration: none;
-}
+   right, small-caps text links (the link rows are styled in site.css). */
 
 /* Service list */
 .service-list {
@@ -166,59 +84,8 @@ nav a:active {
   gap: 0.4rem 1.4rem;
 }
 
-.service-links a {
-  color: var(--ink);
-  font-variant-caps: all-small-caps;
-  letter-spacing: 0.06em;
-  font-size: 1.05rem;
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-decoration-color: var(--link-underline);
-  text-underline-offset: 3px;
-  transition: text-decoration-color 0.2s ease;
-}
-
-.service-links a:hover {
-  text-decoration-color: var(--ink);
-}
-
-.service-links a:focus-visible {
-  outline: 1px solid var(--ink);
-  outline-offset: 3px;
-}
-
-.service-links i {
-  margin-right: 0.35em;
-  font-size: 0.8em;
-  color: var(--muted);
-  transition: color 0.2s ease;
-}
-
-.service-links a:hover i {
-  color: var(--ink);
-}
-
 /* Responsive Design */
 @media (max-width: 700px) {
-  body {
-    padding: 1rem;
-  }
-
-  h1 {
-    font-size: 2rem;
-  }
-
-  nav {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 1rem;
-  }
-
-  nav a {
-    margin: 0 0.75rem;
-  }
-
   .service-item {
     grid-template-columns: minmax(0, 1fr);
     row-gap: 0.4rem;

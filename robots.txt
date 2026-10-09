@@ -1,0 +1,7 @@
+# Search engines and AI crawlers are welcome.
+# A plain text guide for language models lives at https://h-tr.github.io/llms.txt
+User-agent: *
+Allow: /
+Disallow: /blog/template.html
+
+Sitemap: https://h-tr.github.io/sitemap.xml

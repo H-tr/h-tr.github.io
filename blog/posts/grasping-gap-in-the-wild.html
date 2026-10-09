@@ -5,32 +5,30 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>The Grasping Gap in the Wild</title>
+    <meta name="description" content="Failure analysis of a visibility-aware mobile grasping system. 43.5% of grasp failures come from geometrically good grasps that the robot cannot execute." />
+    <link rel="canonical" href="https://h-tr.github.io/blog/posts/grasping-gap-in-the-wild.html" />
 
-    <!-- Fonts -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/lora/3.0.2/lora.min.css" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
-
-    <!-- Prism.js initialization -->
-    <script src="/js/prism-init.js"></script>
-
-    <!-- KaTeX Math Support -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.css" rel="stylesheet" />
+    <!-- Fonts (JetBrains Mono for code and labels, Fira Code for citation blocks) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code&family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
 
     <!-- Site Assets -->
-    <link rel="icon" type="image/svg+xml" href="../../media/images/icon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/media/images/icon.svg" />
+    <link href="/css/theme.css" rel="stylesheet" />
     <link href="/css/blog.css" rel="stylesheet" />
 
-    <!-- KaTeX Scripts -->
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/katex.min.js"></script>
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.15.3/contrib/auto-render.min.js"></script>
+    <!-- Applies the saved light or dark theme before the first paint -->
+    <script src="/js/theme.js"></script>
 </head>
 
 <body>
     <div class="blog-post">
         <a href="../" class="back-button">
-            <i class="fas fa-arrow-left"></i>Back to Blog
+            <svg class="icon" viewBox="0 0 448 512" aria-hidden="true"><use href="/media/icons.svg#arrow-left"></use></svg>Back to Blog
         </a>
 
         <header class="blog-post-header">
@@ -53,7 +51,7 @@
                     And yet, <strong>pick and place is far from solved.</strong>
                 </p>
                 <figure class="blog-figure">
-                    <img src="/media/images/visibility-mobile-grasping/trajectory_figure.png"
+                    <img src="/media/images/visibility-mobile-grasping/trajectory_figure.webp" width="1820" height="943"
                          alt="Visibility-aware mobile grasping: the robot plans a trajectory toward a target while a chair appears in its path, triggering replanning">
                     <figcaption>
                         Our mobile grasping system in action. The robot approaches a target object while a chair
@@ -78,12 +76,12 @@
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0;">
                     <figure class="blog-figure" style="margin: 0;">
-                        <img src="/media/images/blog/grasping-gap/failure_flow_static.png"
+                        <img src="/media/images/blog/grasping-gap/failure_flow_static.webp" width="900" height="450" loading="lazy" decoding="async"
                              alt="Failure flow in static simulation: 400 trials, 275 successes, 53 grasping failures">
                         <figcaption>Simulation, Static (400 trials)</figcaption>
                     </figure>
                     <figure class="blog-figure" style="margin: 0;">
-                        <img src="/media/images/blog/grasping-gap/failure_flow_dynamic.png"
+                        <img src="/media/images/blog/grasping-gap/failure_flow_dynamic.webp" width="900" height="450" loading="lazy" decoding="async"
                              alt="Failure flow in dynamic simulation: 400 trials, 232 successes, 64 grasping failures">
                         <figcaption>Simulation, Dynamic (400 trials)</figcaption>
                     </figure>
@@ -447,8 +445,8 @@
         </article>
     </div>
 
+    <!-- Table of contents, plus Prism, KaTeX and page views on demand -->
     <script defer src="/js/blog.js"></script>
-    <script defer src="/js/katex-init.js"></script>
 </body>
 
 </html>

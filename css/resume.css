@@ -1,91 +1,6 @@
-:root {
-  --content-width: 1000px;
-  /* Same ink palette as the other section pages */
-  --text-color: #111;
-  --ink: #111;
-  --muted: #555;
-  --faint: #8a877e;
-  --rule: #e4e2d8;
-  --link-underline: rgba(17, 17, 17, 0.35);
-  --bg: #fffff8;
-  --panel: #f4f2e8;
-  --text-soft: #333;
-  --nav-text: #555;
-  --nav-active: #2c2c2e;
-  --nav-border: #eee;
-  --rule-strong: #bdb9ad;
-  --ink-soft: rgba(17, 17, 17, 0.05);
-}
-
-body {
-  font-family: et-book, Palatino, "Palatino Linotype", "Palatino LT STD", "Book Antiqua", Georgia, serif;
-  font-size: 1.1rem;
-  line-height: 1.7;
-  max-width: var(--content-width);
-  margin: 0 auto;
-  padding: 2rem;
-  color: var(--text-color);
-  background: var(--bg);
-}
-
-/* Set default header weight */
-h1, h2, h3, h4, h5, h6 {
-  font-weight: 400;
-}
-
-.header {
-  margin-bottom: 2rem;
-}
-
-.header h1 {
-  font-size: 2.5rem;
-  margin: 0 0 0.5rem;
-  color: var(--ink);
-}
-
-/* Navigation */
-nav {
-  margin: 2rem 0;
-  padding: 1rem 0;
-  border-top: 1px solid var(--nav-border); /* Light grey */
-  border-bottom: 1px solid var(--nav-border); /* Light grey */
-}
-
-nav a {
-  color: var(--nav-text); /* Dark grey default */
-  text-decoration: none;
-  margin-right: 1.5rem;
-  font-weight: 400; /* Normal weight */
-  padding-bottom: 0;
-  border-bottom: none;
-  transition: color 0.2s ease, font-weight 0.2s ease; /* Smooth transition for color and weight */
-}
-
-nav a:hover {
-  color: var(--nav-active);
-  text-decoration: none;
-}
-
-/* Style for the active page link */
-nav a.active {
-  color: var(--nav-active); /* Black */
-  font-weight: 600; /* Bolder */
-  text-decoration: none;
-}
-
-/* Ensure visited links don't get unwanted styles */
-nav a:visited {
-    color: var(--nav-text); /* Keep default color */
-    text-decoration: none;
-}
-
-/* Style for the link while being clicked (momentary) */
-nav a:active {
-    color: var(--nav-active); /* Black when clicking */
-    text-decoration: none;
-}
-
-/* --- END OF NAVIGATION STYLES --- */
+/* Resume page, Tufte classic: cream paper, black ink, warm grays. A centered
+   name and contact row, then logo-led entries for education, experience and
+   awards. */
 
 h2.resume-name {
   font-size: 2rem;
@@ -118,14 +33,16 @@ h2.resume-name {
   text-decoration-color: var(--link-underline);
 }
 
-.contact-info a i {
+.contact-info a .icon {
+  position: relative;
+  top: -0.054em; /* where the icon font glyph sat in this flex row */
   width: 1rem;
   font-size: 0.9em;
   color: var(--muted);
   transition: color 0.2s ease;
 }
 
-.contact-info a:hover i {
+.contact-info a:hover .icon {
   color: var(--ink);
 }
 
@@ -148,6 +65,10 @@ h2.resume-name {
   letter-spacing: 0.08em;
   font-size: 1.1rem;
   transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.download-button .icon {
+  margin-right: 0.089rem; /* the button letter-spacing the font glyph carried */
 }
 
 .download-button:hover {
@@ -190,16 +111,6 @@ h2.resume-name {
   width: 64px;
 }
 
-.logo-container img {
-  width: 64px;
-  height: 64px;
-  object-fit: contain;
-}
-
-.experience-details {
-  flex: 1;
-}
-
 .experience-date {
   font-style: italic;
   color: var(--muted);
@@ -231,10 +142,6 @@ h2.resume-name {
   margin-top: 0.3rem;
 }
 
-.experience-description li::marker {
-  color: var(--faint);
-}
-
 .resume-section {
   margin-bottom: 2.5rem;
 }
@@ -248,7 +155,7 @@ h2.resume-name {
   padding-bottom: 0.5rem;
 }
 
-/* Updated Awards & Honors styling */
+/* Awards and honors */
 .award-list {
   list-style: none;
   padding: 0;
@@ -303,45 +210,7 @@ h2.resume-name {
   font-style: italic;
 }
 
-/* Updated Technical Skills styling */
-.skills-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.8rem;
-  margin: 1rem 0;
-}
-
-.skill-tag {
-  padding: 0.4rem 0.8rem;
-  background: transparent;
-  border: 1px solid var(--rule);
-  border-radius: 4px;
-  font-size: 0.95rem;
-  color: var(--text-color);
-  transition: all 0.2s ease;
-}
-
-.skill-tag:hover {
-  background: var(--ink-soft);
-  border-color: var(--rule-strong);
-}
-
 @media (max-width: 700px) {
-  body {
-    padding: 1rem;
-  }
-
-  nav {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 1rem;
-  }
-
-  nav a {
-    margin: 0 0.75rem;
-  }
-
   .contact-info {
     flex-direction: column;
     align-items: center;

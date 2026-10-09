@@ -1,0 +1,88 @@
+# Hu Tianrun (胡天润)
+
+> Hu Tianrun (胡天润, also written Tianrun Hu) is a PhD student in Computer Science at the School of Computing, National University of Singapore (NUS), supervised by Prof. Harold Soh. The research focus is real-world mobile manipulation, with an emphasis on reasoning in unknown and dynamic environments.
+
+Hu Tianrun develops representations and planning methods that let robots reason under partial knowledge, direct sensing toward task-relevant uncertainty, and adapt their actions as the environment changes. Current research threads are joint reasoning over perception and action, scene understanding designed for action, and reasoning for complex real-world tasks. Hu Tianrun holds the A*STAR Graduate Scholarship (Computing).
+
+From August 2024 to July 2026, Hu Tianrun was a Research Engineer in the Adaptive Computing Lab at the Smart Systems Institute (SSI), NUS, under Prof. David Hsu, working closely with Dr. Hanbo Zhang. Since July 2026, the collaboration with Dr. Yiqing Xu under Prof. Jiajun Wu at Stanford University has focused on robot navigation for humanitarian assistance and disaster relief. Hu Tianrun received a B.Eng. in Computer Engineering with Distinction Honours from Nanyang Technological University (NTU) in 2024, under the guidance of Prof. Lam Siew Kei.
+
+## Site
+
+- [Home](https://h-tr.github.io/): biography, research interests and contact details
+- [Publications](https://h-tr.github.io/publication/): papers with TL;DR summaries and links to arXiv, project websites and code
+- [Projects](https://h-tr.github.io/project/): motion planning libraries, a behavior cloning framework and digital twin tools
+- [Blog](https://h-tr.github.io/blog/): technical posts, plus AI-generated literature surveys under a separate tab
+- [Service](https://h-tr.github.io/teaching/): open source, teaching and academic service
+- [Resume](https://h-tr.github.io/resume/): education, experience and awards ([PDF](https://h-tr.github.io/media/documents/HuTianrun%20resume.pdf))
+
+## Publications
+
+- [Agent Priors-guided Policy Learning](https://arxiv.org/abs/2609.35690): In Submission. Puming Jiang, Tianrun Hu, Haozhe Du, Yibo Li, Zhiwei Xue, Xinhu Li, Harold Soh. A policy's structural prior is its interface to the agent. It helps the policy generalize and tells the agent where the skill works. Website https://agentics-robotics.github.io/APPL/. Code https://github.com/Agentics-robotics/Agent-Priors-guided-Policy-Learning
+- [Receding-Horizon Pushing with Composable Object-Centric Policies](https://arxiv.org/abs/2609.23439): In Submission. Zhiyi Yuan, Tianrun Hu, Anxing Xiao, Yuhong Deng, David Hsu, Hanbo Zhang. A high-level planner splits a long push into short subgoals, and a learned object-centric policy pushes the object to each one. Website https://yzy14606.github.io/Receding-Horizon-Pushing-Website/. Code https://github.com/YZY14606/Receding-Horizon-Pushing
+- [Visibility-Aware Mobile Grasping in Dynamic Environments](https://arxiv.org/abs/2605.02487): RSS 2026 Workshop (ExWBC), Oral Presentation. Tianrun Hu, Anxing Xiao, David Hsu, Hanbo Zhang. In a dynamically changing environment, a moving robot must see both the obstacles in its way and the object it wants to grasp. We balance the two. Website https://visibility-aware-mobile-grasping.github.io/. Code https://github.com/AdaCompNUS/Visibility-Awared-Mobile-Grasping
+- [Uncertainty Estimation for Visual Grounding in the Open World](https://h-tr.github.io/publication/): In Submission. Hanbo Zhang, Tianrun Hu, Cedar Site Bai, Anxing Xiao, David Hsu. Calibrated uncertainty for open-world visual grounding, so planning knows what perception does not know. Paper, website and code coming soon
+- [Hypothesis-driven Model Expansion under Uncertainty for Open-World Robot Planning](https://arxiv.org/abs/2607.06501): Robotics: Science and Systems (RSS) 2026. Anxing Xiao, Hanbo Zhang, Tianrun Hu, David Hsu. In the open world, foundation models propose hypotheses, the robot verifies them while doing the task, and it expands its world model with what it learns. Website https://open-world-planning.github.io/. Code https://github.com/threefruits/HUME
+- [Chain-of-Action: Trajectory Autoregressive Modeling for Robotic Manipulation](https://arxiv.org/abs/2506.09990): Conference on Neural Information Processing Systems (NeurIPS) 2025. Wenbo Zhang, Tianrun Hu, Yanyuan Qiao, Hanbo Zhang, Yuchu Qin, Yang Li, Jiajun Liu, Tao Kong, Lingqiao Liu, Xiao Ma. The policy predicts the goal action first, then builds the trajectory backward from it. Website https://chain-of-action.github.io/. Code https://github.com/zwbx/Chain-of-Action/tree/main
+- [MimicFunc: Imitating Tool Manipulation from a Single Human Video via Functional Correspondence](https://arxiv.org/abs/2502.11744): Conference on Robot Learning (CoRL) 2025. Chao Tang, Anxing Xiao, Yuhong Deng, Tianrun Hu, Wenlong Dong, Hanbo Zhang, David Hsu, Hong Zhang. Functional correspondence lets the robot learn tool use from one human video and apply it to new tools that look different but do the same job. Website https://sites.google.com/view/functo. Code https://github.com/mkt1412/FUNCTO_public
+- [Robi Butler: Remote Multimodal Interactions with Household Robot Assistant](https://arxiv.org/abs/2409.20548): IEEE International Conference on Robotics and Automation (ICRA) 2025. Anxing Xiao, Nuwan Janaka, Tianrun Hu, Anshul Gupta, Kaixin Li, Cunjun Yu, David Hsu. Control a household robot over a video call with voice, text, and pointing. Website https://robibutler.github.io/
+- [ManiFoundation Model for General-Purpose Robotic Manipulation of Contact Synthesis with Arbitrary Objects and Robots](https://arxiv.org/abs/2405.06964): IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) 2024. Zhixuan Xu, Chongkai Gao, Zixuan Liu, Gang Yang, Chenrui Tie, Haozhuo Zheng, Haoyu Zhou, Weikun Peng, Debang Wang, Tianrun Hu, Tianyi Chen, Zhouliang Yu, Lin Shao. One model for any object and robot, predicting where to touch and what force or motion to apply. Website https://manifoundationmodel.github.io/. Code https://github.com/NUS-LinS-Lab/ManiFM
+
+## Projects
+
+- [Motion Planning Libraries](https://h-tr.github.io/project/): ongoing. CPU motion planning in milliseconds on OMPL and VAMP, with one pip-installable stack per robot and a shared Python API
+- [Autolife-Planning](https://github.com/AdaCompNUS/Autolife-Planning): planning stack for the Autolife mobile manipulator, `pip install autolife-planning`, docs at https://adacompnus.github.io/Autolife-Planning/
+- [Fetch-Planning](https://github.com/H-tr/Fetch-Planning): planning stack for the Fetch mobile manipulator with a differential-drive base, adds FLASK kinodynamic planning, `pip install fetch-planning`, docs at https://h-tr.github.io/Fetch-Planning/
+- [Wheel-Chair-Planning](https://github.com/H-tr/Wheel-Chair-Planning): planning stack for a wheelchair-mounted xArm7, adds FLASK kinodynamic planning, `pip install wheelchair-planning`, docs at https://h-tr.github.io/Wheel-Chair-Planning/
+- [Bimanual-Franka-Planning](https://github.com/H-tr/Bimanual-Franka-Planning): planning stack for dual Franka FR3 arms, installed from source
+- [Whole-Body VAMP](https://github.com/AdaCompNUS/vamp): the group's VAMP fork, a vectorized kinematics and collision checking backend with whole-body planning extensions, used for Fetch
+- [Uniform Framework for Data Gathering and Behavior Cloning](https://github.com/AdaCompNUS/RobotIL): completed. One imitation learning framework across many teleoperation interfaces and robots, from collecting demonstrations to training ACT and diffusion policies
+- [Gaussian Splatting Toolkit](https://gaussian-splatting-toolkit.readthedocs.io/en/latest/): completed. Gaussian Splatting tools for indoor 3D mesh reconstruction, code at https://github.com/Gaussian-Splatting-Toolkit/Gaussian-Splatting-Toolkit
+- [RLS Digital Twin](https://github.com/AdaCompNUS/rls-digital-twin): completed. A digital twin of the lab built on the reconstruction tools, used for CS6244 projects and mobile manipulation research
+
+## Blog posts
+
+- [How to Plan Whole-Body Motion in ~1 ms](https://h-tr.github.io/blog/posts/whole-body-motion-planning.html): April 2026. Engineering notes on whole-body motion planning in about a millisecond, pairing an OMPL front end with a VAMP backend on the 24 DoF Autolife and 11 DoF Fetch.
+- [The Grasping Gap in the Wild](https://h-tr.github.io/blog/posts/grasping-gap-in-the-wild.html): March 2026. Failure analysis of a visibility-aware mobile grasping system. 43.5% of grasp failures come from geometrically good grasps that the robot cannot execute.
+- [Why is mobile manipulation so hard?](https://h-tr.github.io/blog/posts/mobile-manipulation-complexity.html): December 2025. Mobile manipulation is tightly coupled in space, time and grounding, yet we must split it into modules. Why that decomposition is lossy and what to do about it.
+- [When You're Too Lazy to Beat Level 2: Teaching AI to Play Water Sort](https://h-tr.github.io/blog/posts/mindful-pouring-planning.html): December 2025. Solving the Mindful Pouring water sort puzzle as a PDDL problem with the Fast Downward planner, and what such puzzles might teach vision-language models.
+- [Unified Whole-Body MPC Controller for Holistic Mobile Manipulators](https://h-tr.github.io/blog/posts/mpc-whole-body-control.html): April 2025. A whole-body MPC controller that tracks trajectories with the arm and mobile base in one optimization, using control barrier functions to avoid obstacles.
+- [Beyond the Papers: Scaling Laws and Data Requirements in End-to-End Robotics](https://h-tr.github.io/blog/posts/robot-il-generalization-thinking.html): March 2025. Lessons from training ACT, Diffusion Policy and 3D Diffusion Policy on real tasks, covering overfitting, data needs and whether scaling laws apply to robots.
+- [Can we do the Stochastic Modeling in Visual Place Recognition?](https://h-tr.github.io/blog/posts/stochastic-modeling-vpr.html): February 2025. An experiment bringing VAE-style uncertainty modeling to visual place recognition, from formulation to why it did not work as planned and what it taught.
+- [Understanding the Dynamic Balance in Variational Autoencoders](https://h-tr.github.io/blog/posts/vae-dynamics.html): January 2025. How encoder variance and decoder quality pull against each other while a VAE trains, forming an automatic curriculum, with derivations and visualizations.
+- [Building Stable and Consistent Robot Control for Learning](https://h-tr.github.io/blog/posts/teleoperation-control.html): December 2024. A robot control framework combining velocity control, delta pose representations and null-space optimization to collect smooth, consistent data for learning.
+
+## Surveys
+
+These surveys are AI-generated literature reviews, published as personal learning aids. Hu Tianrun does not claim authorship of their content, and each entry names the model that generated it.
+
+- [Contact-Rich Manipulation and Contact Planning](https://h-tr.github.io/blog/surveys/contact-planning.html): April 2026, generated with Claude Opus 4.7. A survey of contact-rich manipulation from 2018 to 2026, covering contact models, contact-implicit optimization, mode planning, tactile sensing and dexterity.
+- [Multi-Modal Scene Understanding in Dynamic Environments](https://h-tr.github.io/blog/surveys/dynamic-observation.html): April 2026, generated with Claude Opus 4.7. A survey of multi-modal scene understanding in dynamic environments, covering scene representation, sensor fusion, temporal history and uncertainty propagation.
+- [Planning as Inference in Probabilistic Models](https://h-tr.github.io/blog/surveys/planning-as-inference.html): April 2026, generated with Claude Opus 4.7. A survey of planning as inference, spanning control as inference, active inference, maximum entropy reinforcement learning and model-based planning.
+- [Grasp Planning for Robotic Manipulation](https://h-tr.github.io/blog/surveys/grasp-planning.html): April 2026, generated with Claude Opus 4.7. A survey of grasp planning beyond pose synthesis, covering pre-grasp pushes, regrasping and handover, bimanual roles, task and motion planning, and learning.
+- [Programming Paradigms in Robotics](https://h-tr.github.io/blog/surveys/programming-paradigms-robotics.html): April 2026, generated with Claude Opus 4.7. A survey of software engineering ideas in robotics, from object-centric representations and modular skill libraries to layered architectures and composition.
+- [Fast Whole-Body Planners and Upstream Architecture](https://h-tr.github.io/blog/surveys/fast-planner-upstreams.html): April 2026, generated with Claude Opus 4.7. A survey of how millisecond whole-body planning reshapes the robot stack above it, from task decomposition and learned samplers to base placement and feedback.
+- [Robotic Tool Use and Non-Prehensile Manipulation](https://h-tr.github.io/blog/surveys/robotic-tool-use.html): April 2026, generated with Claude Opus 4.7. A survey of robotic tool use and non-prehensile manipulation such as pushing, sliding and pivoting, covering planning, control, affordances and learning.
+- [Active Perception in Mobile Manipulation](https://h-tr.github.io/blog/surveys/active-perception.html): April 2026, generated with Claude Opus 4.6. A survey of active perception in mobile manipulation, covering viewpoint planning, exploration, interactive perception, active touch and learned policies.
+- [Chain-of-Thought Reliability](https://h-tr.github.io/blog/surveys/cot-reliability.html): April 2026, generated with Claude Opus 4.6. A survey of chain-of-thought reliability in large language models, covering correctness, faithfulness, robustness and verification from 2022 to 2026.
+- [Bridging the Simulation-to-Reality Gap](https://h-tr.github.io/blog/surveys/sim-to-real-gap.html): April 2026, generated with Claude Opus 4.7. A survey of the sim-to-real gap in robot learning, covering domain randomization, system identification, teacher-student adaptation and real-to-sim-to-real.
+- [Formal Logic and Reasoning Frameworks for Robotic Systems](https://h-tr.github.io/blog/surveys/formal-logic-reasoning-robotic-systems.html): March 2026, generated with Claude Opus 4.6. A survey of formal reasoning tools for robots, from PDDL, LTL and STL to probabilistic programming, SMT solvers, ontologies and behavior trees, with guidance.
+- [Structured Representation for Generalizable Manipulation Skill Modeling](https://h-tr.github.io/blog/surveys/structured-representation-manipulation.html): March 2026, generated with Claude Opus 4.6. A survey of structured representations for generalizable manipulation, from keypoints and affordances to scene graphs, object-centric and neuro-symbolic models.
+- [LLM and VLM for Task and Motion Planning](https://h-tr.github.io/blog/surveys/llm-vlm-tamp.html): March 2026, generated with Claude Opus 4.6. A survey of large language and vision-language models for task and motion planning, from LLM task planners to VLA models, covering work from 2022 to early 2026.
+
+## Service
+
+- [OMPL, Open Motion Planning Library](https://github.com/ompl/ompl): ongoing open source contributor to this C++ library of sampling-based motion planning algorithms
+- [CS6244 Advanced Topics in Robotics](https://nusmods.com/courses/CS6244/advanced-topics-in-robotics): 2025, NUS. Developed the course project platform and mentored PhD students' mobile manipulation projects
+- [Human-Centric Mobile Manipulation workshop, RSS 2026](https://adacompnus.github.io/human-centric-mobile-manipulation/): helped prepare the workshop, presented a demonstration and reviewed submissions
+- [Reviewer](https://h-tr.github.io/teaching/): Conference on Robot Learning (CoRL) 2026 and IEEE Robotics and Automation Letters (RA-L) 2025
+
+## Contact and profiles
+
+- [Email](mailto:tianrunhu@gmail.com): tianrunhu@gmail.com, or tianrun.hu@u.nus.edu
+- [Google Scholar](https://scholar.google.com/citations?user=o53_uPYAAAAJ): publication list and citations
+- [GitHub](https://github.com/H-tr): code
+- [ORCID](https://orcid.org/0009-0007-7314-7643): 0009-0007-7314-7643
+- [LinkedIn](https://www.linkedin.com/in/tianrun-hu-ba9b771b3/): professional profile
+- [Resume PDF](https://h-tr.github.io/media/documents/HuTianrun%20resume.pdf): one-page CV
+
+Office address is AI Lab 1, Level 2, COM3, National University of Singapore, 11 Research Link, Singapore 119391.
