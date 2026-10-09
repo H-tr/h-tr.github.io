@@ -1,6 +1,13 @@
+/* Home page, Tufte classic: cream paper, black ink, warm grays, italics and
+   small caps for hierarchy, whitespace instead of rules between sections. */
 :root {
   --content-width: 800px;
-  --text-color: #2c3e50;
+  --text-color: #111;
+  --ink: #111;
+  --muted: #555;
+  --faint: #8a877e;
+  --rule: #e4e2d8;
+  --link-underline: rgba(17, 17, 17, 0.35);
 }
 
 body {
@@ -9,22 +16,21 @@ body {
   line-height: 1.7;
   max-width: var(--content-width);
   margin: 0 auto;
-  padding: 2rem 2rem 10vh;
+  padding: 2rem 2rem 4rem;
   color: var(--text-color);
   background: #fffff8;
   font-weight: 400;
 }
 
-/* Set default header weight */
 h1, h2, h3, h4, h5, h6 {
-  font-weight: 500;
+  font-weight: 400;
 }
 
-/* Header with Image */
+/* ---------- Header ---------- */
 .header {
   margin-bottom: 2rem;
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 2.5rem;
   align-items: start;
 }
@@ -33,22 +39,36 @@ h1, h2, h3, h4, h5, h6 {
   width: 180px;
   height: 240px; /* 3:4 aspect ratio */
   object-fit: cover;
-  border-radius: 4px;
+  border-radius: 3px;
 }
 
 .header-content h1 {
-  font-size: 2.5rem;
-  margin: 0 0 0.5rem;
-  color: #2c2c2e;
+  font-size: 2.6rem;
+  line-height: 1.1;
+  margin: 0.1rem 0 0.6rem;
+  color: var(--ink);
+}
+
+.name-zh {
+  margin-left: 0.35em;
+  font-family: "Noto Serif SC", "Songti SC", "Source Han Serif SC", "STSong", "SimSun", serif;
+  font-size: 0.6em;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  white-space: nowrap;
 }
 
 .header-content p {
-  margin: 0.25rem 0;
-  font-size: 0.85em;
+  margin: 0;
+}
+
+.header-role {
+  font-size: 0.95rem;
+  color: var(--muted);
 }
 
 .header-content .header-note {
-  margin-top: 1.35rem;
+  margin-top: 0.9rem;
   max-width: 26rem;
   color: rgba(70, 70, 70, 0.72);
   font-family: "Noteworthy", "Bradley Hand", "Segoe Print", cursive;
@@ -58,137 +78,124 @@ h1, h2, h3, h4, h5, h6 {
   line-height: 1.45;
 }
 
-/* Navigation */
+.header-content .header-statement {
+  margin-top: 1.1rem;
+  max-width: 30rem;
+  font-style: italic;
+  font-size: 1.15rem;
+  line-height: 1.5;
+  color: #333;
+  text-wrap: pretty;
+}
+
+.header-content .header-links {
+  margin-top: 1.1rem;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.06em;
+  font-size: 1.05rem;
+}
+
+.header-links .sep {
+  color: var(--faint);
+  margin: 0 0.55em;
+}
+
+/* ---------- Navigation (shared with the other section pages) ---------- */
 nav {
   margin: 2rem 0;
   padding: 1rem 0;
-  border-top: 1px solid #eee; /* Light grey */
-  border-bottom: 1px solid #eee; /* Light grey */
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
 }
 
 nav a {
-  color: #555; /* Dark grey default */
+  color: #555;
   text-decoration: none;
   margin-right: 1.5rem;
-  font-weight: 400; /* Normal weight */
+  font-weight: 400;
   padding-bottom: 0;
   border-bottom: none;
-  transition: color 0.2s ease, font-weight 0.2s ease; /* Smooth transition for color and weight */
+  transition: color 0.2s ease, font-weight 0.2s ease;
 }
 
 nav a:hover {
-  color: #2c2c2e; /* Black on hover */
-  text-decoration: none;
-}
-
-/* Style for the active page link */
-nav a.active {
-  color: #2c2c2e; /* Black */
-  font-weight: 600; /* Bolder */
-  text-decoration: none;
-}
-
-/* Ensure visited links don't get unwanted styles */
-nav a:visited {
-    color: #555; /* Keep default color */
-    text-decoration: none;
-}
-
-/* Style for the link while being clicked (momentary) */
-nav a:active {
-    color: #2c2c2e; /* Black when clicking */
-    text-decoration: none;
-}
-
-/* Contact Info */
-.contact-info {
-  margin: 2rem 0;
-}
-
-.contact-info p {
-  margin: 0.5rem 0;
-  font-size: 0.85em;
-}
-
-.contact-info a {
-  color: #6495ED; /* Cornflower Blue */
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-.contact-info a:hover {
-  color: #4173C4; /* Darker Cornflower Blue on hover */
-  text-decoration: none;
-}
-
-/* Specific style for email links in contact info */
-.contact-info a[href^="mailto:"] {
-  color: #555; /* Grey for email links */
-  transition: color 0.2s ease;
-}
-
-.contact-info a[href^="mailto:"]:hover {
-  color: #333; /* Darker grey on hover for email links */
-  text-decoration: none;
-}
-
-/* Social Links */
-.social-links {
-  margin: 2rem 0;
-}
-
-.social-links a {
-  color: #2c3e50;
-  text-decoration: none;
-  margin-right: 1.5rem;
-  font-size: 1.2rem;
-  transition: color 0.2s ease;
-}
-
-.social-links a:hover {
   color: #2c2c2e;
+  text-decoration: none;
 }
 
-/* General Link Styles */
-a {
-  color: #4682B4; /* Steel Blue */
+nav a.active {
+  color: #2c2c2e;
+  font-weight: 600;
   text-decoration: none;
-  transition: color 0.2s ease;
+}
+
+nav a:visited {
+  color: #555;
+  text-decoration: none;
+}
+
+nav a:active {
+  color: #2c2c2e;
+  text-decoration: none;
+}
+
+/* ---------- Links: ink with a faint underline ---------- */
+a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--link-underline);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.2s ease;
 }
 
 a:hover {
-  color: #3A6A97; /* Darker Steel Blue on hover */
-  text-decoration: none;
+  color: var(--ink);
+  text-decoration-color: var(--ink);
 }
 
-/* About Section */
+a:focus-visible {
+  outline: 1px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* ---------- About and research ---------- */
 .about {
-  margin: 2rem 0;
+  margin: 2.5rem 0 0;
 }
 
 .about h2 {
-  font-size: 1.5rem;
-  margin: 1.5rem 0 1rem;
-  color: #2c2c2e;
-  border-bottom: 2px solid #eee;
-  padding-bottom: 0.5rem;
+  font-size: 1.6rem;
+  font-style: italic;
+  line-height: 1.25;
+  margin: 2.6rem 0 0.6rem;
+  color: var(--ink);
+}
+
+.about h2:first-child {
+  margin-top: 0;
 }
 
 .about p {
-  margin: 1rem 0;
-  font-size: 0.9em;
+  margin: 0.8rem 0;
+  font-size: 0.95em;
+  text-wrap: pretty;
 }
 
-/* Research Panels */
+.about strong {
+  font-weight: 600;
+}
+
+/* Research panels: structure unchanged, colors brought into the ink palette */
 .research-panel {
-  margin: 1rem 0;
+  margin: 1.1rem 0;
   padding-left: 1rem;
-  border-left: 3px solid #e0e4e8;
+  border-left: 2px solid var(--rule);
   transition: border-color 0.25s ease;
 }
 
 .research-panel[open] {
-  border-left-color: #4682B4;
+  border-left-color: var(--faint);
 }
 
 .research-panel summary {
@@ -199,17 +206,21 @@ a:hover {
 
 .research-panel summary::-webkit-details-marker { display: none; }
 
+.research-panel summary:focus-visible {
+  outline: 1px solid var(--ink);
+  outline-offset: 3px;
+}
+
 .panel-title {
   display: block;
   font-weight: 600;
   font-size: 0.95em;
-  color: #2c3e50;
-  transition: color 0.2s ease;
+  color: var(--ink);
 }
 
 .panel-chevron {
   font-style: normal;
-  color: #aaa;
+  color: var(--faint);
   font-size: 1.1em;
   display: inline-block;
   transition: transform 0.2s ease, color 0.2s ease;
@@ -217,26 +228,21 @@ a:hover {
 
 .research-panel[open] .panel-chevron {
   transform: rotate(90deg);
-  color: #4682B4;
-}
-
-.research-panel summary:hover .panel-title {
-  color: #4682B4;
+  color: var(--ink);
 }
 
 .research-panel summary:hover .panel-chevron {
-  color: #4682B4;
+  color: var(--ink);
 }
 
 .panel-desc {
   display: block;
-  font-size: 0.83em;
-  color: #999;
+  font-size: 0.85em;
+  color: var(--muted);
   font-style: italic;
   margin-top: 0.1em;
 }
 
-/* Body */
 .panel-body {
   margin-top: 0.8em;
 }
@@ -246,48 +252,75 @@ a:hover {
 }
 
 .panel-group-title {
-  font-size: 0.78em;
-  font-weight: 700;
-  color: #2c3e50;
-  text-transform: uppercase;
+  font-size: 0.95em;
+  font-variant-caps: all-small-caps;
   letter-spacing: 0.06em;
-  margin-bottom: 0.3em;
+  color: var(--muted);
+  margin-bottom: 0.2em;
 }
 
 .panel-item {
-  font-size: 0.85em;
-  color: #555;
+  font-size: 0.88em;
+  color: #333;
   padding: 0.25em 0 0.25em 0.8em;
-  border-left: 1px solid #eee;
+  border-left: 1px solid var(--rule);
   margin-bottom: 0.2em;
   line-height: 1.6;
 }
 
-.panel-item a {
-  color: #4682B4;
-}
-
-.panel-item a:hover {
-  color: #3A6A97;
-}
-
 .panel-item em {
-  color: #bbb;
-  font-style: normal;
-  font-size: 0.9em;
+  color: var(--faint);
+  font-style: italic;
 }
 
-/* Get in Touch */
-.connect {
-  margin-top: 3.5rem;
-  padding-bottom: 2rem;
+/* ---------- Quiet footer ---------- */
+.site-footer {
+  margin-top: 4.5rem;
+  padding-top: 1.8rem;
+  border-top: 1px solid var(--rule);
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 1rem 3rem;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--muted);
 }
 
+.footer-block {
+  min-width: 0;
+}
 
-/* Responsive Design */
+.footer-label {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.site-footer p {
+  margin: 0 0 0.7rem;
+}
+
+.site-footer a {
+  color: var(--muted);
+}
+
+.site-footer a:hover {
+  color: var(--ink);
+}
+
+.site-footer .footer-updated {
+  grid-column: 1 / -1;
+  margin-top: 0.8rem;
+  font-style: italic;
+  color: var(--faint);
+}
+
+/* ---------- Responsive ---------- */
 @media (max-width: 700px) {
   body {
-    padding: 1rem;
+    padding: 1rem 1rem 3rem;
   }
 
   .header {
@@ -306,6 +339,12 @@ a:hover {
     font-size: 2rem;
   }
 
+  .header-content .header-note,
+  .header-content .header-statement {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
   nav {
     display: flex;
     flex-wrap: wrap;
@@ -317,7 +356,7 @@ a:hover {
     margin: 0 0.75rem;
   }
 
-  .social-links {
-    text-align: center;
+  .site-footer {
+    grid-template-columns: 1fr;
   }
 }

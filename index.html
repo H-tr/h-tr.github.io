@@ -5,13 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hu Tianrun - Homepage</title>
     <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400&text=%E8%83%A1%E5%A4%A9%E6%B6%A6&display=swap"
       rel="stylesheet"
     />
     <link rel="icon" type="image/svg+xml" href="media/images/icon.svg" />
     <link href="css/transitions.css" rel="stylesheet" />
     <link href="css/home.css" rel="stylesheet" />
     <script src="js/page-transition.js"></script>
+    <script data-goatcounter="https://h-tr.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+    <script src="js/visit-count.js" defer></script>
   </head>
   <body>
     <header class="header">
@@ -21,11 +23,37 @@
         class="profile-image"
       />
       <div class="header-content">
-        <h1>Hu Tianrun</h1>
-        <p>PhD Student</p>
-        <p>School of Computing @ NUS</p>
+        <h1>Hu Tianrun <span class="name-zh" lang="zh-Hans">胡天润</span></h1>
+        <p class="header-role">PhD Student &middot; School of Computing @ NUS</p>
         <p class="header-note">
           "wait, this actually works?"
+        </p>
+        <p class="header-statement">
+          I work on mobile manipulation robots that reason, look, and act in
+          unknown and changing environments.
+        </p>
+        <p class="header-links">
+          <a href="mailto:tianrunhu@gmail.com">Email</a><span class="sep" aria-hidden="true">&middot;</span><a
+            href="https://scholar.google.com/citations?hl=en&view_op=list_works&gmla=AL3_zigmUCjHY4GYvw1QuWLy8AuVftfupRT4YJd_K_ClLyRBEkmh2_FS7bYTzCLz1pIv40-Fn21Q9U4UxTftPQ&user=o53_uPYAAAAJ"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Scholar</a
+          ><span class="sep" aria-hidden="true">&middot;</span><a
+            href="https://github.com/H-tr"
+            target="_blank"
+            rel="noopener noreferrer"
+            >GitHub</a
+          ><span class="sep" aria-hidden="true">&middot;</span><a
+            href="https://orcid.org/0009-0007-7314-7643"
+            target="_blank"
+            rel="noopener noreferrer"
+            >ORCID</a
+          ><span class="sep" aria-hidden="true">&middot;</span><a
+            href="https://www.linkedin.com/in/tianrun-hu-ba9b771b3/"
+            target="_blank"
+            rel="noopener noreferrer"
+            >LinkedIn</a
+          >
         </p>
       </div>
     </header>
@@ -38,49 +66,6 @@
       <a href="teaching/">Service</a>
       <a href="resume/">Resume</a>
     </nav>
-
-    <div class="contact-info">
-      <p>
-        <i class="fas fa-envelope"></i> Email:
-        <a href="mailto:tianrunhu@gmail.com">tianrunhu@gmail.com</a>,
-        <a href="mailto:tianrun.hu@u.nus.edu">tianrun.hu@u.nus.edu</a>
-      </p>
-      <p>
-        <i class="fas fa-map-marker-alt"></i> Office: AI Lab 1, Level 2, COM3,
-        National University of Singapore, 11 Research Link, Singapore 119391
-      </p>
-    </div>
-
-    <div class="social-links">
-      <a
-        href="https://github.com/H-tr"
-        title="GitHub"
-        target="_blank"
-        rel="noopener noreferrer"
-        ><i class="fab fa-github"></i
-      ></a>
-      <a
-        href="https://scholar.google.com/citations?hl=en&view_op=list_works&gmla=AL3_zigmUCjHY4GYvw1QuWLy8AuVftfupRT4YJd_K_ClLyRBEkmh2_FS7bYTzCLz1pIv40-Fn21Q9U4UxTftPQ&user=o53_uPYAAAAJ"
-        title="Google Scholar"
-        target="_blank"
-        rel="noopener noreferrer"
-        ><i class="fas fa-graduation-cap"></i
-      ></a>
-      <a
-        href="https://orcid.org/0009-0007-7314-7643"
-        title="ORCID"
-        target="_blank"
-        rel="noopener noreferrer"
-        ><i class="fab fa-orcid"></i
-      ></a>
-      <a
-        href="https://www.linkedin.com/in/tianrun-hu-ba9b771b3/"
-        title="LinkedIn"
-        target="_blank"
-        rel="noopener noreferrer"
-        ><i class="fab fa-linkedin"></i
-      ></a>
-    </div>
 
     <section class="about">
       <h2>About Me</h2>
@@ -232,8 +217,11 @@
         </div>
       </details>
 
-      <div class="connect">
-        <h2>Get in Touch</h2>
+    </section>
+
+    <footer class="site-footer">
+      <div class="footer-block">
+        <h2 class="footer-label">Get in touch</h2>
         <p>
           Whether you're a fellow researcher looking for cooperation, an undergrad figuring out
           research or PhD applications, or just starting out and not sure where to begin,
@@ -241,7 +229,20 @@
           I read and reply to every one, always happy to chat!
         </p>
       </div>
-    </section>
+      <div class="footer-block">
+        <h2 class="footer-label">Contact</h2>
+        <p>
+          <a href="mailto:tianrunhu@gmail.com">tianrunhu@gmail.com</a><br />
+          <a href="mailto:tianrun.hu@u.nus.edu">tianrun.hu@u.nus.edu</a>
+        </p>
+        <p>
+          AI Lab 1, Level 2, COM3<br />
+          National University of Singapore<br />
+          11 Research Link, Singapore 119391
+        </p>
+      </div>
+      <p class="footer-updated">Last updated October 2026<span data-visit-count hidden></span></p>
+    </footer>
 
   </body>
 </html>
