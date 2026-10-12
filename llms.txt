@@ -74,7 +74,7 @@ These surveys are AI-generated literature reviews, published as personal learnin
 - [OMPL, Open Motion Planning Library](https://github.com/ompl/ompl): ongoing open source contributor to this C++ library of sampling-based motion planning algorithms
 - [CS6244 Advanced Topics in Robotics](https://nusmods.com/courses/CS6244/advanced-topics-in-robotics): 2025, NUS. Developed the course project platform and mentored PhD students' mobile manipulation projects
 - [Human-Centric Mobile Manipulation workshop, RSS 2026](https://adacompnus.github.io/human-centric-mobile-manipulation/): helped prepare the workshop, presented a demonstration and reviewed submissions
-- [Reviewer](https://h-tr.github.io/teaching/): Conference on Robot Learning (CoRL) 2026 and IEEE Robotics and Automation Letters (RA-L) 2025
+- [Reviewer](https://h-tr.github.io/teaching/): 7 papers reviewed, 3 for the International Conference on Learning Representations (ICLR) 2027, 3 for the Conference on Robot Learning (CoRL) 2026 and 1 for IEEE Robotics and Automation Letters (RA-L) 2025
 
 ## Contact and profiles
 
