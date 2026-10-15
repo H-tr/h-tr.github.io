@@ -10,6 +10,7 @@
 document.addEventListener('DOMContentLoaded', function() {
   initTextTOC();
   initLazyVideos();
+  initClips();
   initToggles();
 });
 
@@ -91,6 +92,46 @@ document.addEventListener('DOMContentLoaded', function() {
     document.head.appendChild(counter);
   }
 })();
+
+/**
+ * Links marked data-clip play their video in the page's .blog-clip-dock
+ * instead of opening it. A clip downloads only when its link is clicked;
+ * clicking the same link again, the close button, or Escape stops it.
+ */
+function initClips() {
+  const dock = document.querySelector('.blog-clip-dock');
+  const links = document.querySelectorAll('a[data-clip]');
+  if (!dock || !links.length) return;
+  const video = dock.querySelector('video');
+  const title = dock.querySelector('.blog-clip-title');
+  let current = null;
+
+  const close = () => {
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+    dock.hidden = true;
+    if (current) current.removeAttribute('aria-current');
+    current = null;
+  };
+
+  links.forEach(link => link.addEventListener('click', event => {
+    event.preventDefault();
+    if (link === current) return close();
+    if (current) current.removeAttribute('aria-current');
+    current = link;
+    link.setAttribute('aria-current', 'true');
+    title.textContent = `${link.dataset.clip} · ${link.textContent}`;
+    video.src = link.href;
+    dock.hidden = false;
+    video.play().catch(() => {});
+  }));
+
+  dock.querySelector('.blog-clip-close').addEventListener('click', close);
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && !dock.hidden) close();
+  });
+}
 
 /**
  * Looping videos marked data-lazy (preload="none", no autoplay) play only

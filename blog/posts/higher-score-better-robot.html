@@ -138,11 +138,11 @@
           <text x="615" y="343" class="dg-muted dg-small">cameras, proprioception</text>
         </svg>
         </div>
-        <figcaption><b>Figure 1.</b> Four ways a foundation model enters a robot system, ordered by how close its output is to the motors. <b>A.</b> The model writes priors before execution, revises them after errors, and never acts on the environment. The priors range from the policy code itself (Code as Policies, RAPID, the KinDER coding agents)<sup class="blog-cite"><a href="#ref-1">1</a>, <a href="#ref-2">2</a>, <a href="#ref-3">3</a></sup> to goals, world models, costs, and rewards (RIR, POMDP Coder, VoxPoser, Eureka)<sup class="blog-cite"><a href="#ref-4">4</a>, <a href="#ref-5">5</a>, <a href="#ref-6">6</a>, <a href="#ref-7">7</a></sup>, and the policy that uses them can be a program, a planner, a behavior tree, or MPC. <b>B.</b> The model sends subgoals to a vision-language-action (VLA) policy (SayCan, Hi Robot)<sup class="blog-cite"><a href="#ref-8">8</a>, <a href="#ref-9">9</a></sup>. <b>C.</b> The model is the policy and sees the environment directly. Skills are shortcuts it calls, their feedback returns to it, and it can write new tools (Agent as Policy, ASPIRE)<sup class="blog-cite"><a href="#ref-10">10</a>, <a href="#ref-11">11</a></sup>. <b>D.</b> The model is the policy and outputs controller targets itself (VIA)<sup class="blog-cite"><a href="#ref-12">12</a></sup>. Dashed arrows act between attempts.</figcaption>
+        <figcaption><b>Figure 1.</b> Four ways a foundation model enters a robot system, ordered by how close its output is to the motors. <b>A.</b> The model writes priors before execution, revises them after errors, and never acts on the environment. The priors range from the policy code itself (Code as Policies, RAPID, the KinDER coding agents)<sup class="blog-cite"><a href="#ref-1">1</a>, <a href="#ref-2">2</a>, <a href="#ref-3">3</a></sup> to goals, world models, costs, and rewards (RIR, POMDP Coder, VoxPoser, Eureka)<sup class="blog-cite"><a href="#ref-4">4</a>, <a href="#ref-5">5</a>, <a href="#ref-6">6</a>, <a href="#ref-7">7</a></sup>, and the policy that uses them can be a program, a planner, a behavior tree, or MPC. <b>B.</b> The model sends subgoals to a vision-language-action (VLA) policy (SayCan, Hi Robot)<sup class="blog-cite"><a href="#ref-8">8</a>, <a href="#ref-9">9</a></sup>. <b>C.</b> The model is the policy and sees the environment directly. Skills are shortcuts it calls, their feedback returns to it, and it can write new tools (Agent as Policy, ASPIRE, EmbodiedEvo)<sup class="blog-cite"><a href="#ref-10">10</a>, <a href="#ref-11">11</a>, <a href="#ref-12">12</a></sup>. <b>D.</b> The model is the policy and outputs controller targets itself (VIA)<sup class="blog-cite"><a href="#ref-13">13</a></sup>. Dashed arrows act between attempts.</figcaption>
         </figure>
         <p>Foundation models now enter robot systems in the four ways of Figure 1, and each way puts the model in charge of different parts of the system. Most benchmarks score all four with one success rate over a collection of test cases, and that number cannot say which part the model got right.</p>
         <h2 id="stack">Where the agent enters</h2>
-        <p>We formulate a task as a POMDP<sup class="blog-cite"><a href="#ref-13">13</a></sup></p>
+        <p>We formulate a task as a POMDP<sup class="blog-cite"><a href="#ref-14">14</a></sup></p>
         \[ \mathcal{M} = \langle \mathcal{S}, \mathcal{A}, \mathcal{O}, T, Z, G, b_0 \rangle \]
         <ul class="blog-tight-list">
           <li>\(\mathcal{S}\) is the state space of the robot and objects.</li>
@@ -161,16 +161,16 @@
         </ul>
         <p>The objective is</p>
         \[ \pi^\star = \arg\max_{\pi}\; \mathbb{E}_{\theta^* \sim p(\theta)}\, \Pr\nolimits_{\theta^*}\!\big(s_H \in G^* \mid \pi\big). \]
-        <p>Since \(\theta^*\) is unknown, \(\pi^\star\) acts on the belief \(b_t(\theta) \propto p(\theta)\, p(h_t \mid \theta)\) and gathers information when that raises success, as in a Bayes-adaptive POMDP<sup class="blog-cite"><a href="#ref-14">14</a></sup>.</p>
+        <p>Since \(\theta^*\) is unknown, \(\pi^\star\) acts on the belief \(b_t(\theta) \propto p(\theta)\, p(h_t \mid \theta)\) and gathers information when that raises success, as in a Bayes-adaptive POMDP<sup class="blog-cite"><a href="#ref-15">15</a></sup>.</p>
         <p>The four designs of Figure 1 differ in how much of \(\mathcal{M}\) the foundation model \(f\) must specify itself. Two more symbols are needed.</p>
         <ul class="blog-tight-list">
-          <li>\(\Pi\) is a set of skills \(\pi_k(a \mid h; \kappa)\), controllers with parameters \(\kappa\) that run until they terminate, as options in a semi-Markov decision process<sup class="blog-cite"><a href="#ref-15">15</a></sup>.</li>
+          <li>\(\Pi\) is a set of skills \(\pi_k(a \mid h; \kappa)\), controllers with parameters \(\kappa\) that run until they terminate, as options in a semi-Markov decision process<sup class="blog-cite"><a href="#ref-16">16</a></sup>.</li>
           <li>\(h^{(e)}\) is the history of attempt \(e\).</li>
         </ul>
         <p><strong>Agent as prior.</strong> The agent must understand the whole problem and implement it. Before acting, \(f\) writes a model \(\hat{\mathcal{M}} = \langle \hat{\mathcal{S}}, \hat{\mathcal{A}}, \hat{\mathcal{O}}, \hat T, \hat Z, \hat G, \hat b_0 \rangle\), or a policy that implies one, complete enough for a program, planner, behavior tree, or MPC to act with no further help. This is the highest requirement of the four designs, and \(f\) sees the effect of its choices only between attempts, through \(h^{(1:e-1)}\). Many systems write only part of \(\hat{\mathcal{M}}\) and take the rest from hand-written code. RIR, for example, writes only the goal \(\hat G\)<sup class="blog-cite"><a href="#ref-4">4</a></sup>. A vision-language model proposes candidate goals for a demonstration, a planner scores how well each goal explains the demonstrated motion, and RIR keeps refining the best candidates. This is the belief update above made explicit, with the model's proposals as the prior \(p(\theta)\), the planner's score as the likelihood \(p(h \mid \theta)\), and the kept candidates as the posterior.</p>
         <p><strong>Hierarchical VLA.</strong> Decoupling lowers the requirement. A learned policy \(\pi_{\mathrm{VLA}}(a \mid h_t, g)\) takes over \(T\) and \(Z\) at the level of motion, so \(f\) only chooses the next subgoal \(g\) and planning reduces to reasoning over subgoals. The decoupling is lossy, because choosing well requires the policy's ability boundary, the probability \(\rho(g \mid h_t)\) that \(\pi_{\mathrm{VLA}}\) reaches \(g\) from the current history, and nothing in the design shows \(\rho\) to \(f\). SayCan has to learn a value function for each skill to estimate it<sup class="blog-cite"><a href="#ref-8">8</a></sup>.</p>
         <p><strong>Skills as tools.</strong> A tighter connection between the two levels addresses this. Each skill call returns its outcome to \(f\), so its history \(\bar h_t\) records where each skill in \(\Pi\) succeeds and fails, and \(f\) can create, modify, or redescribe skills to match. Keeping what it learns pays off. ASPIRE writes, repairs, and stores skills across tasks, and its library reaches 31% success on unseen long-horizon LIBERO-Pro tasks, against 4% for earlier methods<sup class="blog-cite"><a href="#ref-11">11</a></sup>.</p>
-        <p><strong>Agentic control.</strong> As \(f\) learns what its skills can do, their abilities merge into \(f\) itself, until \(\Pi\) shrinks to the low-level controller and \(f\) sends actions in \(\mathcal{A}\) directly. How far this works today depends on the interface. Claude Plays Robotics found that a model's score "depends as much on the robot body and the control interface as on the model itself", and with direct arm control on LIBERO tasks its models completed 0% to 5.5%<sup class="blog-cite"><a href="#ref-16">16</a></sup>. With VIA's interface for setting gripper targets, the strongest agents reached 85% and 100% on six simulated tasks and 24 of 25 real episodes<sup class="blog-cite"><a href="#ref-12">12</a></sup>.</p>
+        <p><strong>Agentic control.</strong> As \(f\) learns what its skills can do, their abilities merge into \(f\) itself, until \(\Pi\) shrinks to the low-level controller and \(f\) sends actions in \(\mathcal{A}\) directly. How far this works today depends on the interface. Claude Plays Robotics found that a model's score "depends as much on the robot body and the control interface as on the model itself", and with direct arm control on LIBERO tasks its models completed 0% to 5.5%<sup class="blog-cite"><a href="#ref-17">17</a></sup>. With VIA's interface for setting gripper targets, the strongest agents reached 85% and 100% on six simulated tasks and 24 of 25 real episodes<sup class="blog-cite"><a href="#ref-13">13</a></sup>.</p>
 
         <h2 id="benchmarks">Benchmarks</h2>
         <p>Table 1 lists the test classes of four benchmarks, what the robot receives, and example tasks.</p>
@@ -179,35 +179,132 @@
         <table class="blog-table">
           <thead><tr><th>Benchmark</th><th>Robot receives</th><th>Class</th><th>Example tasks</th></tr></thead>
           <tbody>
-            <tr><td rowspan="4">LIBERO</td><td rowspan="4">images, proprioception, instruction</td><td>LIBERO-Spatial</td><td>"pick up the black bowl next to the ramekin and place it on the plate", "pick up the black bowl on the stove and place it on the plate"</td></tr>
-            <tr><td>LIBERO-Object</td><td>"pick up the ketchup and place it in the basket", "pick up the milk and place it in the basket"</td></tr>
-            <tr><td>LIBERO-Goal</td><td>"open the middle drawer of the cabinet", "put the wine bottle on the rack"</td></tr>
-            <tr><td>LIBERO-Long</td><td>"turn on the stove and put the moka pot on it", "put the black bowl in the bottom drawer of the cabinet and close it"</td></tr>
-            <tr><td rowspan="8">ManiSkill3</td><td rowspan="8">state or images, no instruction</td><td>Control</td><td>MS-CartpoleBalance, MS-HopperHop</td></tr>
-            <tr><td>Table-Top 2 Finger Gripper</td><td>PickCube, PegInsertionSide, PushT</td></tr>
-            <tr><td>Quadruped</td><td>AnymalC-Reach, AnymalC-Spin</td></tr>
-            <tr><td>Humanoid</td><td>UnitreeG1PlaceAppleInBowl, UnitreeG1TransportBox</td></tr>
-            <tr><td>Mobile Manipulation</td><td>OpenCabinetDrawer</td></tr>
-            <tr><td>Dextrous Hand</td><td>RotateValveLevel0, TriFingerRotateCubeLevel0</td></tr>
-            <tr><td>Digital Twins</td><td>PutCarrotOnPlateInScene, PutEggplantInBasketScene</td></tr>
-            <tr><td>Drawing</td><td>DrawTriangle, DrawSVG</td></tr>
-            <tr><td rowspan="5">RoboDojo</td><td rowspan="5">three RGB-D cameras, proprioception, instruction</td><td>Generalization (12)</td><td>stack_bowls, fold_clothes, arrange_largest_number</td></tr>
-            <tr><td>Memory (6)</td><td>cover_blocks, imitate_sorting_sequence</td></tr>
-            <tr><td>Precision (8)</td><td>insert_tubes, plug_in_charger, deposit_coin</td></tr>
-            <tr><td>Long-Horizon (8)</td><td>organize_table, play_tic_tac_toe</td></tr>
-            <tr><td>Open (8)</td><td>solve_equation, classify_objects_by_language</td></tr>
-            <tr><td rowspan="5">KinDER</td><td rowspan="5">object-centric state, a fixed goal, skills, predicates, operators, samplers</td><td>Basic Spatial Relations</td><td>Motion2D, Table3D, Rearrange3D</td></tr>
-            <tr><td>Combinatorial Geometric Constraints</td><td>Obstruction2D, ClutteredStorage2D, Packing3D</td></tr>
-            <tr><td>Dynamic Constraints</td><td>Tossing3D, BalanceBeam3D</td></tr>
-            <tr><td>Nonprehensile Multi-Object Manipulation</td><td>DynObstruction2D, SortClutteredBlocks3D</td></tr>
-            <tr><td>Tool Use</td><td>StickButton2D, PushPullHook2D, ScoopPour3D</td></tr>
+            <tr><td rowspan="4">LIBERO</td><td rowspan="4">images, proprioception, instruction</td><td>LIBERO-Spatial</td><td><a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/libero-spatial-ramekin.mp4" data-clip="LIBERO-Spatial">"pick up the black bowl next to the ramekin and place it on the plate"</a>, <a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/libero-spatial-stove.mp4" data-clip="LIBERO-Spatial">"pick up the black bowl on the stove and place it on the plate"</a></td></tr>
+            <tr><td>LIBERO-Object</td><td><a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/libero-object-ketchup.mp4" data-clip="LIBERO-Object">"pick up the ketchup and place it in the basket"</a>, <a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/libero-object-milk.mp4" data-clip="LIBERO-Object">"pick up the milk and place it in the basket"</a></td></tr>
+            <tr><td>LIBERO-Goal</td><td><a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/libero-goal-drawer.mp4" data-clip="LIBERO-Goal">"open the middle drawer of the cabinet"</a>, <a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/libero-goal-wine.mp4" data-clip="LIBERO-Goal">"put the wine bottle on the rack"</a></td></tr>
+            <tr><td>LIBERO-Long</td><td><a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/libero-long-moka.mp4" data-clip="LIBERO-Long">"turn on the stove and put the moka pot on it"</a>, <a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/libero-long-bowl-drawer.mp4" data-clip="LIBERO-Long">"put the black bowl in the bottom drawer of the cabinet and close it"</a></td></tr>
+            <tr><td rowspan="8">ManiSkill3</td><td rowspan="8">state or images, no instruction</td><td>Control</td><td><a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/maniskill-cartpolebalance.mp4" data-clip="Control">MS-CartpoleBalance</a></td></tr>
+            <tr><td>Table-Top 2 Finger Gripper</td><td><a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/maniskill-pickcube.mp4" data-clip="Table-Top 2 Finger Gripper">PickCube</a>, <a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/maniskill-peginsertionside.mp4" data-clip="Table-Top 2 Finger Gripper">PegInsertionSide</a>, <a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/maniskill-pusht.mp4" data-clip="Table-Top 2 Finger Gripper">PushT</a></td></tr>
+            <tr><td>Quadruped</td><td><a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/maniskill-anymalc-reach.mp4" data-clip="Quadruped">AnymalC-Reach</a>, <a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/maniskill-anymalc-spin.mp4" data-clip="Quadruped">AnymalC-Spin</a></td></tr>
+            <tr><td>Humanoid</td><td><a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/maniskill-g1-apple.mp4" data-clip="Humanoid">UnitreeG1PlaceAppleInBowl</a>, <a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/maniskill-g1-box.mp4" data-clip="Humanoid">UnitreeG1TransportBox</a></td></tr>
+            <tr><td>Mobile Manipulation</td><td><a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/maniskill-opencabinetdrawer.mp4" data-clip="Mobile Manipulation">OpenCabinetDrawer</a></td></tr>
+            <tr><td>Dextrous Hand</td><td><a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/maniskill-rotatevalve.mp4" data-clip="Dextrous Hand">RotateValveLevel1</a>, <a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/maniskill-rotateinhand.mp4" data-clip="Dextrous Hand">RotateSingleObjectInHandLevel3</a></td></tr>
+            <tr><td>Digital Twins</td><td><a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/maniskill-carrot.mp4" data-clip="Digital Twins">PutCarrotOnPlateInScene</a>, <a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/maniskill-eggplant.mp4" data-clip="Digital Twins">PutEggplantInBasketScene</a></td></tr>
+            <tr><td>Drawing</td><td><a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/maniskill-drawtriangle.mp4" data-clip="Drawing">DrawTriangle</a>, <a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/maniskill-drawsvg.mp4" data-clip="Drawing">DrawSVG</a></td></tr>
+            <tr><td rowspan="5">RoboDojo</td><td rowspan="5">three RGB-D cameras, proprioception, instruction</td><td>Generalization (12)</td><td><a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/robodojo-stack-bowls.mp4" data-clip="Generalization (12)">stack_bowls</a>, <a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/robodojo-fold-clothes.mp4" data-clip="Generalization (12)">fold_clothes</a>, <a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/robodojo-arrange-largest-number.mp4" data-clip="Generalization (12)">arrange_largest_number</a></td></tr>
+            <tr><td>Memory (6)</td><td><a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/robodojo-cover-blocks.mp4" data-clip="Memory (6)">cover_blocks</a>, <a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/robodojo-imitate-sorting-sequence.mp4" data-clip="Memory (6)">imitate_sorting_sequence</a></td></tr>
+            <tr><td>Precision (8)</td><td><a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/robodojo-insert-tubes.mp4" data-clip="Precision (8)">insert_tubes</a>, <a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/robodojo-plug-in-charger.mp4" data-clip="Precision (8)">plug_in_charger</a>, <a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/robodojo-deposit-coin.mp4" data-clip="Precision (8)">deposit_coin</a></td></tr>
+            <tr><td>Long-Horizon (8)</td><td><a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/robodojo-organize-table.mp4" data-clip="Long-Horizon (8)">organize_table</a>, <a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/robodojo-play-tic-tac-toe.mp4" data-clip="Long-Horizon (8)">play_tic_tac_toe</a></td></tr>
+            <tr><td>Open (8)</td><td><a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/robodojo-solve-equation.mp4" data-clip="Open (8)">solve_equation</a>, <a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/robodojo-classify-objects-by-language.mp4" data-clip="Open (8)">classify_objects_by_language</a></td></tr>
+            <tr><td rowspan="5">KinDER</td><td rowspan="5">object-centric state, a fixed goal, skills, predicates, operators, samplers</td><td>Basic Spatial Relations</td><td><a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/kinder-motion2d.mp4" data-clip="Basic Spatial Relations">Motion2D</a>, <a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/kinder-table3d.mp4" data-clip="Basic Spatial Relations">Table3D</a>, <a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/kinder-rearrange3d.mp4" data-clip="Basic Spatial Relations">Rearrange3D</a></td></tr>
+            <tr><td>Combinatorial Geometric Constraints</td><td><a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/kinder-obstruction2d.mp4" data-clip="Combinatorial Geometric Constraints">Obstruction2D</a>, <a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/kinder-clutteredstorage2d.mp4" data-clip="Combinatorial Geometric Constraints">ClutteredStorage2D</a>, <a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/kinder-packing3d.mp4" data-clip="Combinatorial Geometric Constraints">Packing3D</a></td></tr>
+            <tr><td>Dynamic Constraints</td><td><a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/kinder-tossing3d.mp4" data-clip="Dynamic Constraints">Tossing3D</a>, <a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/kinder-balancebeam3d.mp4" data-clip="Dynamic Constraints">BalanceBeam3D</a></td></tr>
+            <tr><td>Nonprehensile Multi-Object Manipulation</td><td><a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/kinder-dynobstruction2d.mp4" data-clip="Nonprehensile Multi-Object Manipulation">DynObstruction2D</a>, <a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/kinder-sortclutteredblocks3d.mp4" data-clip="Nonprehensile Multi-Object Manipulation">SortClutteredBlocks3D</a></td></tr>
+            <tr><td>Tool Use</td><td><a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/kinder-stickbutton2d.mp4" data-clip="Tool Use">StickButton2D</a>, <a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/kinder-pushpullhook2d.mp4" data-clip="Tool Use">PushPullHook2D</a>, <a class="blog-clip" href="/media/videos/blog/higher-score-better-robot/kinder-scooppour3d.mp4" data-clip="Tool Use">ScoopPour3D</a></td></tr>
           </tbody>
         </table>
         </div>
-        <figcaption><b>Table 1.</b> Test classes of four benchmarks, as each benchmark names them, with example tasks<sup class="blog-cite"><a href="#ref-17">17</a>, <a href="#ref-18">18</a>, <a href="#ref-19">19</a>, <a href="#ref-20">20</a></sup>.</figcaption>
+        <figcaption><b>Table 1.</b> Test classes of four benchmarks, as each benchmark names them, with example tasks<sup class="blog-cite"><a href="#ref-18">18</a>, <a href="#ref-19">19</a>, <a href="#ref-20">20</a>, <a href="#ref-21">21</a></sup>. Click an example to play a short clip from the LIBERO demonstrations, the ManiSkill3 documentation, the RoboDojo website, or the KinDER website.</figcaption>
         </figure>
-        <p>LIBERO, ManiSkill3, and RoboDojo are collections of test cases, and their classes describe tasks rather than abilities. LIBERO's first three suites each vary one factor, the layout, the object, or the goal, but its policies train and test on the same tasks, so a suite tests recall rather than inference<sup class="blog-cite"><a href="#ref-21">21</a></sup>. ManiSkill3 groups tasks by robot and setting, gives no instruction, and fixes each task's success condition. RoboDojo's classes group very different tasks. Its generalization class includes arranging number tiles into the largest possible number, and its long-horizon class puts tic-tac-toe next to tidying a desk.</p>
+        <div class="blog-clip-dock" hidden>
+          <video muted loop playsinline preload="none"></video>
+          <p class="blog-clip-title"></p>
+          <button type="button" class="blog-clip-close" aria-label="Close the clip">&times;</button>
+        </div>
+        <p>LIBERO, ManiSkill3, and RoboDojo are collections of test cases, and their classes describe tasks rather than abilities. LIBERO's first three suites each vary one factor, the layout, the object, or the goal, but its policies train and test on the same tasks, so a suite tests recall rather than inference<sup class="blog-cite"><a href="#ref-22">22</a></sup>. ManiSkill3 groups tasks by robot and setting, gives no instruction, and fixes each task's success condition. RoboDojo's classes group very different tasks. Its generalization class includes arranging number tiles into the largest possible number, and its long-horizon class puts tic-tac-toe next to tidying a desk.</p>
         <p>KinDER isolates physical reasoning from perception and language. The robot observes the object-centric state, and each environment fixes its goal. Many environments carry two or three of these tags, ScoopPour3D all of tool use, nonprehensile manipulation, and dynamic constraints, so a score on one class does not measure one ability. The coding-agent follow-up changes what is handed over, not what is tested. Its agents receive a task description and the simulator instead of KinDER's skills, predicates, operators, and samplers, so they must build these themselves<sup class="blog-cite"><a href="#ref-3">3</a></sup>.</p>
+
+        <h3>What the benchmarks show</h3>
+        <p>Figure 2 shows which benchmarks are close to saturated.</p>
+        <figure class="blog-figure blog-diagram">
+        <div class="blog-scroll">
+        <svg class="dg" viewBox="0 0 800 268" role="img" aria-label="Best reported success rate on each benchmark. LIBERO reaches 99.6 percent with QuoVLA and is saturated. On ManiSkill3, Diffusion Policy reaches 96 to 100 percent on the cube tasks, which are saturated, and 66 percent on peg insertion, which is open. RoboDojo is open, with 39 percent in simulation by EmbodiedEvo, a paradigm C agent, and 24 percent on real robots by OpenWAM-alpha. On KinDER, coding agents of paradigm A reach 93 to 99 percent on every family but Dynamic3D, which is open at 65 percent.">
+          <text x="250" y="20" class="dg-cap">BEST REPORTED SUCCESS</text>
+          <text x="672" y="20" class="dg-cap">BEST METHOD</text>
+          <line class="dg-ln-muted dg-dash" x1="493.0" y1="34" x2="493.0" y2="254"/>
+          <text x="493.0" y="30" text-anchor="middle" class="dg-muted dg-small">90%</text>
+          <text x="20" y="56" class="dg-cap">LIBERO</text>
+          <text x="120" y="56">four suites</text>
+          <g><title>QuoVLA, 99.6% averaged over the four suites</title>
+            <rect class="dg-fill-muted" x="250" y="47.0" width="270" height="10"/>
+            <rect class="dg-bar" x="250" y="47.0" width="268.9" height="10"/>
+          </g>
+          <text x="532" y="56" class="dg-num">99.6%</text>
+          <text x="600" y="56" class="dg-acc">saturated</text>
+          <text x="672" y="56" class="dg-muted dg-small">QuoVLA</text>
+          <text x="20" y="94" class="dg-cap">MANISKILL3</text>
+          <text x="120" y="94">cube tasks</text>
+          <g><title>Diffusion Policy, 1,000 state demos. PickCube 100%, StackCube 99%, PushCube 96%</title>
+            <rect class="dg-fill-muted" x="250" y="85.0" width="270" height="10"/>
+            <rect class="dg-bar" x="250" y="85.0" width="259.2" height="10"/>
+            <rect class="dg-fill-soft" x="509.2" y="85.0" width="10.8" height="10"/>
+          </g>
+          <text x="532" y="94" class="dg-num">96–100%</text>
+          <text x="600" y="94" class="dg-acc">saturated</text>
+          <text x="672" y="94" class="dg-muted dg-small">Diffusion Policy</text>
+          <text x="120" y="120">peg insertion</text>
+          <g><title>Diffusion Policy, 1,000 state demos. PegInsertionSide 66%</title>
+            <rect class="dg-fill-muted" x="250" y="111.0" width="270" height="10"/>
+            <rect class="dg-bar" x="250" y="111.0" width="178.2" height="10"/>
+          </g>
+          <text x="532" y="120" class="dg-num">66%</text>
+          <text x="600" y="120" class="dg-blue">open</text>
+          <text x="672" y="120" class="dg-muted dg-small">Diffusion Policy</text>
+          <text x="20" y="158" class="dg-cap">ROBODOJO</text>
+          <text x="120" y="158">simulation</text>
+          <g><title>EmbodiedEvo, a coding agent calling its own code skills, 38.95% (leaderboard, Oct 14, 2026)</title>
+            <rect class="dg-fill-muted" x="250" y="149.0" width="270" height="10"/>
+            <rect class="dg-bar" x="250" y="149.0" width="105.2" height="10"/>
+          </g>
+          <text x="532" y="158" class="dg-num">39%</text>
+          <text x="600" y="158" class="dg-blue">open</text>
+          <text x="672" y="158" class="dg-muted dg-small">EmbodiedEvo (C)</text>
+          <text x="120" y="184">real robots</text>
+          <g><title>OpenWAM-α, a world action model, 24.4% (leaderboard, Oct 14, 2026)</title>
+            <rect class="dg-fill-muted" x="250" y="175.0" width="270" height="10"/>
+            <rect class="dg-bar" x="250" y="175.0" width="65.9" height="10"/>
+          </g>
+          <text x="532" y="184" class="dg-num">24%</text>
+          <text x="600" y="184" class="dg-blue">open</text>
+          <text x="672" y="184" class="dg-muted dg-small">OpenWAM-α</text>
+          <text x="20" y="222" class="dg-cap">KINDER</text>
+          <text x="120" y="222">all but Dynamic3D</text>
+          <g><title>GPT-6 Astra coding agent. Kinematic2D 99%, Dynamic2D 97%, Kinematic3D 93%</title>
+            <rect class="dg-fill-muted" x="250" y="213.0" width="270" height="10"/>
+            <rect class="dg-bar" x="250" y="213.0" width="251.1" height="10"/>
+            <rect class="dg-fill-soft" x="501.1" y="213.0" width="16.2" height="10"/>
+          </g>
+          <text x="532" y="222" class="dg-num">93–99%</text>
+          <text x="600" y="222" class="dg-acc">saturated</text>
+          <text x="672" y="222" class="dg-muted dg-small">coding agents (A)</text>
+          <text x="120" y="248">Dynamic3D</text>
+          <g><title>GPT-6 Astra coding agent. Dynamic3D 65%</title>
+            <rect class="dg-fill-muted" x="250" y="239.0" width="270" height="10"/>
+            <rect class="dg-bar" x="250" y="239.0" width="175.5" height="10"/>
+          </g>
+          <text x="532" y="248" class="dg-num">65%</text>
+          <text x="600" y="248" class="dg-blue">open</text>
+          <text x="672" y="248" class="dg-muted dg-small">coding agents (A)</text>
+        </svg>
+        </div>
+        <figcaption><b>Figure 2.</b> Best reported success rate on each benchmark. A split is saturated when its best method reaches 90%. Gray spans the range across tasks or families, and letters give the Figure 1 paradigm of agentic methods. LIBERO from QuoVLA<sup class="blog-cite"><a href="#ref-23">23</a></sup>, ManiSkill3 from its Diffusion Policy baseline with 1,000 state demonstrations<sup class="blog-cite"><a href="#ref-19">19</a></sup>, RoboDojo from its leaderboard of October 14, 2026<sup class="blog-cite"><a href="#ref-24">24</a>, <a href="#ref-12">12</a></sup>, and KinDER by environment family from the best coding agent<sup class="blog-cite"><a href="#ref-3">3</a></sup>.</figcaption>
+        </figure>
+        <p>Table 2 lists what these results show.</p>
+        <figure class="blog-figure blog-diagram">
+        <div class="blog-table-wrapper">
+        <table class="blog-table">
+          <thead><tr><th>Finding</th><th>Evidence</th></tr></thead>
+          <tbody>
+            <tr><td>Coding agents are the strongest method.</td><td>All three coding agents beat hand-designed planners, one-shot program generation, and an LLM generalized planner, reaching 56% to 95% mean success against 47% for the planners, while using a tenth or less of their computation per instance<sup class="blog-cite"><a href="#ref-3">3</a></sup>.</td></tr>
+            <tr><td>Transition models learned from demonstrations are the weak link of model-based control.</td><td>The same MPC planner reaches 32% with the true simulator and 8% with a learned model<sup class="blog-cite"><a href="#ref-21">21</a></sup>.</td></tr>
+            <tr><td>Bilevel planning gets slower and fails more often as objects are added.</td><td>On StickButton2D, bilevel planning solves 99% of instances with one button, 26% with three, and none with ten, while planning time grows from 1.5 to 38 seconds<sup class="blog-cite"><a href="#ref-21">21</a></sup>.</td></tr>
+            <tr><td>Contact-rich dynamics defeat every method.</td><td>Bilevel planning solves 1% of DynPushPullHook2D, where a fine-tuned VLA solves 43%, and 3% of SweepIntoDrawer3D<sup class="blog-cite"><a href="#ref-21">21</a></sup>. Coding agents fall to 45% and 65% on dynamic 3D tasks, against 90% or more on the other KinDER families<sup class="blog-cite"><a href="#ref-3">3</a></sup>.</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <figcaption><b>Table 2.</b> Findings from the benchmarks above.</figcaption>
+        </figure>
+        <p>Read together, the KinDER results say where current methods break. Coding agents that build their own abstractions now beat every other method, and planning over hand-written abstractions slows and fails as objects multiply. No method handles contact-rich dynamics. The planner's hand-written abstraction leaves them out, models learned from demonstrations predict them poorly, and the coding agents' programs fail on the same dynamic 3D tasks. Of the components below, transition and constraint extraction is the one current methods get wrong most consistently, and the one a benchmark most needs to isolate.</p>
 
         <h2 id="measure">The benchmark we need</h2>
         <p>A benchmark for agentic robots should estimate, separately, the five things the formulation asks an agent to infer.</p>
@@ -221,22 +318,22 @@
         <p>No benchmark in Table 1 scores these components separately. Doing so takes three things, isolating each component, probing it, and making sure the score depends on it.</p>
         <ol class="blog-tight-list">
           <li><strong>Isolate one component.</strong> Give the robot the true value of every other component, so that a failure can only come from the one under test. To test goal specification, for example, give the robot the true state and a simulator and ask it only for the goal. KinDER does this for planning, since its planners all receive the true state, goal, skills, and models. Entries must also report everything they were given, because extra access can leak a component. Coding agents that could read KinDER's source code could read the goals in it<sup class="blog-cite"><a href="#ref-3">3</a></sup>.</li>
-          <li><strong>Probe it with paired scenes.</strong> Make two scenes that differ in one property, and check that the robot's behavior changes exactly when the true task says it should. On one KinDER sorting task, an agent's program put cubes into bins by the order in which they appear in the state, not by their color. With four cubes this happened to work, and with twenty it failed every time<sup class="blog-cite"><a href="#ref-3">3</a></sup>. A pair of scenes with the same order and different colors would have caught the error at once. Contrast sets and HANS test language models the same way<sup class="blog-cite"><a href="#ref-22">22</a>, <a href="#ref-23">23</a></sup>. When the agent writes a component as code, such as RAPID's success tests, compare the code with the truth directly<sup class="blog-cite"><a href="#ref-2">2</a></sup>.</li>
-          <li><strong>Make sure the score needs the component.</strong> A robot can pass a task without the component in two ways, by recall or by accident. Drawing test tasks from a generator that no one has seen rules out recall<sup class="blog-cite"><a href="#ref-24">24</a></sup>. Running policies that do nothing or act at random measures accident. On KinDER's BalanceBeam3D, the goal checked only that the beam was level, which it already was at the start, so doing nothing passed until the goal was fixed<sup class="blog-cite"><a href="#ref-25">25</a></sup>.</li>
+          <li><strong>Probe it with paired scenes.</strong> Make two scenes that differ in one property, and check that the robot's behavior changes exactly when the true task says it should. On one KinDER sorting task, an agent's program put cubes into bins by the order in which they appear in the state, not by their color. With four cubes this happened to work, and with twenty it failed every time<sup class="blog-cite"><a href="#ref-3">3</a></sup>. A pair of scenes with the same order and different colors would have caught the error at once. Contrast sets and HANS test language models the same way<sup class="blog-cite"><a href="#ref-25">25</a>, <a href="#ref-26">26</a></sup>. When the agent writes a component as code, such as RAPID's success tests, compare the code with the truth directly<sup class="blog-cite"><a href="#ref-2">2</a></sup>.</li>
+          <li><strong>Make sure the score needs the component.</strong> A robot can pass a task without the component in two ways, by recall or by accident. Drawing test tasks from a generator that no one has seen rules out recall<sup class="blog-cite"><a href="#ref-27">27</a></sup>. Running policies that do nothing or act at random measures accident. On KinDER's BalanceBeam3D, the goal checked only that the beam was level, which it already was at the start, so doing nothing passed until the goal was fixed<sup class="blog-cite"><a href="#ref-28">28</a></sup>.</li>
         </ol>
 
         <h2 id="validity">From score to the real robot</h2>
         <aside class="blog-sidenote"><b>Rank correlation</b> Measures whether two evaluations order systems the same way. A value of 1 means the same order.</aside>
-        <p>A simulated score says something about real robots only after its correlation with real-robot success has been measured. That takes a small set of real tasks, each with a simulated copy of the same scene. Evaluate the same systems on both, publish the rank correlation between simulated and real success with a confidence interval, and recompute it for every version of the benchmark. Such copies are getting cheaper. KinDER rebuilt a real shelf scene from an overhead camera<sup class="blog-cite"><a href="#ref-20">20</a></sup>, and RAPID reconstructs a scene from a single RGB-D image<sup class="blog-cite"><a href="#ref-2">2</a></sup>.</p>
+        <p>A simulated score says something about real robots only after its correlation with real-robot success has been measured. That takes a small set of real tasks, each with a simulated copy of the same scene. Evaluate the same systems on both, publish the rank correlation between simulated and real success with a confidence interval, and recompute it for every version of the benchmark. Such copies are getting cheaper. KinDER rebuilt a real shelf scene from an overhead camera<sup class="blog-cite"><a href="#ref-21">21</a></sup>, and RAPID reconstructs a scene from a single RGB-D image<sup class="blog-cite"><a href="#ref-2">2</a></sup>.</p>
         <aside class="blog-sidenote"><b>Prediction-powered inference</b> Combines many cheap simulated results with a few real trials. The result is an estimate of real performance with valid error bars.</aside>
-        <p>Published correlations are low or uncertain. RoboDojo reports only partial agreement between its simulated and real rankings, without a coefficient<sup class="blog-cite"><a href="#ref-19">19</a></sup>. SIMPLER ranked six policies with a Pearson correlation of 0.924<sup class="blog-cite"><a href="#ref-26">26</a></sup>, but with six policies the 95% confidence interval runs from about 0.45 to 0.99 (my calculation). The PolaRiS authors found LIBERO poorly correlated with real performance<sup class="blog-cite"><a href="#ref-27">27</a></sup>. Prediction-powered inference can correct simulated estimates with a few paired real trials<sup class="blog-cite"><a href="#ref-28">28</a></sup>.</p>
+        <p>Published correlations are low or uncertain. RoboDojo reports only partial agreement between its simulated and real rankings, without a coefficient<sup class="blog-cite"><a href="#ref-20">20</a></sup>. SIMPLER ranked six policies with a Pearson correlation of 0.924<sup class="blog-cite"><a href="#ref-29">29</a></sup>, but with six policies the 95% confidence interval runs from about 0.45 to 0.99 (my calculation). The PolaRiS authors found LIBERO poorly correlated with real performance<sup class="blog-cite"><a href="#ref-30">30</a></sup>. Prediction-powered inference can correct simulated estimates with a few paired real trials<sup class="blog-cite"><a href="#ref-31">31</a></sup>.</p>
         <p class="blog-pull">A benchmark without a measured real-world correlation is a hypothesis about robots, not a measurement of them.</p>
 
         <h2 id="open">Open questions</h2>
         <ul class="blog-tight-list">
           <li><strong>Should a benchmark fix the interface?</strong> Fixing the interface fixes what \(f\) outputs. Comparing designs needs a benchmark that lets each entry choose its interface and reports the choice.</li>
-          <li><strong>Who writes the hidden tasks?</strong> A generator of unseen tasks needs goals that a program can check, and such goals are easy to get wrong. Besides BalanceBeam3D, three KinDER environments had goals that were missing, unsatisfiable, or checked the wrong region, and they were corrected in September 2026<sup class="blog-cite"><a href="#ref-25">25</a></sup>.</li>
-          <li><strong>How many paired real tasks are enough?</strong> Real trials are slow, so the paired tasks may have to be shared across labs, as RoboArena shares real-robot evaluation<sup class="blog-cite"><a href="#ref-29">29</a></sup>.</li>
+          <li><strong>Who writes the hidden tasks?</strong> A generator of unseen tasks needs goals that a program can check, and such goals are easy to get wrong. Besides BalanceBeam3D, three KinDER environments had goals that were missing, unsatisfiable, or checked the wrong region, and they were corrected in September 2026<sup class="blog-cite"><a href="#ref-28">28</a></sup>.</li>
+          <li><strong>How many paired real tasks are enough?</strong> Real trials are slow, so the paired tasks may have to be shared across labs, as RoboArena shares real-robot evaluation<sup class="blog-cite"><a href="#ref-32">32</a></sup>.</li>
         </ul>
 
         <div class="citation-section">
@@ -266,24 +363,27 @@
               <li id="ref-9">Lucy Xiaoyang Shi et al. Hi Robot: Open-Ended Instruction Following with Hierarchical Vision-Language-Action Models. <a href="https://arxiv.org/abs/2502.19417">arXiv:2502.19417</a>, 2025.</li>
               <li id="ref-10">Mengzhao Jia, Yang Lin, Xixin Zhang, Zhihan Zhang, Xiaobai Liu, and Meng Jiang. Agent as Policy for Robotic Manipulation. <a href="https://arxiv.org/abs/2609.12541">arXiv:2609.12541</a>, 2026.</li>
               <li id="ref-11">Runyu Lu et al. ASPIRE: Agentic Skill Programming through Iterative Robot Exploration. <a href="https://arxiv.org/abs/2607.00272">arXiv:2607.00272</a>, 2026.</li>
-              <li id="ref-12">Hengyuan Hu, Jensen Gao, Priya Sundaresan, Satvik Sharma, Jeannette Bohg, and Dorsa Sadigh. VIA: Visual Interface Agent for Robot Control. <a href="https://arxiv.org/abs/2607.11119">arXiv:2607.11119</a>, 2026.</li>
-              <li id="ref-13">Leslie Pack Kaelbling, Michael L. Littman, and Anthony R. Cassandra. Planning and Acting in Partially Observable Stochastic Domains. Artificial Intelligence 101, 1998. <a href="https://doi.org/10.1016/S0004-3702(98)00023-X">doi:10.1016/S0004-3702(98)00023-X</a>.</li>
-              <li id="ref-14">Stéphane Ross, Brahim Chaib-draa, and Joelle Pineau. Bayes-Adaptive POMDPs. NeurIPS 2007. <a href="https://proceedings.neurips.cc/paper/2007/hash/3b3dbaf68507998acd6a5a5254ab2d76-Abstract.html">proceedings</a>.</li>
-              <li id="ref-15">Richard S. Sutton, Doina Precup, and Satinder Singh. Between MDPs and Semi-MDPs: A Framework for Temporal Abstraction in Reinforcement Learning. Artificial Intelligence 112(1-2), 1999. <a href="https://doi.org/10.1016/S0004-3702(99)00052-1">doi:10.1016/S0004-3702(99)00052-1</a>.</li>
-              <li id="ref-16">Shmuel Berman, Michael Ilie, Jia Deng, and Daniel Freeman. Claude Plays Robotics. Anthropic Frontier Red Team, July 2026. <a href="https://www.anthropic.com/research/claude-plays-robotics">anthropic.com</a></li>
-              <li id="ref-17">Bo Liu, Yifeng Zhu, Chongkai Gao, Yihao Feng, Qiang Liu, Yuke Zhu, and Peter Stone. LIBERO: Benchmarking Knowledge Transfer for Lifelong Robot Learning. NeurIPS 2023 Datasets and Benchmarks. <a href="https://arxiv.org/abs/2306.03310">arXiv:2306.03310</a>, 2023.</li>
-              <li id="ref-18">Stone Tao et al. ManiSkill3: GPU Parallelized Robotics Simulation and Rendering for Generalizable Embodied AI. <a href="https://arxiv.org/abs/2410.00425">arXiv:2410.00425</a>, 2024.</li>
-              <li id="ref-19">Tianxing Chen et al. RoboDojo: A Unified Sim-and-Real Benchmark for Comprehensive Evaluation of Generalist Robot Manipulation Policies. <a href="https://arxiv.org/abs/2607.04434">arXiv:2607.04434</a>, 2026.</li>
-              <li id="ref-20">Yixuan Huang et al. KinDER: A Physical Reasoning Benchmark for Robot Learning and Planning. RSS 2026. <a href="https://arxiv.org/abs/2604.25788">arXiv:2604.25788</a>, 2026.</li>
-              <li id="ref-21">Xueyang Zhou et al. LIBERO-PRO: Towards Robust and Fair Evaluation of Vision-Language-Action Models Beyond Memorization. <a href="https://arxiv.org/abs/2510.03827">arXiv:2510.03827</a>, 2025.</li>
-              <li id="ref-22">Matt Gardner et al. Evaluating Models' Local Decision Boundaries via Contrast Sets. Findings of EMNLP 2020. <a href="https://arxiv.org/abs/2004.02709">arXiv:2004.02709</a>, 2020.</li>
-              <li id="ref-23">R. Thomas McCoy, Ellie Pavlick, and Tal Linzen. Right for the Wrong Reasons: Diagnosing Syntactic Heuristics in Natural Language Inference. ACL 2019. <a href="https://arxiv.org/abs/1902.01007">arXiv:1902.01007</a>.</li>
-              <li id="ref-24">François Chollet. On the Measure of Intelligence. <a href="https://arxiv.org/abs/1911.01547">arXiv:1911.01547</a>, 2019.</li>
-              <li id="ref-25">KinDER task fixes after release (Shelf3D, ConstrainedCupboard3D, ScoopPour3D, BalanceBeam3D goals), kindergarden pull requests #168, #180, #183, #186, Aug to Sep 2026. <a href="https://github.com/Princeton-Robot-Planning-and-Learning/kindergarden/pulls?q=is%3Apr+is%3Aclosed">github.com</a></li>
-              <li id="ref-26">Xuanlin Li et al. Evaluating Real-World Robot Manipulation Policies in Simulation. CoRL 2024. <a href="https://arxiv.org/abs/2405.05941">arXiv:2405.05941</a>, 2024.</li>
-              <li id="ref-27">Arhan Jain et al. PolaRiS: Scalable Real-to-Sim Evaluations for Generalist Robot Policies. <a href="https://arxiv.org/abs/2512.16881">arXiv:2512.16881</a>, 2025.</li>
-              <li id="ref-28">Apurva Badithela et al. Reliable and Scalable Robot Policy Evaluation with Imperfect Simulators. <a href="https://arxiv.org/abs/2510.04354">arXiv:2510.04354</a>, 2025.</li>
-              <li id="ref-29">Pranav Atreya et al. RoboArena: Distributed Real-World Evaluation of Generalist Robot Policies. CoRL 2025. <a href="https://arxiv.org/abs/2506.18123">arXiv:2506.18123</a>, 2025.</li>
+              <li id="ref-12">Wenyi Li et al. EmbodiedEvo: Self-Evolving Coding Agent for Physical Intelligence. <a href="https://arxiv.org/abs/2610.18867">arXiv:2610.18867</a>, 2026.</li>
+              <li id="ref-13">Hengyuan Hu, Jensen Gao, Priya Sundaresan, Satvik Sharma, Jeannette Bohg, and Dorsa Sadigh. VIA: Visual Interface Agent for Robot Control. <a href="https://arxiv.org/abs/2607.11119">arXiv:2607.11119</a>, 2026.</li>
+              <li id="ref-14">Leslie Pack Kaelbling, Michael L. Littman, and Anthony R. Cassandra. Planning and Acting in Partially Observable Stochastic Domains. Artificial Intelligence 101, 1998. <a href="https://doi.org/10.1016/S0004-3702(98)00023-X">doi:10.1016/S0004-3702(98)00023-X</a>.</li>
+              <li id="ref-15">Stéphane Ross, Brahim Chaib-draa, and Joelle Pineau. Bayes-Adaptive POMDPs. NeurIPS 2007. <a href="https://proceedings.neurips.cc/paper/2007/hash/3b3dbaf68507998acd6a5a5254ab2d76-Abstract.html">proceedings</a>.</li>
+              <li id="ref-16">Richard S. Sutton, Doina Precup, and Satinder Singh. Between MDPs and Semi-MDPs: A Framework for Temporal Abstraction in Reinforcement Learning. Artificial Intelligence 112(1-2), 1999. <a href="https://doi.org/10.1016/S0004-3702(99)00052-1">doi:10.1016/S0004-3702(99)00052-1</a>.</li>
+              <li id="ref-17">Shmuel Berman, Michael Ilie, Jia Deng, and Daniel Freeman. Claude Plays Robotics. Anthropic Frontier Red Team, July 2026. <a href="https://www.anthropic.com/research/claude-plays-robotics">anthropic.com</a></li>
+              <li id="ref-18">Bo Liu, Yifeng Zhu, Chongkai Gao, Yihao Feng, Qiang Liu, Yuke Zhu, and Peter Stone. LIBERO: Benchmarking Knowledge Transfer for Lifelong Robot Learning. NeurIPS 2023 Datasets and Benchmarks. <a href="https://arxiv.org/abs/2306.03310">arXiv:2306.03310</a>, 2023.</li>
+              <li id="ref-19">Stone Tao et al. ManiSkill3: GPU Parallelized Robotics Simulation and Rendering for Generalizable Embodied AI. <a href="https://arxiv.org/abs/2410.00425">arXiv:2410.00425</a>, 2024.</li>
+              <li id="ref-20">Tianxing Chen et al. RoboDojo: A Unified Sim-and-Real Benchmark for Comprehensive Evaluation of Generalist Robot Manipulation Policies. <a href="https://arxiv.org/abs/2607.04434">arXiv:2607.04434</a>, 2026.</li>
+              <li id="ref-21">Yixuan Huang et al. KinDER: A Physical Reasoning Benchmark for Robot Learning and Planning. RSS 2026. <a href="https://arxiv.org/abs/2604.25788">arXiv:2604.25788</a>, 2026.</li>
+              <li id="ref-22">Xueyang Zhou et al. LIBERO-PRO: Towards Robust and Fair Evaluation of Vision-Language-Action Models Beyond Memorization. <a href="https://arxiv.org/abs/2510.03827">arXiv:2510.03827</a>, 2025.</li>
+              <li id="ref-23">Xuan Wang et al. QuoVLA: Quotient Space for Vision-Language-Action Models. <a href="https://arxiv.org/abs/2605.24890">arXiv:2605.24890</a>, 2026.</li>
+              <li id="ref-24">RoboDojo simulation and real-robot leaderboards, updated October 14, 2026. <a href="https://robodojo-benchmark.com/leaderboard">robodojo-benchmark.com</a></li>
+              <li id="ref-25">Matt Gardner et al. Evaluating Models' Local Decision Boundaries via Contrast Sets. Findings of EMNLP 2020. <a href="https://arxiv.org/abs/2004.02709">arXiv:2004.02709</a>, 2020.</li>
+              <li id="ref-26">R. Thomas McCoy, Ellie Pavlick, and Tal Linzen. Right for the Wrong Reasons: Diagnosing Syntactic Heuristics in Natural Language Inference. ACL 2019. <a href="https://arxiv.org/abs/1902.01007">arXiv:1902.01007</a>.</li>
+              <li id="ref-27">François Chollet. On the Measure of Intelligence. <a href="https://arxiv.org/abs/1911.01547">arXiv:1911.01547</a>, 2019.</li>
+              <li id="ref-28">KinDER task fixes after release (Shelf3D, ConstrainedCupboard3D, ScoopPour3D, BalanceBeam3D goals), kindergarden pull requests #168, #180, #183, #186, Aug to Sep 2026. <a href="https://github.com/Princeton-Robot-Planning-and-Learning/kindergarden/pulls?q=is%3Apr+is%3Aclosed">github.com</a></li>
+              <li id="ref-29">Xuanlin Li et al. Evaluating Real-World Robot Manipulation Policies in Simulation. CoRL 2024. <a href="https://arxiv.org/abs/2405.05941">arXiv:2405.05941</a>, 2024.</li>
+              <li id="ref-30">Arhan Jain et al. PolaRiS: Scalable Real-to-Sim Evaluations for Generalist Robot Policies. <a href="https://arxiv.org/abs/2512.16881">arXiv:2512.16881</a>, 2025.</li>
+              <li id="ref-31">Apurva Badithela et al. Reliable and Scalable Robot Policy Evaluation with Imperfect Simulators. <a href="https://arxiv.org/abs/2510.04354">arXiv:2510.04354</a>, 2025.</li>
+              <li id="ref-32">Pranav Atreya et al. RoboArena: Distributed Real-World Evaluation of Generalist Robot Policies. CoRL 2025. <a href="https://arxiv.org/abs/2506.18123">arXiv:2506.18123</a>, 2025.</li>
           </ol>
         </div>
 

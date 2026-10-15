@@ -1785,6 +1785,7 @@ h6 {
 .dg .dg-ah-muted { fill: var(--faint); }
 .dg .dg-fill-soft { fill: var(--gray); }
 .dg .dg-fill-muted { fill: var(--rule); }
+.dg .dg-bar { fill: var(--ink); }
 .dg .dg-curve { stroke: var(--ink); stroke-width: 1.6; fill: none; stroke-linejoin: round; stroke-linecap: round; }
 .dg .dg-dot { fill: var(--ink); stroke: var(--bg); stroke-width: 2; }
 .dg .dg-dot-acc { fill: var(--bg); stroke: var(--ink); stroke-width: 1.8; }
@@ -1901,5 +1902,78 @@ h6 {
     margin: 0.3rem calc(-1 * var(--note-width) - 2rem) 0.9rem 0;
     padding-left: 0;
     border-left: 0;
+  }
+}
+
+/* Example clips: a link in a table plays its clip in a small dock on the
+   right edge of the screen (bottom right on phones). js/blog.js loads a
+   clip only when its link is clicked; without JavaScript the link opens it. */
+.blog-post-content a.blog-clip[aria-current="true"] {
+  text-decoration-color: var(--ink);
+  text-decoration-thickness: 2px;
+}
+
+.blog-clip-dock {
+  position: fixed;
+  top: 50%;
+  right: 1.25rem;
+  z-index: 40;
+  width: 260px;
+  padding: 0.55rem 0.55rem 0.45rem;
+  transform: translateY(-50%);
+  background: var(--bg);
+  border: 1px solid var(--rule-strong);
+}
+
+.blog-clip-dock[hidden] {
+  display: none;
+}
+
+.blog-clip-dock video {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: var(--panel);
+}
+
+.blog-post-content .blog-clip-title {
+  margin: 0.4rem 1.6rem 0 0;
+  font-size: 0.8rem;
+  font-style: italic;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.blog-clip-close {
+  position: absolute;
+  right: 0.35rem;
+  bottom: 0.25rem;
+  padding: 0 0.2rem;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 1.15rem;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.blog-clip-close:hover {
+  color: var(--ink);
+}
+
+@media (min-width: 1440px) {
+  .blog-clip-dock {
+    width: clamp(180px, calc((100vw - 1000px) / 2 - 2.5rem), 300px);
+  }
+}
+
+@media (max-width: 768px) {
+  .blog-clip-dock {
+    top: auto;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    width: min(220px, 60vw);
+    transform: none;
   }
 }
