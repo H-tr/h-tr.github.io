@@ -1791,6 +1791,8 @@ h6 {
 .dg .dg-dot-faint { fill: var(--gray); stroke: var(--bg); stroke-width: 2; }
 .dg .dg-conn { stroke: var(--rule-strong); stroke-width: 1.2; }
 .dg .dg-mk-real { fill: var(--gray); stroke: var(--ink); stroke-width: 1.2; }
+.dg .dg-box-pi { fill: var(--panel); stroke: var(--ink); stroke-width: 1.6; }
+.dg .dg-box-plain { fill: var(--bg); stroke: var(--ink); stroke-width: 1; }
 
 .blog-legend {
   font-style: italic;
@@ -1865,5 +1867,39 @@ h6 {
 @media (max-width: 768px) {
   .blog-pull {
     font-size: 1.15rem;
+  }
+}
+
+/* Margin notes: a small-caps term over a sentence or two. Placed before the
+   paragraph they gloss. Inline below 1440px, floated into the right margin
+   above it (the column's right edge sits at (100vw + 1000px) / 2 there). */
+.blog-sidenote {
+  display: block;
+  margin: 0.2rem 0 1.1rem;
+  padding-left: 0.9rem;
+  border-left: 1px solid var(--rule);
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+
+.blog-sidenote b {
+  display: block;
+  font-weight: 400;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.05em;
+  color: var(--ink);
+}
+
+@media (min-width: 1440px) {
+  .blog-sidenote {
+    --note-width: clamp(10rem, calc((100vw - 1000px) / 2 - 3.5rem), 17rem);
+    float: right;
+    clear: right;
+    width: var(--note-width);
+    margin: 0.3rem calc(-1 * var(--note-width) - 2rem) 0.9rem 0;
+    padding-left: 0;
+    border-left: 0;
   }
 }
