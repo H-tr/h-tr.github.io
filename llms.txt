@@ -4,7 +4,7 @@
 
 Hu Tianrun develops representations and planning methods that let robots reason under partial knowledge, direct sensing toward task-relevant uncertainty, and adapt their actions as the environment changes. Current research threads are joint reasoning over perception and action, scene understanding designed for action, and reasoning for complex real-world tasks. Hu Tianrun holds the A*STAR Graduate Scholarship (Computing).
 
-From August 2024 to July 2026, Hu Tianrun was a Research Engineer in the Adaptive Computing Lab at the Smart Systems Institute (SSI), NUS, under Prof. David Hsu, working closely with Dr. Hanbo Zhang. Since July 2026, the collaboration with Dr. Yiqing Xu under Prof. Jiajun Wu at Stanford University has focused on robot navigation for humanitarian assistance and disaster relief. Hu Tianrun received a B.Eng. in Computer Engineering with Distinction Honours from Nanyang Technological University (NTU) in 2024, under the guidance of Prof. Lam Siew Kei.
+From August 2024 to July 2026, Hu Tianrun was a Research Engineer in the Adaptive Computing Lab at the Smart Systems Institute (SSI), NUS, under Prof. David Hsu, working closely with Dr. Hanbo Zhang. Since July 2026, the collaboration with Dr. Yiqing Xu under Prof. Jiajun Wu at Stanford University has focused on robot navigation for humanitarian assistance and disaster relief. Hu Tianrun received a B.Eng. in Computer Engineering with Distinction Honours from Nanyang Technological University (NTU) in 2024.
 
 ## Site
 
