@@ -1794,6 +1794,8 @@ h6 {
 .dg .dg-mk-real { fill: var(--gray); stroke: var(--ink); stroke-width: 1.2; }
 .dg .dg-box-pi { fill: var(--panel); stroke: var(--ink); stroke-width: 1.6; }
 .dg .dg-box-plain { fill: var(--bg); stroke: var(--ink); stroke-width: 1; }
+.dg .dg-hl { fill: var(--highlight); font-style: italic; }
+.dg .dg-ln-hl { stroke: var(--highlight); stroke-width: 1.1; fill: none; }
 
 .blog-legend {
   font-style: italic;

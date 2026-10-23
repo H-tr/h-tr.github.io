@@ -323,13 +323,78 @@
         <p>Read together, these results say where current methods break. Coding agents that build their own abstractions now beat every other method, and planning over hand-written abstractions slows and fails as objects multiply. No method handles contact-rich dynamics. The planner's hand-written abstraction leaves them out, models learned from demonstrations predict them poorly, and the coding agents' programs fail on the same dynamic 3D tasks. Agents that act directly rarely misread the scene. They choose a poor approach or execute it imprecisely, and they often declare success too early. Of the components below, transition and constraint extraction is the one current methods get wrong most consistently, and the one a benchmark most needs to isolate.</p>
 
         <h2 id="measure">The benchmark we need</h2>
-        <p>A benchmark for agentic robots should estimate, separately, the five things the formulation asks an agent to infer.</p>
+        <p>A physical agent cannot improve itself by trial and error on the real robot, because real trials are too slow and too hard to reset for the many attempts self-improvement takes. Explicit reasoning therefore puts a simulator between the agent and the world (Figure 3). The agent first extracts the simulator from the real world, then builds its policy and skills from the simulator's feedback, and at inference chooses which of them to run on the robot, reading each real outcome as it goes. The simulator is any model that returns feedback for a proposed action. It can be a physics engine such as Isaac Sim, a planning domain, a program, or a markdown harness that describes the scene and its rules in text. Reasoning can also stay implicit inside \(f\), as in a VLA, but recursive self-improvement (RSI) needs feedback on each proposal, and only an explicit simulator gives it.</p>
+        <figure class="blog-figure blog-diagram">
+        <div class="blog-scroll">
+        <svg class="dg" viewBox="0 0 800 350" role="img" aria-label="Three parts connect the agent, a simulator, and the real world. In part 1, abstraction, an arrow carries camera images and the instruction from the real world to the simulator, and a brace beneath it names the features a benchmark tests there, highlighted in color, state extraction, goal specification, and transition and constraint extraction. The simulator can be a physics engine, a planning domain, a program, or a markdown harness. In part 2, reasoning, the agent builds a policy and skills, they are tested in the simulator, and the feedback returns to the agent. The middle of this loop is labeled RSI, for recursive self-improvement. A brace beside the building step names skill grounding. The policy and skills are then deployed. In part 3, inference, the agent chooses which policy or skill to run, it runs on the real robot, and the real outcome returns to the agent. A brace beside the agent names action reasoning and skill grounding. Only parts 1 and 3 touch the real world.">
+          <defs>
+            <marker id="f3a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="dg-ah" d="M0,0 L10,5 L0,10 z"/></marker>
+          </defs>
+          <text x="224" y="20" text-anchor="middle" class="dg-cap">1 · ABSTRACTION</text>
+          <line class="dg-rule" x1="125" y1="30" x2="325" y2="30"/>
+          <text x="570" y="20" text-anchor="middle" class="dg-cap">2 · REASONING</text>
+          <line class="dg-rule" x1="345" y1="30" x2="795" y2="30"/>
+          <text x="460" y="214" text-anchor="middle" class="dg-cap">3 · INFERENCE</text>
+          <line class="dg-rule" x1="125" y1="224" x2="795" y2="224"/>
+          <rect class="dg-box-plain" x="5" y="46" width="100" height="256" rx="3"/>
+          <text x="15" y="170">Real world</text>
+          <text x="15" y="188" class="dg-muted dg-small">true task θ*</text>
+          <line class="dg-ln" x1="105" y1="90" x2="343" y2="90" marker-end="url(#f3a)"/>
+          <text x="224" y="82" text-anchor="middle" class="dg-small">cameras, instruction</text>
+          <path class="dg-ln-hl" d="M125,99 Q125,105 131,105 L218,105 Q224,105 224,111 Q224,105 230,105 L317,105 Q323,105 323,99"/>
+          <text x="224" y="129" text-anchor="middle" class="dg-hl">state extraction ŝ</text>
+          <text x="224" y="146" text-anchor="middle" class="dg-hl">goal specification Ĝ</text>
+          <text x="224" y="163" text-anchor="middle" class="dg-hl">transition and constraint extraction T̂</text>
+          <rect class="dg-box" x="345" y="46" width="120" height="130" rx="3"/>
+          <text x="355" y="68">Simulator</text>
+          <text x="355" y="88" class="dg-blue dg-small">a physics engine,</text>
+          <text x="355" y="102" class="dg-blue dg-small">a planning domain,</text>
+          <text x="355" y="116" class="dg-blue dg-small">a program, or a</text>
+          <text x="355" y="130" class="dg-blue dg-small">markdown harness</text>
+          <line class="dg-ln" x1="465" y1="70" x2="523" y2="70" marker-end="url(#f3a)"/>
+          <text x="495" y="63" text-anchor="middle" class="dg-small">feedback</text>
+          <rect class="dg-box-acc" x="525" y="46" width="130" height="54" rx="3"/>
+          <text x="535" y="68">Agent</text>
+          <text x="535" y="86" class="dg-blue dg-small">a foundation model</text>
+          <line class="dg-ln" x1="590" y1="100" x2="590" y2="128" marker-end="url(#f3a)"/>
+          <text x="582" y="119" text-anchor="end" class="dg-small">builds</text>
+          <path class="dg-ln-hl" d="M664,102 Q670,102 670,108 L670,109 Q670,115 676,115 Q670,115 670,121 L670,122 Q670,128 664,128"/>
+          <text x="682" y="120" class="dg-hl">skill grounding ρ̂</text>
+          <rect class="dg-box-plain" x="525" y="130" width="130" height="54" rx="3"/>
+          <text x="535" y="152">Policy and skills</text>
+          <text x="535" y="170" class="dg-acc dg-small">π and Π̂</text>
+          <line class="dg-ln" x1="525" y1="157" x2="467" y2="157" marker-end="url(#f3a)"/>
+          <text x="495" y="175" text-anchor="middle" class="dg-small">tested in</text>
+          <path class="dg-ln" d="M504,98.4 A18,18 0 1 1 479.4,105" marker-end="url(#f3a)"/>
+          <text x="495" y="118" text-anchor="middle">RSI</text>
+          <path class="dg-ln" d="M620,184 V236 H410 V246" marker-end="url(#f3a)"/>
+          <text x="628" y="206" class="dg-small">deployed</text>
+          <rect class="dg-box-plain" x="345" y="248" width="130" height="54" rx="3"/>
+          <text x="355" y="270">Policy and skills</text>
+          <text x="355" y="288" class="dg-acc dg-small">π and Π̂</text>
+          <rect class="dg-box-acc" x="525" y="248" width="130" height="54" rx="3"/>
+          <text x="535" y="270">Agent</text>
+          <text x="535" y="288" class="dg-blue dg-small">a foundation model</text>
+          <line class="dg-ln" x1="525" y1="266" x2="477" y2="266" marker-end="url(#f3a)"/>
+          <text x="500" y="259" text-anchor="middle" class="dg-small">chooses</text>
+          <path class="dg-ln-hl" d="M664,250 Q670,250 670,256 L670,269 Q670,275 676,275 Q670,275 670,281 L670,294 Q670,300 664,300"/>
+          <text x="682" y="271" class="dg-hl">action reasoning</text>
+          <text x="682" y="288" class="dg-hl">skill grounding ρ̂</text>
+          <line class="dg-ln" x1="345" y1="266" x2="107" y2="266" marker-end="url(#f3a)"/>
+          <text x="224" y="258" text-anchor="middle" class="dg-small">run on the robot</text>
+          <path class="dg-ln" d="M55,302 V322 H590 V304" marker-end="url(#f3a)"/>
+          <text x="322" y="340" text-anchor="middle" class="dg-small">real outcome</text>
+        </svg>
+        </div>
+        <figcaption><b>Figure 3.</b> The simulator between the agent and the real world. Boxes are parts of the system, and the highlighted features beside each brace are what a benchmark tests at that step. <b>1.</b> The agent abstracts camera images and the instruction into a simulator. <b>2.</b> It builds a policy and skills and evolves them against the simulator's feedback, a loop of recursive self-improvement (RSI) that never touches the robot. <b>3.</b> At inference it chooses which policy or skill to run on the real robot and reads the real outcome.</figcaption>
+        </figure>
+        <p>A benchmark can score the three parts separately. It scores abstraction by comparing the simulator an agent extracts with the true task, reasoning by giving the agent the true simulator and testing the skills it builds, and inference by giving it fixed skills and testing which ones it chooses. Together the parts cover the five things the formulation asks an agent to infer. State extraction, goal specification, and transition and constraint extraction belong to abstraction, skill grounding to both reasoning and inference, and action reasoning to inference.</p>
         <ul class="blog-tight-list">
           <li><strong>State extraction.</strong> \(\hat s_t = \hat\phi(h_t)\), the task-relevant state recovered from the history, which inverts \(Z\) and decides which properties in \(\mathcal{S}\) to keep.</li>
           <li><strong>Goal specification.</strong> \(\hat G\), the goal inferred from \(\ell\).</li>
           <li><strong>Transition and constraint extraction.</strong> \(\hat T\), how the scene responds to actions, including kinematic, geometric, and dynamic constraints.</li>
+          <li><strong>Skill grounding.</strong> \(\hat\rho(g \mid h_t)\), the agent's estimate of the ability boundary of the policies and skills it builds with the simulator, so that the subgoals and skill calls it chooses are ones the robot can carry out. Asking the agent to predict the outcome of each call and comparing the prediction with what happens measures it.</li>
           <li><strong>Action reasoning.</strong> Ordering actions by their dependencies under \(\hat T\). A later action may need the result of an earlier one, as a bowl can go into a drawer only after the drawer is opened, and an earlier result may block a later action, as filling the front of a shelf first leaves no way to reach the back.</li>
-          <li><strong>Grounding.</strong> \(\hat\rho(g \mid h_t)\), the agent's estimate of the ability boundary of the policies and skills it uses, so that the subgoals and skill calls it chooses are ones the robot can carry out. Asking the agent to predict the outcome of each call and comparing the prediction with what happens measures it.</li>
         </ul>
         <p>No benchmark in Table 1 scores these components separately. Doing so takes three things, isolating each component, probing it, and making sure the score depends on it.</p>
         <ol class="blog-tight-list">

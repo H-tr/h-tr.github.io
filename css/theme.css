@@ -18,6 +18,7 @@
   --rule: #e4e2d8;
   --rule-strong: #bdb9ad;
   --gray: #a9a59a;
+  --highlight: #a8281e;
   --ink-soft: rgba(17, 17, 17, 0.05);
   --link-underline: rgba(17, 17, 17, 0.35);
   --nav-text: #555;
@@ -57,6 +58,7 @@
     --rule: #2a2925;
     --rule-strong: #454239;
     --gray: #67645c;
+    --highlight: #e8806f;
     --ink-soft: rgba(242, 239, 231, 0.06);
     --link-underline: rgba(242, 239, 231, 0.35);
     --nav-text: #a19d93;
@@ -105,6 +107,7 @@
   --rule: #2a2925;
   --rule-strong: #454239;
   --gray: #67645c;
+  --highlight: #e8806f;
   --ink-soft: rgba(242, 239, 231, 0.06);
   --link-underline: rgba(242, 239, 231, 0.35);
   --nav-text: #a19d93;
