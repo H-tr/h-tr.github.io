@@ -29,3 +29,9 @@ Rules for writing and editing survey HTML under `blog/surveys/`.
 - Do not add RSS feeds, Open Graph metadata, Twitter cards, or any head metadata beyond what the template specifies.
 - Do not add inline `style=""` attributes.
 - Only use classes defined in `css/blog.css` and `css/references.css` (e.g. `blog-callout`, `blog-table`, `blog-table-wrapper`, `taxonomy-tree`, `taxonomy-root`, `taxonomy-branch`, `taxonomy-leaves`, `branch-id`, `branch-label`, `leaf-id`, `citation-section`, `references-section`, `references-header`, `references-list`, `blog-post`, `blog-section`, `blog-post-content`, `blog-post-header`, `blog-post-title`, `blog-post-date`, `back-button`).
+
+## Survey harness
+
+The harness for writing surveys is in `AGENTS.md` and `docs/harness/`. The harness holds general rules for every survey, and the rules above still apply to the HTML.
+
+@AGENTS.md
