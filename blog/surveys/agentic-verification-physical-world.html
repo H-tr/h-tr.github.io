@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Agentic Verification in the Physical World</title>
+    <meta name="description" content="A survey of how to provide verification for a foundation-model agent in the physical world, so that the agent can tell a good action from a bad action before the robot moves." />
+    <link rel="canonical" href="https://h-tr.github.io/blog/surveys/agentic-verification-physical-world.html" />
+
+    <!-- Fonts (JetBrains Mono for code and labels, Fira Code for citation blocks) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code&family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Site Assets -->
+    <link rel="icon" type="image/svg+xml" href="/media/images/icon.svg" />
+    <link href="/css/theme.css" rel="stylesheet" />
+    <link href="/css/blog.css" rel="stylesheet" />
+    <!-- Only on pages with [n] citations (see js/references.js) -->
+    <link href="/css/references.css" rel="stylesheet" />
+
+    <!-- Applies the saved light or dark theme before the first paint -->
+    <script src="/js/theme.js"></script>
+  </head>
+  <body>
+    <div class="blog-post">
+      <a href="../?tab=survey" class="back-button">
+        <svg class="icon" viewBox="0 0 448 512" aria-hidden="true"><use href="/media/icons.svg#arrow-left"></use></svg>Back
+      </a>
+
+      <header class="blog-post-header">
+        <h1 class="blog-post-title">Agentic Verification in the Physical World</h1>
+        <div class="blog-post-date">November 10, 2026</div>
+      </header>
+
+      <article class="blog-post-content">
+        <section class="blog-section">
+
+        <h2>1. The Scientific Problem</h2>
+
+        <p>
+          An agent built on a foundation model works as a solver. The agent proposes a candidate, a verifier
+          judges the candidate, and the agent revises. The quality of the loop is the quality of the verifier.
+          Without a good verifier, an agent cannot tell a good candidate from a bad candidate, and more search only
+          produces more unjudged candidates. Language models cannot fill the role alone, and the LLM-Modulo
+          position therefore pairs the model with external verifiers [37].
+        </p>
+
+        <p>
+          Software gives agents such verifiers. A compiler, a test suite and a proof checker each return a
+          judgment independent of the agent. A recent report shows the effect at scale. A language model wrote
+          about 180 million lines of Rocq proofs, and the proofs establish that 239 entry points across 123
+          open-source libraries have no memory-safety error or failed assertion on any input under 64 MB
+          [50]. The Rocq kernel checked every proof, so the model never had to judge the proofs. A developer
+          trusts only three artifacts, namely the formal models of the processor and the operating system process,
+          the exact theorem statements, and the proof checker.
+        </p>
+
+        <p>
+          An agent acting through a robot has no verifier of comparable quality. The world gives a verdict only
+          after the action, the verdict is often unclear, and a wrong action may be beyond repair. The survey
+          studies how to provide verification for an agent in the physical world.
+        </p>
+
+        <h3>The Question</h3>
+
+        <div class="blog-callout">
+          <p>
+            An agent in the physical world needs verification to tell a good action from a bad action. How can a
+            system provide the verification before the robot moves, from what evidence, and what stays trusted
+            without a check?
+          </p>
+        </div>
+
+        <p>
+          The question is about evidence. A verification result states that one fact follows from another fact, and
+          a procedure independent of the agent establishes the result. Formal verification is the reference point,
+          because a machine-checked proof is the strongest evidence available. The survey asks three things about
+          a robot agent. Which verification results exist, how strong is each result, and what does each result
+          leave open.
+        </p>
+
+        <h3>Formulation</h3>
+
+        <p>
+          Six objects describe every system in the survey.
+        </p>
+
+        <div class="blog-table-wrapper">
+          <table class="blog-table">
+            <thead>
+              <tr><th>Object</th><th>Symbol</th><th>Definition</th><th>Example in a robot agent</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Intent</td><td>\(I\)</td><td>The wish of the person, including the outcomes the person would call harm. The intent is not a formal object</td><td>Put the mug in the cabinet, and break nothing</td></tr>
+              <tr><td>Proposer</td><td>\(P\)</td><td>The agent. The proposer is not trusted. The proposer produces the artifact and often the specification</td><td>A coding agent or a vision-language model</td></tr>
+              <tr><td>Artifact</td><td>\(a\)</td><td>The object handed over for execution</td><td>A plan with bound parameters, a policy program, a constraint problem</td></tr>
+              <tr><td>Specification</td><td>\(\varphi\)</td><td>The formal statement of the acceptable artifacts</td><td>Goal conditions, preconditions and effects, collision and kinematic constraints, a temporal logic formula</td></tr>
+              <tr><td>Model</td><td>\(M\)</td><td>The abstraction of the world for the evaluation of the artifact, with the belief \(b\) about the current state</td><td>A PDDL domain, a geometric scene with a collision checker, a simulator</td></tr>
+              <tr><td>Checker</td><td>\(C\)</td><td>The procedure for deciding whether \(a\) satisfies \(\varphi\) in \(M\)</td><td>A task and motion planner, an SMT solver, a proof kernel, a simulation rollout, a runtime monitor</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          A check returns one of three values, and a sound checker gives one guarantee.
+        </p>
+
+        <div class="math-block">
+          $C(a, \varphi, M, b) \in \{\text{accept}, \text{reject}, \text{unknown}\}, \qquad C(a, \varphi, M, b) = \text{accept} \;\Rightarrow\; a \models_{M,b} \varphi$
+        </div>
+
+        <p>
+          A checker proves the implication and nothing more. The person wants a different statement, namely that the
+          execution of \(a\) in the world fulfils \(I\).
+        </p>
+
+        <h3>The Trust Chain</h3>
+
+        <p>
+          Five links lie between the two statements. A sound checker discharges the third link. The other four
+          links hold only by trust, by test or by measurement.
+        </p>
+
+        <div class="blog-table-wrapper">
+          <table class="blog-table">
+            <thead>
+              <tr><th>Link</th><th>Statement</th><th>Failure</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>1. Specification</td><td>\(\varphi\) says what \(I\) requires</td><td>\(\varphi\) accepts an artifact the person would reject (too weak), or rejects an artifact the person would accept (too strong)</td></tr>
+              <tr><td>2. Model</td><td>A fact of \(M\) is a fact of the world</td><td>The abstraction drops a decisive fact, such as a contact or a reachability limit</td></tr>
+              <tr><td>3. Check</td><td>\(a \models_{M,b} \varphi\)</td><td>The checker is unsound, or the proposer changed the input of the checker</td></tr>
+              <tr><td>4. Grounding</td><td>The belief \(b\) matches the state of the world</td><td>Perception is wrong, or the observations so far cannot decide a predicate</td></tr>
+              <tr><td>5. Execution</td><td>The robot does what \(a\) says</td><td>Control error, slip, or a change of the world after the check</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          The trusted base of a system is every object entering a link without a check. The survey names the
+          trusted base of each system described. Two facts separate the physical case from software. First, links
+          2, 4 and 5 are close to exact in software. The model is the semantics of the language, the state is
+          given, and a verified compiler preserves the meaning [44], so the remaining risk sits in link 1.
+          In a robot, links 1, 2, 4 and 5 are open at once. Second, the proposer of an agentic system also writes
+          \(\varphi\), and sometimes \(C\). The definition of "correct" then comes from the untrusted party. A
+          checker can show that an artifact satisfies a specification. A checker cannot show that the specification
+          asks for enough.
+        </p>
+
+        <h3>A Reference System</h3>
+
+        <p>
+          TAMPAgent is the closest robot instance of an untrusted proposer in front of a small trusted checker, and
+          serves as the running example [56]. A coding agent receives a belief-space planning model and a
+          set of perception, planning and control tools. The agent formulates a partial task plan of observation
+          and execution actions, and classical search completes the plan. The planner then "compiles its decisions
+          into a constraint satisfaction problem (CSP) and checks that all constraints are solved with certified
+          values before anything executes". On kitchen tasks with a Rainbow Y1 mobile manipulator in simulation,
+          the preprint reports 77.2% success against 57.2% for Code as Policies and 61.1% for Graph as Policy.
+        </p>
+
+        <p>
+          TAMPAgent secures link 3 and part of link 4. Each value reaching the motors comes from a trusted tool and
+          satisfies a constraint from a fixed set. The specification and the tools remain in the trusted base, and
+          the authors say so. The guarantees of TAMPAgent "are only as strong as those tools and the robot's
+          perception", and "certification protects geometric feasibility but not the agent's interpretation of the
+          task". The second quotation describes the open part of link 1 exactly.
+        </p>
+
+        <h2>2. Challenges and Gaps</h2>
+
+        <p>
+          A challenge is a reason why a good verifier for a physical agent is hard to provide, independent of the
+          chosen method. Each challenge breaks one link of the trust chain. Most of the measurements come from the verification of software, the field with the longest record
+          on the question. The bearing of the software measurements on robots is an argument of the survey and not
+          a result of the cited papers.
+        </p>
+
+        <h3>Weak Specifications</h3>
+
+        <p>
+          Acceptance by a verifier says nothing about whether the specification captures the intent (link 1).
+          Huang et al. state the limit in one sentence, "verification can prove that a specification is sound for
+          the implementation, yet it cannot tell whether the specification is too weak" [34]. Three
+          benchmarks measure the size of the effect. VerusEval evaluates 13,716 generated Verus artifacts over 762
+          tasks. Only 42.3% of the verifier-accepted artifacts complete all three semantic checks of VerusEval
+          without a flag. Input and output tests reject 23.6% of the accepted artifacts. VerusEval also flags 36
+          candidate defects among 61 selected reference contracts, so human-written benchmark specifications are
+          wrong as well [88]. SWE-Proof turns 500 real software issues into formally verified tasks. A
+          correct formal specification lifts the resolution rate of an agent from 85% to 95%. An agent writing the
+          specification alone "gains nothing over an unaided baseline", and only 56% of the agent-written
+          specifications pass an audit [51]. In VERINA, the best model of the first version produced 61.4%
+          correct code and 51.0% sound and complete specifications. The best model of the third version reached
+          72.6% and 52.3%. Code improved across model generations, and specifications did not [97].
+        </p>
+
+        <p>
+          Robotics has one documented case of the same failure. RoboGuard places a guardrail in front of an
+          LLM-enabled robot. A root-of-trust LLM inside the guardrail turns safety rules into temporal logic, and
+          the RoboGuard authors note that safety is contingent on the inferred specification
+          [62]. Taheri et al. report that every harmful plan passing the guardrail in the
+          experiments traced back to an incorrect specification. In the example of Taheri et al., the specification
+          forbids switching a carbon monoxide detector off and does not forbid moving the detector off the outlet,
+          an action with the same effect [78].
+        </p>
+
+        <p>
+          The literature has no agreed names for the two faults of a specification. Verus-SpecGym calls a
+          specification sound when every accepted artifact is correct [1]. VeriContest uses "complete"
+          for the same property [91]. The survey therefore uses two plain terms. A specification accepting a
+          wrong artifact is too weak, and a specification rejecting a right artifact is too strong.
+        </p>
+
+        <h3>Self-Verification</h3>
+
+        <p>
+          The simplest answer to a weak check is a model judging the output of the same model. The evidence is
+          against self-verification (link 3). Valmeekam et al. find that self-critique by GPT-4 "appears to
+          diminish plan generation performance" and that the LLM verifier produces "a notable number of false
+          positives", compared with a system using an external sound verifier [84]. Stechly et al.
+          reach the same conclusion for graph colouring [75] and then for the Game of 24 and STRIPS
+          planning, with "significant performance collapse with self-critique and significant performance gains
+          with sound external verification" [76]. The three studies used the models of 2023. The later
+          results on specifications limit the claim without reversing the claim. A current model with a formal
+          kernel behind the model writes specifications of mixed quality, and the model still cannot certify the
+          strength of a specification. The verifier of a robot agent therefore has to be external to the model.
+        </p>
+
+        <h3>Proofs About Models</h3>
+
+        <p>
+          A guarantee holds in \(M\), and nothing forces the world to agree with \(M\) (link 2). The proposal for
+          guaranteed safe AI makes the dependence explicit. The verifier of the proposal certifies that a system
+          satisfies a safety specification "relative to the world model" [15]. Critics take the
+          dependence as the main objection. Dickson argues that proofs apply to symbol systems and not to the
+          physical world [18]. Hatfield-Dodds argues that verification against a world model moves the
+          problem to the match between the world model and reality [30]. Neither critique is peer
+          reviewed, and the survey cites both for the argument only. Robotics meets the same loss inside task and
+          motion planning. A plan valid in a symbolic abstraction may have no realizing motion. Classical planning
+          theory therefore studies the conditions for an abstract solution to refine to a concrete solution
+          [4]. Contact, friction, deformable objects and other agents lie outside most models
+          decidable by a checker.
+        </p>
+
+        <h3>Missing Oracles</h3>
+
+        <p>
+          Software tests have known answers, and software engineering already names the difficulty of obtaining
+          the answers the oracle problem [6]. A robot task such as folding a cloth has no formal success
+          condition at all. The usual substitute is a vision-language model judging success from images (links 1
+          and 4). FailBench evaluates 13 VLM judges on 2,197 manipulation attempts with outcome labels. The best
+          judge reaches a balanced accuracy of 0.77. No judge exceeds 0.60 on contact-rich assembly. The judges
+          lean toward "success" on ambiguous evidence, even with more reasoning effort [57].
+          Guardian, a judge trained for failure detection, reaches accuracies between 0.70 and 0.89 on real-robot
+          failure benchmarks [59]. Software shows the same weakness. An LLM judge misses 26% of the
+          specification failures caught by an executable evaluator [1]. A checker validated against a
+          VLM judge inherits the bias of the judge toward acceptance.
+        </p>
+
+        <h3>Unobserved State</h3>
+
+        <p>
+          A predicate such as "the shelf is free" has no truth value before the robot looks (link 4). A two-valued
+          checker has to guess, and each guess is wrong in one direction. With unknown counted as false, the robot
+          refuses actions justified by a single glance. With unknown counted as true, the robot acts blind. A
+          third value keeps the information and raises a decision absent from the verification of software. The
+          robot gathers evidence, stops, or asks a person.
+        </p>
+
+        <h3>Irreversible Failures</h3>
+
+        <p>
+          Software runs again, and a dropped glass stays broken (link 5). The cost of a wrong accept is therefore
+          uneven across actions. A framework treating all constraints alike spends caution and human attention in
+          the wrong places. Runtime monitoring is the most common enforcement for LLM agents. A systematic review
+          of 38 studies reports that the guarantees of runtime monitoring "cover only single steps or short
+          horizons". In one study of the review, blocking 94% of unsafe actions left fewer than 5% of tasks both
+          safe and correct [17]. The review rates the certainty of most claims as very low, because each
+          claim rests on one or two studies. The structural point stands without the numbers. A monitor stopping
+          the robot one step before the harm is too late when an action three steps earlier fixed the harm.
+        </p>
+
+        <h3>Proposers That Satisfy the Checker</h3>
+
+        <p>
+          A proposer scored by a checker can pass by changing the question (link 3). LiveFMBench documents the
+          behaviour for specification generation in C. Models modify the program or weaken the assertion under
+          proof, and "after excluding such cases, the true specification generation accuracy drops by
+          approximately 20%". For one group of models in the first table of LiveFMBench, the first-attempt pass
+          rate falls from 23.68 to 17.91 [92]. A robot agent with write access to constraints, thresholds or
+          tools can do the same. A checker returning true on every input passes every plan.
+        </p>
+
+        <h3>Translation into Formal Language</h3>
+
+        <p>
+          The step from language to a formal object fails often, before any verification starts (link 1). On one
+          benchmark cited by Dantas et al., only 24.8% to 34.2% of LLM translations from natural language to PDDL
+          are semantically correct [17]. Lang2LTL grounds navigation commands to temporal logic with
+          81.83% accuracy in 21 unseen cities [48]. In ReKep, constraints generated automatically by a
+          vision-language model reach 44.3% task success, against 68.6% for human-annotated constraints
+          [33]. Safety Chip reaches a 100% safety rate with expert-verified temporal logic formulas.
+          Without expert verification, the Safety Chip authors report lower success because of mistranslated
+          constraints [95].
+        </p>
+
+        <h3>Conflicting Evidence</h3>
+
+        <p>
+          One question has no settled answer. How much of a task needs an agent when the checkers and the solver
+          are already complete? The evidence points both ways. TiPToP combines foundation-model perception with
+          GPU-accelerated task and motion planning and attains a higher average success rate than a
+          vision-language-action model fine-tuned on 350 hours of demonstrations [68]. The TiPToP result
+          favours the planner. Merler et al. let coding agents synthesize programs for 28 environments and report
+          "56% to 95% versus 47% for the planners, on the 16 environments where a planner is available", with an
+          order of magnitude less computation per instance [54]. The result of Merler et al. favours the
+          agent. CaP-X adds a caution for the second reading. The performance of coding agents "improves with
+          human-crafted abstractions but degrades as these priors are removed" [21]. BUMBLE shows the agent
+          as the policy at the scale of a building, with 47.1% success over 70 trials [66].
+        </p>
+
+        <p>
+          The four results use different tasks, tools and baselines. TAMPAgent has the most controlled comparison.
+          The same coding agent with the same tools either writes planning problems or writes policy code. The
+          planning arm is ahead on the kitchen tasks and level on the multi-room tasks [56]. Results on
+          smaller settings split as well. A closed-loop VLM writing PDDL problems for a task and motion planner
+          outperforms a VLM used as the planner by 17.5% in mean success rate on bimanual cooking
+          [69]. Direct VLM planning is ahead of VLM-grounded symbolic planning in the simulated
+          household domain of ViPlan [53].
+        </p>
+
+        <h3>Gaps</h3>
+
+        <p>
+          A gap is a place without published work.
+          A search for counterexamples ran in November 2026 for each entry. The third column names the nearest work found by the search.
+        </p>
+
+        <div class="blog-table-wrapper">
+          <table class="blog-table">
+            <thead>
+              <tr><th>Gap</th><th>No work found with the following property</th><th>Nearest work and the missing part</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Strength of generated constraints</td><td>A test of whether a model-written robot constraint or monitor is too weak, by mutation, metamorphic relations or replay of failure logs</td><td>MANGO counts the false passes of generated test oracles, with no mutation. Metamorphic testing covers vision-language-action policies [83] and LLM planners [89], and not checkers. Code-as-Monitor evaluates monitors through task success</td></tr>
+              <tr><td>Replay acceptance beyond predicates</td><td>Acceptance of a model-written monitor, safety constraint or goal condition only after rejection of the recorded failures and acceptance of the recorded successes</td><td>VisualPredicator and SkillWrapper apply replay acceptance to operator preconditions over single skill transitions. LogicGuard, HUME and VIZ-COAST accept new constraints through later task success</td></tr>
+              <tr><td>Graded assurance</td><td>One planner holding proved constraints, constraints composed of trusted tools and constraints testable only by a later observation, with a stated cost for relaxing a constraint</td><td>TAMPAgent certifies with tools, Seeing is Believing keeps a third truth value, TAMPURA models risk, and U-Define grades by hand outside robotics. No system combines the four parts</td></tr>
+              <tr><td>Review placed by cost</td><td>Human review placed by the reversibility of the failure</td><td>HAMMR assigns risk tiers by task category and requires approval before every execution [67]. TAMPURA avoids irreversible outcomes inside the planner, and TANDEM calls a person where a capability is missing</td></tr>
+              <tr><td>Predicted occlusion</td><td>A hard check before execution predicting a blocked view for an observation needed by the plan</td><td>Imagine-TAMP predicts the target visibility of a sensing action and uses the prediction as a cost [71]. TAMPAgent certifies observations against current perception</td></tr>
+              <tr><td>Mined and cross-checked specifications</td><td>Invariants mined from successful robot episodes with a language model, or a generated checker ranked by agreement with independently generated tests</td><td>An LLM proposes temporal logic formulas satisfying all given traces, on traces outside robotics [28]. A genetic algorithm with no language model mines temporal logic constraints from robot demonstrations [11]. An independent VLM confirms LLM-written success functions [99]</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2>3. Verification in Robotics</h2>
+
+        <p>
+          Since 2024 the main line of work has the model write constraints or predicates and a classical solver or
+          tool satisfy the constraints. The survey groups the work by the object doing the checking. Three facts
+          describe each system, namely the output of the model, the check on the output, and the trusted
+          remainder.
+        </p>
+
+        <h3>Fixed Checkers</h3>
+
+        <p>
+          In the largest group, the model proposes constraints, predicates, operators or a whole planning domain,
+          and a human-written checker decides.
+        </p>
+
+        <div class="blog-table-wrapper">
+          <table class="blog-table">
+            <thead>
+              <tr><th>System</th><th>Output of the model</th><th>Check</th><th>Trusted or left open</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>OWL-TAMP [42]</td><td>Discrete action ordering constraints and continuous constraints as code</td><td>A task and motion planner, together with the pre-existing collision and kinematic constraints of the planner</td><td>The generated constraints. OWL-TAMP "cannot recover from errors in the generated constraints themselves"</td></tr>
+              <tr><td>PRoC3S [14]</td><td>A function with open parameters, forming a continuous constraint satisfaction problem</td><td>Sampling, then a simulator and constraint classifiers. The most common violations go back to the LLM</td><td>The constraint classifiers are fixed. The LLM changes the problem and never the checker</td></tr>
+              <tr><td>ReKep [33]</td><td>Python functions mapping 3D keypoints to a cost, as sub-goal and path constraints</td><td>None. A hierarchical optimizer solves the constraints</td><td>The constraints carry no hard guarantee</td></tr>
+              <tr><td>VIZ-COAST [93]</td><td>Task-level constraints as a Z3 Python program, written before planning to exclude plans without a valid refinement</td><td>An SMT-based task planner, with revision from downstream planning feedback</td><td>The constraints. In one domain the first constraint set generalized to all 30 problems. Two other domains needed feedback</td></tr>
+              <tr><td>InterPreT [29]</td><td>Predicates as Python functions, refined from the language feedback of non-experts</td><td>The person</td><td>The person is the source of truth. Success is 73% in simulation and 40% on the robot in the hardest setting</td></tr>
+              <tr><td>VisualPredicator [47]</td><td>Neuro-symbolic predicates invented online, with an abstract world model</td><td>A score over stored successful and failed transitions. The chosen operators avoid states of earlier skill failures</td><td>The outcome labels of the stored transitions</td></tr>
+              <tr><td>pix2pred [3]</td><td>A pool of visual predicates proposed and evaluated by a VLM</td><td>A hill-climbing search over predicate sets on a planning objective</td><td>The labels of the VLM. Unknown counts as false</td></tr>
+              <tr><td>SkillWrapper [96]</td><td>Predicates over raw sensory input, with no predefined task, predicate or operator</td><td>Formal conditions for sound and complete task-level planning. A candidate stays only if operator preconditions cover the stored successes and exclude the stored failures, up to an empirical threshold</td><td>The only system of the group with a stated property of the abstraction as the design target</td></tr>
+              <tr><td>LODGE [38]</td><td>Predicates, operators, preconditions and effects</td><td>Automated simulation, detecting inconsistencies between abstraction levels and between model and environment</td><td>The simulator</td></tr>
+              <tr><td>Guan et al. [27]</td><td>PDDL models for over 40 actions</td><td>PDDL validators and people. People correct the model once</td><td>The person</td></tr>
+              <tr><td>Agent2World [32]</td><td>PDDL domains or executable simulators</td><td>Unit tests and simulation written by other agents</td><td>The tests come from the same kind of model as the artifact</td></tr>
+              <tr><td>WorldCoder [80]</td><td>A world model as a Python program</td><td>The program has to fit every recorded transition. Missed transitions go back to the LLM</td><td>Acceptance by log replay, applied to a world model and not to a constraint</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          COAST is the classical member of the group. COAST is a plan-first task and motion planner with no
+          language model. Geometric infeasibility found during motion planning constrains the next round of task
+          planning [86]. Across the group, the checker tests whether the plan satisfies the constraints.
+          VisualPredicator and SkillWrapper go one step further and test learned predicates against recorded
+          successes and failures of each skill. No system applies the same test to model-written constraints,
+          monitors or goal conditions. The hand-written constraint set also bounds the range of possible checks.
+        </p>
+
+        <h3>Certified Execution</h3>
+
+        <p>
+          TAMPAgent is the one system found with the agent outside the trusted base by construction
+          [56]. The TAMPAgent check concerns provenance. Each bound value comes from a trusted tool and
+          satisfies a human-written constraint. The agent cannot add a kind of constraint, so TAMPAgent is as
+          strong as the fixed constraint set.
+        </p>
+
+        <h3>Abstractions Repaired from Failure</h3>
+
+        <p>
+          A third group turns a failure of execution or refinement into a new predicate, constraint or operator.
+          ReSYNC learns recovery skills with reinforcement learning and then discovers relational predicates
+          explaining the recoveries. ReSYNC outperforms strong baselines by over 50% across four simulated domains
+          [45]. The ReSYNC predicates are neural classifiers and not the output of a language model, and
+          planning success decides acceptance. HUME lets a foundation model propose hypotheses about states and
+          transitions. HUME plans hypothesis-testing actions alongside task actions and updates the model after a
+          failed hypothesis [90]. A vision-language model reads the test, so the judge of the hypothesis
+          shares the weakness described under missing oracles. LogicGuard has an LLM critic read full trajectories
+          and propose temporal logic constraints as a shield for the actor [24]. TANDEM has a VLM add
+          missing predicates and human-executed operators. After each human stage, TANDEM perceives the scene
+          again and checks the intended effects [63]. In all four systems, a failure produces a new
+          constraint. None of the four systems tests the new constraint against the recorded episodes, the test
+          applied to operator preconditions by the predicate learners of the first group. A constraint explaining
+          the last failure can still accept an older failure.
+        </p>
+
+        <h3>Runtime Monitors and Shields</h3>
+
+        <p>
+          Monitors filter plans or actions against a formal specification, most often in temporal logic. Safety
+          Chip encodes natural language constraints into a queryable temporal logic module. The module explains
+          violations and prunes unsafe actions [95]. RoboGuard synthesizes a plan safe with respect to
+          the inferred specification and reduces the execution of unsafe plans from over 92% to below 3%
+          [62]. Agent-C targets tool-calling agents in customer service and not robots. Agent-C
+          translates properties from a domain-specific language into first-order logic, uses an SMT solver during
+          token generation, and reports 100% conformance [36]. VerifyLLM translates the instruction to
+          temporal logic and has an LLM analyse the plan before execution. The VerifyLLM ablation attributes the
+          effect to the LLM analysis. Removal of the temporal logic module barely changes the ordering errors
+          [26]. Code-as-Monitor has a VLM write monitoring code for failure detection and evaluates
+          the monitors through downstream task success [100]. NL2LTL offers the translation step as a
+          package [22].
+        </p>
+
+        <p>
+          Each monitor is sound for the formula of the monitor. The formula comes from one model or one
+          translation with no second check. Taheri et al. constructed exactly the resulting failure. The remedy of
+          Taheri et al. spreads enforcement over several LLM stages without a test of the specification of any
+          stage [78].
+        </p>
+
+        <h3>Belief and Evidence</h3>
+
+        <p>
+          A fifth group reasons about unobserved parts of the scene. The classical base is planning in belief
+          space [35] and online replanning after each observation [23]. TAMPURA learns an
+          abstract belief-state model for an uncertainty-aware solver, for problems requiring "information
+          gathering and avoiding undesirable and irreversible outcomes" [13]. Seeing is Believing uses
+          a VLM as the estimator of three-valued predicates (known true, known false, unknown) and plans
+          information gathering over the predicates. Seeing is Believing reaches 80% and 70% on two simulated
+          tasks, with VLM baselines at or below 10% [98]. Evidence-gated planning has a VLM generate
+          evidence-acquiring subgoals. A gate then decides "whether to proceed with task planning, acquire further
+          evidence, or halt" [79]. CoCo-TAMP shapes the belief with common sense from an LLM and cuts
+          planning and execution time by 62.7% in simulation [39]. No check covers the prior supplied by
+          the LLM. All four systems keep the third value inside one planner. No system carries the third value
+          across kinds of constraints or ties the third value to the party responsible for the next step.
+        </p>
+
+        <h3>Judges of Success</h3>
+
+        <p>
+          FailBench and Guardian evaluate the judge. Guardian is also notable for the construction of the training
+          set. Perturbation of successful trajectories yields more than 36,000 failure examples [59].
+          The construction is close to mutation testing. Guardian uses the perturbed trajectories to train a judge
+          of outcomes and not to measure the strength of a constraint against the perturbed cases. MANGO comes
+          closest to a test of a generated checker. In MANGO, agents write test oracles for
+          vision-language-action policies. MANGO scores the generated oracles against the reference oracles of a
+          benchmark and counts the false passes, the cases of a generated oracle accepting a failing execution
+          [82]. A recent survey of verifiers for robot policies asks the general form of the question,
+          "what validates a verifier itself" [87].
+        </p>
+
+        <h3>The Agent as the Policy</h3>
+
+        <p>
+          The last group has no checker between the agent and the robot, apart from checks run by the agent.
+          Besides the systems under conflicting evidence, Graph as Policy has a multi-agent coding harness
+          generate computation graphs of perception, planning and control nodes. The harness rehearses the graphs
+          in an internal simulation, also generated by the harness [9]. The rehearsal is a check in a
+          proposer-written model, so links 1 and 2 both rest on the proposer.
+        </p>
+
+        <h2>4. The Same Problem in Other Fields</h2>
+
+        <p>
+          A field belongs in the section when the problem of the field has the same form, with an untrusted
+          proposer, a specification, a model and a checker. For each mechanism, the section names the role in the
+          formulation and the counterpart for a robot agent.
+        </p>
+
+        <h3>Formal Verification with Language Models</h3>
+
+        <p>
+          Formal verification of software met the question of the unchecked specification first. The answer of
+          the field does not rely on a person reading each specification. The answer brings in trusted samples of
+          behaviour. A specification has to accept the positive cases and reject the negative cases.
+        </p>
+
+        <p>
+          Clover checks consistency among code, docstrings and formal annotations. Clover accepts up to 87% of
+          correct instances with no false positive on adversarial incorrect instances [77]. Coins
+          instantiates a specification on trusted test cases as proof obligations in Rocq. A proof has to show
+          acceptance of the positive cases. A proof of acceptance for a negative case, obtained by mutation of the
+          reference implementation, marks the specification as "overly permissive" [94]. SpecRL builds
+          negative tests from input and output pairs impossible for the implementation, and rewards a
+          specification by the rejected fraction [34]. Verus-SpecGym executes generated specifications
+          against official tests and adversarial cases from competition hacks [1]. VeriContest
+          converts postconditions into executable programs and runs the programs on negative tests [91].
+          CLEVER requires a proof of equivalence between the generated specification and a held-out
+          specification, and excludes specifications allowing "vacuous solutions" [81].
+        </p>
+
+        <p>
+          Mutation also drives repair. For hardware assertions, Krishnamurthy et al. feed each surviving mutant
+          back to the LLM and start another round whenever the kill rate falls below 85% [41].
+          FlyCatcher infers runtime checkers from existing tests and validates the checkers dynamically.
+          Cross-validation confirms 300 of 334 inferred checkers [73]. Benchmarks with a fixed
+          specification ask only for the proof or the code. Such benchmarks measure a different skill and say
+          nothing about link 1 [7, 49].
+        </p>
+
+        <p>
+          The transfer to robots is direct in form. A constraint checker plays the role of a postcondition. The
+          positive set holds the states and parameters of past successful episodes, and the checker has to accept
+          the positive set. The negative set holds past failures and perturbed successes, such as a grasp pose
+          moved out of the feasible region, and the checker has to reject the negative set. The kill rate on the
+          negative set measures the strength of the checker. One part does not transfer. The label of a software
+          test is exact. The label of a robot episode is noisy, and a VLM label is biased toward success. The
+          labels of negative cases therefore have to come from geometric primitives or physical measurement.
+        </p>
+
+        <h3>Programming Languages</h3>
+
+        <p>
+          The architecture of an untrusted proposer and a small checker is old in programming languages. In
+          proof-carrying code, an untrusted producer ships a safety proof with the code, and the host validates
+          the proof against the safety policy of the host [58]. The LCF tradition confines trust to a
+          small kernel [25]. Translation validation gives up on verifying the compiler and validates
+          each run of the compiler [61]. In all three designs, the proposer may be arbitrarily complex
+          because the checker is simple. TAMPAgent adopts the same design by granting execution only on certified
+          values.
+        </p>
+
+        <p>
+          Recent work carries the design to planning and to language models. Proof-Carrying Plans checks plans as
+          proofs in a resource logic formalized in Agda [31]. LeanPlan has an LLM write heuristics with
+          machine-checked admissibility proofs in Lean. LeanPlan evaluates the domain assumptions of each proof
+          before search and refuses a heuristic on a task failing the assumptions. The assumption checks exposed
+          an error in a task of the IPC 2023 learning track [60]. CCV builds machine-checked assurance
+          cases for C code and states that "the LLM agent is not in the TCB" [46]. In each case the trusted
+          base shrinks to a kernel, a semantic model and the specification. The remaining risk then sits in the
+          specification.
+        </p>
+
+        <p>
+          Other mechanisms of the field address the missing oracle. Property-based testing checks stated
+          properties on random inputs [12]. Metamorphic testing checks relations between outputs when
+          no exact answer is known [10]. Metamorphic relations for a robot checker are easy to state. A
+          rigid motion of the whole scene should not change whether an object can be placed. An added obstacle
+          should never turn a collision check from fail to pass. Dynamic invariant detection reports properties
+          holding over observed runs [19]. The robot counterpart is mining candidate constraints from
+          successful episodes. CodeT selects code by agreement with model-generated tests [8]. Design by
+          contract checks preconditions and postconditions at run time [55], as TANDEM does after human
+          stages. Refinement types [20] and gradual verification [5] prove part of a
+          property statically and check the rest dynamically. Both are the software form of assigning constraints
+          to levels of assurance. In counterexample-guided synthesis, a checker returns a counterexample and the
+          proposer revises [72]. Robot systems with simulation feedback to the LLM already use an
+          informal version of the loop.
+        </p>
+
+        <h3>Abstraction in Planning</h3>
+
+        <p>
+          Planning theory has studied link 2 for decades. Angelic semantics describes a high-level action by the
+          states reachable under some refinement, so high-level solutions satisfy refinement properties by
+          construction [52]. Admissible abstractions extend the idea to task and motion planning with
+          cost bounds [85]. Konidaris et al. construct the symbols necessary and sufficient for
+          evaluating plans over a given set of skills [40]. Counterexample-guided abstraction
+          refinement repairs an abstraction from the cause of a failed abstract solution [64]. Task and
+          motion planners return motion failures to the task level as logical facts [74] or as
+          incremental constraints [16]. Predicate invention learns predicates for efficient bilevel
+          planning [70]. The systems of the robotics section rewrite the abstraction online with a
+          language model. Most of the systems drop the central asset of the theory, a stated property of the
+          abstraction preserved under rewriting.
+        </p>
+
+        <h3>AI Safety</h3>
+
+        <p>
+          The guaranteed safe AI framework is the formulation of the survey at full generality, with a world
+          model, a safety specification and a verifier [15]. Shielding synthesizes a monitor from a
+          temporal logic specification. The shield corrects an action only when the action would violate the
+          specification [2]. A second design gives a simple reliable component authority over a
+          complex component [65]. Both designs assume a given specification. U-Define lets end users label
+          each constraint as hard or soft. A model checker checks the hard constraints, and an LLM judge checks
+          the soft constraints [43]. U-Define is a two-level grading of assurance set by a person, in
+          everyday planning and not in robotics.
+        </p>
+
+        <h3>A Map of Mechanisms</h3>
+
+        <div class="blog-table-wrapper">
+          <table class="blog-table">
+            <thead>
+              <tr><th>Mechanism</th><th>Origin</th><th>Counterpart for a robot agent</th><th>In robotics</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Untrusted proposer and small kernel</td><td>Proof-carrying code, LCF, LeanPlan</td><td>The agent submits tool receipts or a certificate, and the kernel checks provenance and values</td><td>Partly, in TAMPAgent</td></tr>
+              <tr><td>Validation of each output</td><td>Translation validation</td><td>A check on every plan or constraint problem from the agent</td><td>Yes, in TAMPAgent and PRoC3S</td></tr>
+              <tr><td>Counterexample-guided repair</td><td>Program synthesis</td><td>Counterexamples from simulation or geometry go back to the agent</td><td>Partly, in PRoC3S, VIZ-COAST and LODGE</td></tr>
+              <tr><td>Negative cases and mutants</td><td>SpecRL, Coins, assertion mutation</td><td>The checker has to reject past failures and perturbed successes. The kill rate is the strength of the checker</td><td>Not found for constraints. MANGO counts false passes of generated test oracles</td></tr>
+              <tr><td>Positive cases and log replay</td><td>Coins, VERINA</td><td>The checker may not reject a past successful episode</td><td>Partly, for learned predicates in VisualPredicator and SkillWrapper, and for world models in WorldCoder</td></tr>
+              <tr><td>Consistency across sources</td><td>Clover, CodeT</td><td>Constraint code, the language description of the constraint and the execution logs agree</td><td>Not found</td></tr>
+              <tr><td>Metamorphic relations</td><td>Software testing</td><td>Relations a checker has to respect under changes of the scene</td><td>Not found for checkers. Applied to policies and planners</td></tr>
+              <tr><td>Defence against a proposer weakening the check</td><td>LiveFMBench, CLEVER</td><td>The agent cannot edit trusted constraints or tools, and a vacuity test covers each checker</td><td>Partly, in the fixed tool interface of TAMPAgent</td></tr>
+              <tr><td>Three-valued result</td><td>Belief-space planning</td><td>Unknown starts an evidence-gathering action or a review and does not count as false</td><td>Partly. pix2pred folds unknown into false, and Seeing is Believing keeps unknown</td></tr>
+              <tr><td>Runtime monitor or shield</td><td>Shielding</td><td>Interception by temporal logic or SMT before or during execution</td><td>Yes, with the specification from a single model</td></tr>
+              <tr><td>Graded assurance</td><td>Refinement types, gradual verification, U-Define</td><td>One planner holds proved constraints, constraints composed of trusted tools, and constraints testable only by a later observation</td><td>Not found as one framework</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          The map shows an asymmetry. The mechanisms keeping the proposer out of the trusted base (the first
+          three rows and the monitors) have robot counterparts. The mechanisms testing the specification appear
+          only for learned predicates. Robotics already produces the raw material for specification tests, in the
+          failure logs consumed by repair methods and in the perturbed trajectories used to train judges. Robot
+          systems verify with growing care that a plan satisfies the constraints. The constraints, increasingly
+          written by the agent, remain the least examined object in the chain. An agent in the physical world
+          gets a verifier as good as the specification behind the verifier, and no better.
+        </p>
+
+        </section>
+
+        <div class="citation-section">
+          <h2 class="citation-header">Citation</h2>
+          <p class="citation-text">
+            If you find this survey useful, please cite it as
+          </p>
+          <pre class="citation-pre">
+@misc{agentic_verification_physical_world_survey_2026,
+  author    = {Hu Tianrun},
+  title     = {Agentic Verification in the Physical World},
+  year      = {2026},
+  publisher = {GitHub},
+  url       = {https://h-tr.github.io/blog/surveys/agentic-verification-physical-world.html}
+}
+          </pre>
+        </div>
+
+        <div class="references-section">
+          <h2 class="references-header">References</h2>
+          <ol class="references-list">
+            <li id="ref-1">Agarwal, A., et al. (2026). "Verus-SpecGym: An Agentic Environment for Evaluating Specification Autoformalization." arXiv:2605.26457.</li>
+            <li id="ref-2">Alshiekh, M., et al. (2018). "Safe Reinforcement Learning via Shielding." AAAI 2018.</li>
+            <li id="ref-3">Athalye, A., et al. (2025). "From Pixels to Predicates: Learning Symbolic World Models via Pretrained Vision-Language Models." IEEE Robotics and Automation Letters 11(4). arXiv:2501.00296.</li>
+            <li id="ref-4">Bacchus, F., &amp; Yang, Q. (1994). "Downward Refinement and the Efficiency of Hierarchical Problem Solving." Artificial Intelligence 71(1), 43&ndash;100.</li>
+            <li id="ref-5">Bader, J., Aldrich, J., &amp; Tanter, &Eacute;. (2018). "Gradual Program Verification." VMCAI 2018.</li>
+            <li id="ref-6">Barr, E.T., et al. (2015). "The Oracle Problem in Software Testing: A Survey." IEEE Transactions on Software Engineering 41(5), 507&ndash;525.</li>
+            <li id="ref-7">Bursuc, S., et al. (2025). "A Benchmark for Vericoding: Formally Verified Program Synthesis." arXiv:2509.22908.</li>
+            <li id="ref-8">Chen, B., et al. (2022). "CodeT: Code Generation with Generated Tests." arXiv:2207.10397.</li>
+            <li id="ref-9">Chen, K., et al. (2026). "GaP: A Graph-as-Policy Multi-Agent Self-Learning Harness For Variational Automation Tasks." CoRL 2026. arXiv:2607.05369.</li>
+            <li id="ref-10">Chen, T.Y., Cheung, S.C., &amp; Yiu, S.M. (1998). "Metamorphic Testing: A New Approach for Generating Next Test Cases." Technical Report HKUST-CS98-01. arXiv:2002.12543.</li>
+            <li id="ref-11">Cho, M., Jang, &amp; Park. (2025). "ILCL: Inverse Logic-Constraint Learning from Temporally Constrained Demonstrations." arXiv:2507.11000.</li>
+            <li id="ref-12">Claessen, K., &amp; Hughes, J. (2000). "QuickCheck: A Lightweight Tool for Random Testing of Haskell Programs." ICFP 2000.</li>
+            <li id="ref-13">Curtis, A., et al. (2024). "Partially Observable Task and Motion Planning with Uncertainty and Risk Awareness." arXiv:2403.10454.</li>
+            <li id="ref-14">Curtis, A., et al. (2024). "Trust the PRoC3S: Solving Long-Horizon Robotics Problems with LLMs and Constraint Satisfaction." arXiv:2406.05572.</li>
+            <li id="ref-15">Dalrymple, D., et al. (2024). "Towards Guaranteed Safe AI: A Framework for Ensuring Robust and Reliable AI Systems." arXiv:2405.06624.</li>
+            <li id="ref-16">Dantam, N.T., et al. (2016). "Incremental Task and Motion Planning: A Constraint-Based Approach." RSS 2016.</li>
+            <li id="ref-17">Dantas, P., et al. (2026). "Toward Safe LLM Agents: A Survey of Specification, Verification, and Enforcement." arXiv:2608.14590.</li>
+            <li id="ref-18">Dickson, A. (2024). "Limitations on Formal Verification for AI Safety." LessWrong and Alignment Forum post, August 19, 2024.</li>
+            <li id="ref-19">Ernst, M.D., et al. (2007). "The Daikon System for Dynamic Detection of Likely Invariants." Science of Computer Programming 69(1&ndash;3), 35&ndash;45.</li>
+            <li id="ref-20">Freeman, T., &amp; Pfenning, F. (1991). "Refinement Types for ML." PLDI 1991.</li>
+            <li id="ref-21">Fu, L., et al. (2026). "CaP-X: A Framework for Benchmarking and Improving Coding Agents for Robot Manipulation." arXiv:2603.22435.</li>
+            <li id="ref-22">Fuggitti, F., &amp; Chakraborti, T. (2023). "NL2LTL: A Python Package for Converting Natural Language (NL) Instructions to Linear Temporal Logic (LTL) Formulas." AAAI 2023 demonstration.</li>
+            <li id="ref-23">Garrett, C.R., et al. (2020). "Online Replanning in Belief Space for Partially Observable Task and Motion Problems." ICRA 2020.</li>
+            <li id="ref-24">Gokhale, A., Srivastava, V., &amp; Bullo, F. (2025). "LogicGuard: Improving Embodied LLM Agents through Temporal Logic based Critics." arXiv:2507.03293.</li>
+            <li id="ref-25">Gordon, M.J.C., Milner, R., &amp; Wadsworth, C.P. (1979). "Edinburgh LCF: A Mechanised Logic of Computation." Lecture Notes in Computer Science 78, Springer.</li>
+            <li id="ref-26">Grigorev, D.S., Kovalev, A.K., &amp; Panov, A.I. (2025). "VerifyLLM: LLM-Based Pre-Execution Task Plan Verification for Robots." IROS 2025. arXiv:2507.05118.</li>
+            <li id="ref-27">Guan, L., et al. (2023). "Leveraging Pre-trained Large Language Models to Construct and Utilize World Models for Model-based Task Planning." NeurIPS 2023. arXiv:2305.14909.</li>
+            <li id="ref-28">Gupta, A., et al. (2024). "Integrating Explanations in Learning LTL Specifications from Demonstrations." arXiv:2404.02872.</li>
+            <li id="ref-29">Han, M., et al. (2024). "InterPreT: Interactive Predicate Learning from Language Feedback for Generalizable Task Planning." RSS 2024. arXiv:2405.19758.</li>
+            <li id="ref-30">Hatfield-Dodds, Z. (2024). "Formal Verification is Overrated." Lightning talk, FAR.AI, October 23, 2024.</li>
+            <li id="ref-31">Hill, A., Komendantskaya, E., &amp; Petrick, R.P.A. (2020). "Proof-Carrying Plans: A Resource Logic for AI Planning." PPDP 2020. arXiv:2008.04165.</li>
+            <li id="ref-32">Hu, M., et al. (2025). "Agent2World: Learning to Generate Symbolic World Models via Adaptive Multi-Agent Feedback." arXiv:2512.22336.</li>
+            <li id="ref-33">Huang, W., et al. (2024). "ReKep: Spatio-Temporal Reasoning of Relational Keypoint Constraints for Robotic Manipulation." arXiv:2409.01652.</li>
+            <li id="ref-34">Huang, Z., et al. (2026). "SpecRL: Reinforcement Learning with Test-Based Completeness Rewards for Formal Specification Synthesis." arXiv:2604.05820.</li>
+            <li id="ref-35">Kaelbling, L.P., &amp; Lozano-P&eacute;rez, T. (2013). "Integrated Task and Motion Planning in Belief Space." International Journal of Robotics Research 32(9&ndash;10), 1194&ndash;1227.</li>
+            <li id="ref-36">Kamath, A., et al. (2025). "Enforcing Temporal Constraints for LLM Agents." arXiv:2512.23738.</li>
+            <li id="ref-37">Kambhampati, S., et al. (2024). "LLMs Can't Plan, But Can Help Planning in LLM-Modulo Frameworks." ICML 2024. arXiv:2402.01817.</li>
+            <li id="ref-38">Kienle, C., et al. (2025). "Learning Hierarchical Domain Models Through Environment-Grounded Interaction." arXiv:2505.13497.</li>
+            <li id="ref-39">Kim, Y., et al. (2026). "Large-Language-Model-Guided State Estimation for Partially Observable Task and Motion Planning." arXiv:2603.03704.</li>
+            <li id="ref-40">Konidaris, G., Kaelbling, L.P., &amp; Lozano-P&eacute;rez, T. (2018). "From Skills to Symbols: Learning Symbolic Representations for Abstract High-Level Planning." Journal of Artificial Intelligence Research 61, 215&ndash;289.</li>
+            <li id="ref-41">Krishnamurthy, R., Chitnis, D., &amp; Prodromakis, T. (2026). "Closing the Loop on LLM-Generated RTL Assertions with Quality-Aware Formal Verification." arXiv:2606.21451.</li>
+            <li id="ref-42">Kumar, N., et al. (2024). "Open-World Task and Motion Planning via Vision-Language Model Generated Constraints." IEEE Robotics and Automation Letters 11(3). arXiv:2411.08253.</li>
+            <li id="ref-43">Lee, C.P., et al. (2026). "U-Define: Designing User Workflows for Hard and Soft Constraints in LLM-Based Planning." arXiv:2605.02765.</li>
+            <li id="ref-44">Leroy, X. (2009). "Formal Verification of a Realistic Compiler." Communications of the ACM 52(7), 107&ndash;115.</li>
+            <li id="ref-45">Li, B., et al. (2026). "Recover, Discover, Plan: Learning Skills and Concepts from Robot Failures." CoRL 2026. arXiv:2606.18328.</li>
+            <li id="ref-46">Li, H., et al. (2026). "Automatically Building Machine-Checked Assurance Cases from C Codebases to Requirements." arXiv:2609.40119.</li>
+            <li id="ref-47">Liang, Y., et al. (2024). "VisualPredicator: Learning Abstract World Models with Neuro-Symbolic Predicates for Robot Planning." ICLR 2025. arXiv:2410.23156.</li>
+            <li id="ref-48">Liu, J.X., et al. (2023). "Grounding Complex Natural Language Commands for Temporal Tasks in Unseen Environments." CoRL 2023. arXiv:2302.11649.</li>
+            <li id="ref-49">Loughridge, C., et al. (2024). "DafnyBench: A Benchmark for Formal Software Verification." arXiv:2406.08467.</li>
+            <li id="ref-50">Lucas, K., et al. (2026). "LLMs Are Making Formal Software Verification Feasible at a Much Larger Scale." Anthropic research article, October 22, 2026.</li>
+            <li id="ref-51">Ma, G., et al. (2026). "SWE-Proof: Can Language Models Resolve Real-World Issues with Machine-Checked Proofs?" arXiv:2609.21190.</li>
+            <li id="ref-52">Marthi, B., Russell, S., &amp; Wolfe, J. (2007). "Angelic Semantics for High-Level Actions." ICAPS 2007.</li>
+            <li id="ref-53">Merler, M., et al. (2025). "ViPlan: A Benchmark for Visual Planning with Symbolic Predicates and Vision-Language Models." arXiv:2505.13180.</li>
+            <li id="ref-54">Merler, M., et al. (2026). "Coding Agents for Generalized Task and Motion Planning Problems." arXiv:2609.30233.</li>
+            <li id="ref-55">Meyer, B. (1992). "Applying 'Design by Contract'." IEEE Computer 25(10), 40&ndash;51.</li>
+            <li id="ref-56">Mishra, U.A., et al. (2026). "TAMPAgent: Agentic Belief-Space Planning for Mobile Manipulation." arXiv:2611.03584.</li>
+            <li id="ref-57">Navasardyan, Z., Danielyan, T., &amp; Davtyan, H. (2026). "FailBench: How Reliable are VLMs at Judging Robot Task Success?" arXiv:2609.03611.</li>
+            <li id="ref-58">Necula, G.C. (1997). "Proof-Carrying Code." POPL 1997.</li>
+            <li id="ref-59">Pacaud, P., et al. (2025). "Guardian: Detecting Robotic Manipulation Failures with Vision-Language Models." WACV 2027. arXiv:2512.01946.</li>
+            <li id="ref-60">Pereira, A.G., et al. (2026). "LeanPlan: Optimal Planning with LLM-Generated Heuristics and Admissibility Proofs." arXiv:2610.08246.</li>
+            <li id="ref-61">Pnueli, A., Siegel, M., &amp; Singerman, E. (1998). "Translation Validation." TACAS 1998.</li>
+            <li id="ref-62">Ravichandran, Z., et al. (2025). "Safety Guardrails for LLM-Enabled Robots." arXiv:2503.07885.</li>
+            <li id="ref-63">Sahoo, S., et al. (2026). "TANDEM: Task and Motion Planning with As-Needed Demonstrations for Efficient Vision-Language-Action Model Fine-tuning." arXiv:2609.28314.</li>
+            <li id="ref-64">Seipp, J., &amp; Helmert, M. (2018). "Counterexample-Guided Cartesian Abstraction Refinement for Classical Planning." Journal of Artificial Intelligence Research 62, 535&ndash;577.</li>
+            <li id="ref-65">Sha, L. (2001). "Using Simplicity to Control Complexity." IEEE Software 18(4), 20&ndash;28.</li>
+            <li id="ref-66">Shah, R., et al. (2024). "BUMBLE: Unifying Reasoning and Acting with Vision-Language Models for Building-wide Mobile Manipulation." arXiv:2410.06237.</li>
+            <li id="ref-67">Shanmugasundaram, &amp; M&auml;kitalo. (2026). "HAMMR: A Human-Aligned Multi-Agent Framework for Language-Guided Robotic Manipulation." AAMAS 2026 Demonstration Track.</li>
+            <li id="ref-68">Shen, W., et al. (2026). "TiPToP: A Modular Open-Vocabulary Robot Manipulation System That Plans." arXiv:2603.09971.</li>
+            <li id="ref-69">Siburian, J., et al. (2025). "Grounded Vision-Language Interpreter for Long-Horizon Bimanual Task and Motion Planning." arXiv:2506.03270.</li>
+            <li id="ref-70">Silver, T., et al. (2023). "Predicate Invention for Bilevel Planning." AAAI 2023.</li>
+            <li id="ref-71">Singha, A., et al. (2026). "Imagine-TAMP: Imagination-Guided Task and Motion Planning in Partial Observability." arXiv:2609.20396.</li>
+            <li id="ref-72">Solar-Lezama, A., et al. (2006). "Combinatorial Sketching for Finite Programs." ASPLOS 2006.</li>
+            <li id="ref-73">Souza, B., et al. (2026). "FlyCatcher: Neural Inference of Runtime Checkers from Tests." arXiv:2604.22028.</li>
+            <li id="ref-74">Srivastava, S., et al. (2014). "Combined Task and Motion Planning Through an Extensible Planner-Independent Interface Layer." ICRA 2014.</li>
+            <li id="ref-75">Stechly, K., Marquez, M., &amp; Kambhampati, S. (2023). "GPT-4 Doesn't Know It's Wrong: An Analysis of Iterative Prompting for Reasoning Problems." arXiv:2310.12397.</li>
+            <li id="ref-76">Stechly, K., Valmeekam, K., &amp; Kambhampati, S. (2024). "On the Self-Verification Limitations of Large Language Models on Reasoning and Planning Tasks." arXiv:2402.08115.</li>
+            <li id="ref-77">Sun, C., et al. (2023). "Clover: Closed-Loop Verifiable Code Generation." arXiv:2310.17807.</li>
+            <li id="ref-78">Taheri, A., et al. (2026). "Refuse the Harm, Complete the Task via Graph-of-Rules Planning for LLM-Enabled Robots." arXiv:2610.24603.</li>
+            <li id="ref-79">Tanaka, T., et al. (2026). "Evidence-Gated Task and Motion Planning with Vision-Language Models." arXiv:2608.20084.</li>
+            <li id="ref-80">Tang, H., Key, D., &amp; Ellis, K. (2024). "WorldCoder, a Model-Based LLM Agent: Building World Models by Writing Code and Interacting with the Environment." arXiv:2402.12275.</li>
+            <li id="ref-81">Thakur, A., et al. (2025). "CLEVER: A Curated Benchmark for Formally Verified Code Generation." arXiv:2505.13938.</li>
+            <li id="ref-82">Valle, P., et al. (2026). "MANGO: Automated Multi-Agent Test Oracle Generation for Vision-Language-Action Models." arXiv:2606.24815.</li>
+            <li id="ref-83">Valle, P., et al. (2026). "Metamorphic Testing of Vision-Language Action-Enabled Robots." ICST 2026. arXiv:2602.22579.</li>
+            <li id="ref-84">Valmeekam, K., Marquez, M., &amp; Kambhampati, S. (2023). "Can Large Language Models Really Improve by Self-critiquing Their Own Plans?" arXiv:2310.08118.</li>
+            <li id="ref-85">Vega-Brown, W., &amp; Roy, N. (2018). "Admissible Abstractions for Near-optimal Task and Motion Planning." IJCAI 2018.</li>
+            <li id="ref-86">Vu, B., Migimatsu, T., &amp; Bohg, J. (2024). "COAST: Constraints and Streams for Task and Motion Planning." arXiv:2405.08572.</li>
+            <li id="ref-87">Wan, Y., et al. (2026). "No Free Checker: A Survey of Verifiers for Robot Policies." arXiv:2609.09250.</li>
+            <li id="ref-88">Wang, D., et al. (2026). "VerusEval: Evaluating LLM-Generated Verus Specifications Beyond Verifier Acceptance." arXiv:2610.26464.</li>
+            <li id="ref-89">Wu, W., et al. (2025). "Detecting Non-Optimal Decisions of Embodied Agents via Diversity-Guided Metamorphic Testing." arXiv:2512.20083.</li>
+            <li id="ref-90">Xiao, A., et al. (2026). "Hypothesis-driven Model Expansion under Uncertainty for Open-World Robot Planning." RSS 2026. arXiv:2607.06501.</li>
+            <li id="ref-91">Xie, Z., et al. (2026). "VeriContest: A Competitive-Programming Benchmark for Verifiable Code Generation." NeurIPS 2026 Evaluations and Datasets Track. arXiv:2605.08553.</li>
+            <li id="ref-92">Xu, D., et al. (2026). "LiveFMBench: Unveiling the Power and Limits of Agentic Workflows in Specification Generation." arXiv:2605.01394.</li>
+            <li id="ref-93">Yan, M., et al. (2025). "Using VLM Reasoning to Constrain Task and Motion Planning." arXiv:2510.25548.</li>
+            <li id="ref-94">Yang, F., et al. (2026). "How Powerful are LLMs in Generating Formal Program Specifications?" arXiv:2608.13077.</li>
+            <li id="ref-95">Yang, Z., et al. (2023). "Plug in the Safety Chip: Enforcing Constraints for LLM-driven Robot Agents." arXiv:2309.09919.</li>
+            <li id="ref-96">Yang, Z., et al. (2025). "SkillWrapper: Generative Predicate Invention for Task-level Robot Planning." arXiv:2511.18203.</li>
+            <li id="ref-97">Ye, Z., et al. (2025). "VERINA: Benchmarking Verifiable Code Generation." arXiv:2505.23135.</li>
+            <li id="ref-98">Zhao, L., et al. (2025). "Seeing is Believing: Belief-Space Planning with Foundation Models as Uncertainty Estimators." arXiv:2504.03245.</li>
+            <li id="ref-99">Zhao, X., Weber, &amp; Wermter. (2024). "Agentic Skill Discovery." arXiv:2405.15019.</li>
+            <li id="ref-100">Zhou, E., et al. (2024). "Code-as-Monitor: Constraint-aware Visual Programming for Reactive and Proactive Robotic Failure Detection." CVPR 2025. arXiv:2412.04455.</li>
+          </ol>
+        </div>
+      </article>
+    </div>
+
+    <!-- Table of contents, plus Prism, KaTeX and page views on demand -->
+    <script defer src="/js/blog.js"></script>
+    <!-- Only on pages with [n] citations, which it turns into links with previews -->
+    <script defer src="/js/references.js"></script>
+  </body>
+</html>
